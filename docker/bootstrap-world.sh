@@ -18,6 +18,24 @@ password=$COA_DB_ROOT_PASSWORD
 EOF
 
 python3.12 /coa-source/apps/coa-world/world_data.py verify
+
+# MySQL's container health check can briefly succeed against the temporary
+# initialization server just before it is stopped. Wait for the final server
+# to accept remote queries so first-time Compose startup is deterministic.
+for attempt in {1..30}; do
+  if mysql --defaults-extra-file="$credentials" --batch --skip-column-names \
+    --execute="SELECT 1" >/dev/null 2>&1; then
+    break
+  fi
+
+  if [[ "$attempt" == "30" ]]; then
+    echo "MySQL did not become ready for COA world bootstrap." >&2
+    exit 1
+  fi
+
+  sleep 2
+done
+
 table_count="$(mysql --defaults-extra-file="$credentials" --batch --skip-column-names \
   --execute="SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='acore_world'")"
 ledger_count="$(mysql --defaults-extra-file="$credentials" --batch --skip-column-names \

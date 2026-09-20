@@ -5,6 +5,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 bash -n "$ROOT/scripts/install-coa.sh"
 bash -n "$ROOT/scripts/coa-server.sh"
+bash -n "$ROOT/scripts/prepare-coa-data.sh"
 bash -n "$ROOT/docker/bootstrap-world.sh"
 
 grep -q 'ac-client-data-init' "$ROOT/compose.yaml" && {

@@ -53,6 +53,21 @@ services:
       world-bootstrap:
         condition: service_completed_successfully
 
+  realm-config:
+    image: mysql:8.4
+    environment:
+      MYSQL_PWD: ${COA_DB_ROOT_PASSWORD}
+    command:
+      - sh
+      - -ec
+      - >-
+        mysql --host=database --user=root acore_auth
+        --execute="UPDATE realmlist SET address='${COA_REALM_ADDRESS:-127.0.0.1}',
+        localAddress='127.0.0.1', port=${COA_WORLD_PORT:-38085} WHERE id=1"
+    depends_on:
+      db-import:
+        condition: service_completed_successfully
+
   authserver:
     build:
       context: ${COA_SOURCE_DIR}
@@ -72,7 +87,7 @@ services:
       - coa-etc:/azerothcore/env/dist/etc
       - coa-logs:/azerothcore/env/dist/logs
     depends_on:
-      db-import:
+      realm-config:
         condition: service_completed_successfully
 
   worldserver:
@@ -96,7 +111,7 @@ services:
       - coa-logs:/azerothcore/env/dist/logs
       - ${COA_DATA_DIR:?Set COA_DATA_DIR in .env}:/azerothcore/env/dist/data:ro
     depends_on:
-      db-import:
+      realm-config:
         condition: service_completed_successfully
 
 volumes:

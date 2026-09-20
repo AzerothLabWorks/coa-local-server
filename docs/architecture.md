@@ -18,7 +18,7 @@ C++ projects through a Windows-mounted path in WSL2.
    baseline archive from that checkout.
 5. The upstream `db-import` image initializes auth/characters schemas and applies repository migrations.
 6. Authserver and worldserver start only after both one-shot import stages complete successfully.
-7. Worldserver mounts the supplied COA data read-only.
+7. Worldserver mounts the supplied COA data read-only without duplicating its multi-gigabyte map files.
 
 ## Why the upstream Compose file is not used directly
 

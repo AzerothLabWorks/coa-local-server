@@ -8,7 +8,7 @@ not vendor that source or distribute clients, patches, game data, database packa
 
 ## Current development status
 
-The initial installer baseline is ready for validation. It:
+The installer has been validated end-to-end on Ubuntu/WSL2. It:
 
 - creates an isolated `coa-local` Compose project;
 - clones the COA source into a separate runtime directory;
@@ -17,6 +17,7 @@ The initial installer baseline is ready for validation. It:
 - verifies and imports the world baseline bundled with the selected COA source revision;
 - requires user-supplied COA server data;
 - builds the authserver, worldserver, and database importer from source;
+- configures the realm endpoint to match the published Docker world port;
 - deliberately bypasses AzerothCore's stock client-data downloader;
 - supports a non-destructive `--dry-run` preflight.
 
@@ -32,6 +33,19 @@ The installer does not yet download or infer proprietary inputs. Supply legally 
 
 The COA source specifically requires DBCs extracted from the matching COA client. Stock AzerothCore DBCs are
 not a compatible substitute.
+
+Prepare the server data from an existing client and COA source checkout:
+
+```bash
+./scripts/prepare-coa-data.sh \
+  --client-dir /mnt/c/Games/Ascension-WOW \
+  --source-dir /path/to/azerothcore-wotlk-coa \
+  --mpqcli /path/to/mpqcli \
+  --output ~/wow-server-coa-dev-data
+```
+
+This downloads v20 standard map data, then replaces its DBC set with tables extracted from and validated against the
+supplied COA client. The client is read-only and is not modified.
 
 ## Quick start
 
@@ -88,13 +102,15 @@ wow-server-coa-dev/
   .env                    generated secrets and local paths
   compose.yaml            installed Compose definition
   source/                 cloned upstream COA source
-  data/                   copied user-supplied server data
   orchestration/          copied first-boot helper image inputs
   state/upstream-commit   exact source revision
 ```
 
 Docker database state is stored in the named volume `coa-local-database`. Removing that volume destroys all
 accounts, characters, and database state; ordinary stop/start operations preserve it.
+
+Prepared server data remains in the directory passed with `--data-dir` and is mounted read-only; the installer
+does not duplicate its multi-gigabyte map files.
 
 ## Development
 

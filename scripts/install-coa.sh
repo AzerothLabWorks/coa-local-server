@@ -96,7 +96,6 @@ prepare_runtime() {
   git -C "$INSTALL_DIR/source" checkout --detach "$UPSTREAM_REF"
   git -C "$INSTALL_DIR/source" rev-parse HEAD > "$INSTALL_DIR/state/upstream-commit"
 
-  cp -a "$DATA_DIR" "$INSTALL_DIR/data"
   cp "$REPO_ROOT/compose.yaml" "$INSTALL_DIR/compose.yaml"
   cp "$REPO_ROOT/docker/world-bootstrap.Dockerfile" "$INSTALL_DIR/orchestration/world-bootstrap.Dockerfile"
   cp "$REPO_ROOT/docker/bootstrap-world.sh" "$INSTALL_DIR/orchestration/bootstrap-world.sh"
@@ -107,7 +106,7 @@ prepare_runtime() {
   group_id="$(id -g)"
   source_dir="$(absolute_path "$INSTALL_DIR/source")"
   orchestration_dir="$(absolute_path "$INSTALL_DIR/orchestration")"
-  data_dir="$(absolute_path "$INSTALL_DIR/data")"
+  data_dir="$DATA_DIR"
 
   umask 077
   cat > "$INSTALL_DIR/.env" <<EOF
@@ -120,6 +119,7 @@ COA_USER_ID=$user_id
 COA_GROUP_ID=$group_id
 COA_IMAGE_TAG=dev
 COA_TIMEZONE=America/Los_Angeles
+COA_REALM_ADDRESS=127.0.0.1
 COA_DB_PORT=33306
 COA_AUTH_PORT=33724
 COA_WORLD_PORT=38085
