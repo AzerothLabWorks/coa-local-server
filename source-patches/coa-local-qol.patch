@@ -1,0 +1,217 @@
+diff --git a/data/sql/updates/pending_db_world/rev_20260920_00_local_collectible_repairs.sql b/data/sql/updates/pending_db_world/rev_20260920_00_local_collectible_repairs.sql
+new file mode 100644
+index 000000000..85af8311d
+--- /dev/null
++++ b/data/sql/updates/pending_db_world/rev_20260920_00_local_collectible_repairs.sql
+@@ -0,0 +1,25 @@
++-- Targeted local compatibility repairs for supplied COA vanity records.
++-- Book of Artisans (57500) is already bound to profession trainer 200001;
++-- only its inherited WotLK deer display needs replacement.
++INSERT INTO `creature_model_info`
++    (`DisplayID`, `BoundingRadius`, `CombatReach`, `Gender`, `DisplayID_Other_Gender`)
++VALUES
++    (48503, 0.5, 1.5, 2, 0)
++ON DUPLICATE KEY UPDATE
++    `BoundingRadius` = VALUES(`BoundingRadius`),
++    `CombatReach` = VALUES(`CombatReach`),
++    `Gender` = VALUES(`Gender`),
++    `DisplayID_Other_Gender` = VALUES(`DisplayID_Other_Gender`);
++
++DELETE FROM `creature_template_model` WHERE `CreatureID` = 57500;
++INSERT INTO `creature_template_model`
++    (`CreatureID`, `Idx`, `CreatureDisplayID`, `DisplayScale`, `Probability`, `VerifiedBuild`)
++VALUES
++    (57500, 0, 48503, 1, 1, NULL);
++
++DELETE FROM `spell_script_names`
++WHERE `spell_id` IN (91737, 9931327)
++  AND `ScriptName` = 'spell_ascension_sunwarmed_furline';
++INSERT INTO `spell_script_names` (`spell_id`, `ScriptName`) VALUES
++    (91737, 'spell_ascension_sunwarmed_furline'),
++    (9931327, 'spell_ascension_sunwarmed_furline');
+diff --git a/modules/mod-ascension-compat/src/AscensionCompat.cpp b/modules/mod-ascension-compat/src/AscensionCompat.cpp
+index 759d5c263..4cc7b946c 100644
+--- a/modules/mod-ascension-compat/src/AscensionCompat.cpp
++++ b/modules/mod-ascension-compat/src/AscensionCompat.cpp
+@@ -403,6 +403,8 @@ struct PlayerCollectionState {
+   uint32 CompanionLootTimer = 0;
+   uint32 CompanionSkinningTimer = 0;
+   uint32 CosmeticTimer = 0;
++  uint32 PendingUtilitySpell = 0;
++  uint32 UtilityActionTimer = 0;
+   std::unordered_set<uint32> AppliedCosmeticSpells;
+   bool CanSeeItemAppearances = true;
+   bool CanSeeSpellAppearances = true;
+@@ -3254,6 +3256,16 @@ public:
+       for (uint32 field = 0; field < VANITY_STORE_RECORD_DWORDS; ++field)
+         info.StoreRecord[field] = record.GetUInt32(field);
+ 
++      // The catalog contains an older Sunwarmed Furline item whose learned
++      // spell does not produce a mount on this client build. Point that one
++      // record at the corrected spell used by the newer duplicate entry.
++      if (itemId == 1179217)
++      {
++        constexpr uint32 correctedSunwarmedFurlineSpell = 9931327;
++        info.LearnedSpell = correctedSunwarmedFurlineSpell;
++        info.StoreRecord[76] = correctedSunwarmedFurlineSpell;
++      }
++
+       _vanityItems[itemId] = info;
+       _allVanityItemIds.push_back(itemId);
+     }
+@@ -3372,6 +3384,7 @@ public:
+     ProcessPendingCompanionSpells(player, diff);
+     ProcessCompanionLoot(player, diff);
+     ProcessCompanionLoot(player, diff, true);
++    ProcessPendingUtilityAction(player, diff);
+     if (auto state = GetState(player))
+     {
+         if (state->CosmeticTimer <= diff)
+@@ -3384,6 +3397,59 @@ public:
+     }
+   }
+ 
++  void QueueUtilityAction(Player* player, uint32 spellId)
++  {
++    auto state = GetState(player);
++    if (!state)
++      return;
++
++    state->PendingUtilitySpell = spellId;
++    state->UtilityActionTimer = 100;
++    LOG_INFO("module.ascension_compat", "Queued local vanity compatibility action for {} (spell {})",
++        player->GetName(), spellId);
++  }
++
++  void ProcessPendingUtilityAction(Player* player, uint32 diff)
++  {
++    auto state = GetState(player);
++    if (!state || !state->PendingUtilitySpell)
++      return;
++    if (state->UtilityActionTimer > diff)
++    {
++      state->UtilityActionTimer -= diff;
++      return;
++    }
++
++    uint32 const spellId = state->PendingUtilitySpell;
++    state->PendingUtilitySpell = 0;
++    state->UtilityActionTimer = 0;
++
++    if (spellId == 91737 || spellId == 9931327)
++    {
++      constexpr uint32 sunwarmedFurlineDisplay = 99008;
++      constexpr uint32 sunwarmedFurlineCreature = 80403;
++      player->Mount(sunwarmedFurlineDisplay, 0, sunwarmedFurlineCreature);
++      LOG_INFO("module.ascension_compat", "Applied Sunwarmed Furline display for {}", player->GetName());
++      return;
++    }
++
++    if (spellId == 750750)
++    {
++      Creature* book = player->GetMap()->GetCreature(player->GetCritterGUID());
++      if (!book || book->GetEntry() != 57500)
++      {
++        LOG_WARN("module.ascension_compat", "Book of Artisans summon was not available for {} after spell {}",
++            player->GetName(), spellId);
++        return;
++      }
++
++      book->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
++      book->SetNpcFlag(UNIT_NPC_FLAG_TRAINER);
++      player->GetSession()->SendTrainerList(book);
++      LOG_INFO("module.ascension_compat", "Opened Book of Artisans trainer for {}", player->GetName());
++    }
++  }
++
+     void ProcessCompanionLoot(Player* player, uint32 diff, bool skin = false)
+     {
+         constexpr uint32 CREATURE_LOOTBOT_3000 = 44022;
+@@ -5572,8 +5638,19 @@ public:
+       return true;
+ 
+     handled = true;
+-    return AscensionClassService::Instance().InitializeLiveBaseline(player) &&
+-           AscensionClassService::Instance().InitializeLiveStarterKit(player);
++    if (!AscensionClassService::Instance().InitializeLiveBaseline(player) ||
++        !AscensionClassService::Instance().InitializeLiveStarterKit(player))
++      return false;
++
++    // COA local-server QoL: custom Ascension classes bypass the core's
++    // playercreateinfo_item path, so equip their starter bags here.
++    constexpr uint32 localStarterBag = 1004037; // Elementiumweave Bag, 30 slots
++    for (uint8 bag = INVENTORY_SLOT_BAG_START; bag < INVENTORY_SLOT_BAG_END; ++bag)
++      if (!player->GetItemByPos(INVENTORY_SLOT_BAG_0, bag) &&
++          !player->StoreNewItemInBestSlots(localStarterBag, 1))
++        return false;
++
++    return true;
+   }
+ 
+   bool OnPlayerCheckItemInSlotAtLoadInventory(Player* player, Item* item, uint8 slot,
+@@ -5833,14 +5910,17 @@ public:
+             AscensionResourceService::Instance().CanPrepare(spell);
+     }
+ 
+-    void OnSpellCast(Spell* spell, Unit* /*caster*/,
+-        SpellInfo const* /*spellInfo*/, bool /*skipCheck*/) override
++    void OnSpellCast(Spell* spell, Unit* caster,
++        SpellInfo const* spellInfo, bool /*skipCheck*/) override
+     {
+         if (ascensionCompatConfig.GetConfigValue<bool>(
+                 AscensionCompatConfig::ENABLED))
+         {
+             AscensionResourceService::Instance().OnSpellCast(spell);
+             HandleAscensionClassMechanicsCast(spell);
++            if (Player* player = caster ? caster->ToPlayer() : nullptr)
++                if (spellInfo && (spellInfo->Id == 91737 || spellInfo->Id == 9931327 || spellInfo->Id == 750750))
++                    AscensionCollectionService::Instance().QueueUtilityAction(player, spellInfo->Id);
+         }
+     }
+ 
+@@ -6524,6 +6604,37 @@ class spell_ascension_wildcard_mount : public SpellScript
+     }
+ };
+ 
++// Both catalog generations of Sunwarmed Furline apply the correct permanent
++// mount aura, but this custom client build does not turn that aura's creature
++// entry into a visible mount. Preserve the native aura for speed and removal,
++// and repair only the missing display after a successful cast.
++class spell_ascension_sunwarmed_furline : public SpellScript
++{
++    PrepareSpellScript(spell_ascension_sunwarmed_furline);
++
++    static constexpr uint32 DisplayId = 99008;
++    static constexpr uint32 CreatureEntry = 80403;
++
++    bool Load() override
++    {
++        return ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED) &&
++            GetCaster()->IsPlayer();
++    }
++
++    void EnsureMountDisplay()
++    {
++        Player* player = GetCaster()->ToPlayer();
++        if (player && player->HasAura(GetSpellInfo()->Id) &&
++            player->GetUInt32Value(UNIT_FIELD_MOUNTDISPLAYID) != DisplayId)
++            player->Mount(DisplayId, 0, CreatureEntry);
++    }
++
++    void Register() override
++    {
++        AfterCast += SpellCastFn(spell_ascension_sunwarmed_furline::EnsureMountDisplay);
++    }
++};
++
+ class npc_ascension_training_book : public CreatureScript
+ {
+ public:
+@@ -6773,6 +6884,7 @@ void AddAscensionCompatScripts() {
+   RegisterSpellScript(spell_ascension_local_mount);
+   RegisterSpellScript(spell_ascension_jailers_bargain);
+   RegisterSpellScript(spell_ascension_wildcard_mount);
++  RegisterSpellScript(spell_ascension_sunwarmed_furline);
+   RegisterSpellScript(spell_ascension_legacy_quest_reward);
+   new AscensionTradesmanScroll();
+   new AscensionCompatServerScript();

@@ -15,6 +15,15 @@ grep -q 'ac-client-data-init' "$ROOT/compose.yaml" && {
 
 grep -q 'COA_DATA_DIR' "$ROOT/compose.yaml"
 grep -q 'condition: service_completed_successfully' "$ROOT/compose.yaml"
+grep -q 'AC_DYNAMIC_XP_PRESET' "$ROOT/compose.yaml"
+grep -q 'AC_SKILL_GAIN_CRAFTING' "$ROOT/compose.yaml"
+grep -q 'AC_SKILL_GAIN_GATHERING' "$ROOT/compose.yaml"
+grep -q 'AC_START_PLAYER_MONEY' "$ROOT/compose.yaml"
+grep -q 'coa-local-qol.patch' "$ROOT/scripts/install-coa.sh"
+grep -q 'localStarterBag = 1004037' "$ROOT/source-patches/coa-local-qol.patch"
+grep -q 'sunwarmedFurlineDisplay = 99008' "$ROOT/source-patches/coa-local-qol.patch"
+grep -q 'Opened Book of Artisans trainer' "$ROOT/source-patches/coa-local-qol.patch"
+grep -q '(57500, 0, 48503' "$ROOT/source-patches/coa-local-qol.patch"
 
 help_output="$(bash "$ROOT/scripts/install-coa.sh" --help)"
 grep -q -- '--dry-run' <<< "$help_output"

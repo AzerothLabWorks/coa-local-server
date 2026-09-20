@@ -19,6 +19,8 @@ The installer has been validated end-to-end on Ubuntu/WSL2. It:
 - builds the authserver, worldserver, and database importer from source;
 - configures the realm endpoint to match the published Docker world port;
 - deliberately bypasses AzerothCore's stock client-data downloader;
+- applies local QoL defaults: 3x XP, 4x profession gains, 5,000 starter gold,
+  and four 30-slot bags for newly created characters;
 - supports a non-destructive `--dry-run` preflight.
 
 The installer does not yet download or infer proprietary inputs. Supply legally obtained files yourself.
@@ -108,6 +110,21 @@ wow-server-coa-dev/
 
 Docker database state is stored in the named volume `coa-local-database`. Removing that volume destroys all
 accounts, characters, and database state; ordinary stop/start operations preserve it.
+
+The generated `.env` exposes the QoL rates as `COA_XP_RATE`, `COA_PROFESSION_RATE`, and
+`COA_STARTER_MONEY_COPPER`. The default XP preset is 3; the included dynamic-XP module also supports presets
+1, 5, and 7.
+
+## Included gameplay compatibility fixes
+
+The installer applies a small, auditable source patch for local play. In addition to the QoL defaults above, it:
+
+- equips new Ascension-class characters with four 30-slot Elementiumweave Bags;
+- repairs both Sunwarmed Furline collection records and supplies the missing server-side mount display behavior;
+- restores the Book of Artisans model and interaction bounds; and
+- opens the Book of Artisans profession trainer after it is summoned, allowing professions to be learned normally.
+
+These changes are deliberately limited to the affected collection records and local character initialization.
 
 Prepared server data remains in the directory passed with `--data-dir` and is mounted read-only; the installer
 does not duplicate its multi-gigabyte map files.

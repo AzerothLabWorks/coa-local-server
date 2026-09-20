@@ -94,6 +94,7 @@ prepare_runtime() {
   log "Cloning COA source..."
   git clone "$UPSTREAM_REPO" "$INSTALL_DIR/source"
   git -C "$INSTALL_DIR/source" checkout --detach "$UPSTREAM_REF"
+  git -C "$INSTALL_DIR/source" apply "$REPO_ROOT/source-patches/coa-local-qol.patch"
   git -C "$INSTALL_DIR/source" rev-parse HEAD > "$INSTALL_DIR/state/upstream-commit"
 
   cp "$REPO_ROOT/compose.yaml" "$INSTALL_DIR/compose.yaml"
@@ -124,6 +125,9 @@ COA_DB_PORT=33306
 COA_AUTH_PORT=33724
 COA_WORLD_PORT=38085
 COA_SOAP_PORT=37878
+COA_XP_RATE=3
+COA_PROFESSION_RATE=4
+COA_STARTER_MONEY_COPPER=50000000
 EOF
   chmod 600 "$INSTALL_DIR/.env"
 }
