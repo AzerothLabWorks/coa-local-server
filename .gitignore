@@ -1,0 +1,11 @@
+.env
+.runtime/
+*.log
+*.sql
+*.sql.gz
+*.zip
+client/
+data/
+repack/
+patches/
+runtime/
