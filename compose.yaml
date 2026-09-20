@@ -103,6 +103,10 @@ services:
     environment:
       <<: *database-environment
       TZ: ${COA_TIMEZONE:-America/Los_Angeles}
+      # Docker bridge traffic arrives from a non-loopback address. This realm is
+      # dedicated to the matching Ascension client, whose world headers remain
+      # plaintext after authentication.
+      AC_ASCENSION_COMPAT_ALLOW_REMOTE_CLIENTS: 1
     ports:
       - "${COA_WORLD_PORT:-38085}:8085"
       - "${COA_SOAP_PORT:-37878}:7878"
