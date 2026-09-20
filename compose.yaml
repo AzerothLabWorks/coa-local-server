@@ -128,6 +128,8 @@ services:
       # dedicated to the matching Ascension client, whose world headers remain
       # plaintext after authentication.
       AC_ASCENSION_COMPAT_ALLOW_REMOTE_CLIENTS: 1
+      AC_DYNAMIC_XP_REMINDER_INTERVAL: ${COA_XP_REMINDER_INTERVAL:-40}
+      AC_CO_AGAMEPLAY_TEST_ENABLE: 0
     ports:
       - "${COA_WORLD_PORT:-38085}:8085"
       - "${COA_SOAP_PORT:-37878}:7878"
