@@ -68,6 +68,25 @@ services:
       db-import:
         condition: service_completed_successfully
 
+  module-config:
+    image: coa-local/worldserver:${COA_IMAGE_TAG:-dev}
+    entrypoint: ["/usr/bin/env", "bash", "-c"]
+    command:
+      - |
+        set -euo pipefail
+        mkdir -p /azerothcore/env/dist/etc/modules
+        for source in /azerothcore/env/ref/etc/modules/*.conf.dist; do
+          target="/azerothcore/env/dist/etc/modules/$$(basename "$${source%.dist}")"
+          if [[ ! -e "$$target" ]]; then
+            cp "$$source" "$$target"
+          fi
+        done
+    volumes:
+      - coa-etc:/azerothcore/env/dist/etc
+    depends_on:
+      db-import:
+        condition: service_completed_successfully
+
   authserver:
     build:
       context: ${COA_SOURCE_DIR}
@@ -88,6 +107,8 @@ services:
       - coa-logs:/azerothcore/env/dist/logs
     depends_on:
       realm-config:
+        condition: service_completed_successfully
+      module-config:
         condition: service_completed_successfully
 
   worldserver:
@@ -116,6 +137,8 @@ services:
       - ${COA_DATA_DIR:?Set COA_DATA_DIR in .env}:/azerothcore/env/dist/data:ro
     depends_on:
       realm-config:
+        condition: service_completed_successfully
+      module-config:
         condition: service_completed_successfully
 
 volumes:
