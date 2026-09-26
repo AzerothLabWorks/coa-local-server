@@ -1,0 +1,104 @@
+diff --git a/src/server/game/Entities/Player/Player.cpp b/src/server/game/Entities/Player/Player.cpp
+index 99a5e9b38..988e842fe 100644
+--- a/src/server/game/Entities/Player/Player.cpp
++++ b/src/server/game/Entities/Player/Player.cpp
+@@ -3248,7 +3248,9 @@ bool Player::addSpell(uint32 spellId, uint8 addSpecMask, bool updateActive, bool
+ 
+ bool Player::CheckSkillLearnedBySpell(uint32 spellId)
+ {
+-    if (!sWorld->getBoolConfig(CONFIG_VALIDATE_SKILL_LEARNED_BY_SPELLS))
++    // COA classes have skills outside the WotLK race/class masks. Their baseline
++    // and proficiency rules are managed by the Ascension compatibility module.
++    if (!sWorld->getBoolConfig(CONFIG_VALIDATE_SKILL_LEARNED_BY_SPELLS) || IsAscensionClass(getClass()))
+         return true;
+ 
+     SkillLineAbilityMapBounds skill_bounds = sSpellMgr->GetSkillLineAbilityMapBounds(spellId);
+@@ -3457,7 +3459,7 @@ void Player::learnSpell(uint32 spellId, bool temporary /*= false*/, bool learnFr
+ {
+     if (IsAscensionClass(getClass()))
+         if (SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spellId))
+-            if (spellInfo->IsDeprecatedForPlayers)
++            if (spellInfo->IsDeprecatedForPlayers || !SpellMgr::IsSpellValid(spellInfo))
+                 return;
+ 
+     // Xinef: don't allow to learn active spell once more
+@@ -14300,29 +14309,34 @@ void Player::_LoadSkills(PreparedQueryResult result)
+             uint16 max      = fields[2].Get<uint16>();
+ 
+             SkillRaceClassInfoEntry const* rcEntry = GetSkillRaceClassInfo(skill, getRace(), getClass());
+-            if (!rcEntry)
++            if (!rcEntry && (!IsAscensionClass(getClass()) || !sSkillLineStore.LookupEntry(skill)))
+             {
+                 LOG_ERROR("entities.player", "Player {} (GUID: {}), has skill ({}) that is invalid for the race/class combination (Race: {}, Class: {}). Will be deleted.",
+                     GetName(), GetGUID().GetCounter(), skill, getRace(), getClass());
+ 
+-                // Mark skill for deletion in the database
+-                mSkillStatus.insert(SkillStatusMap::value_type(skill, SkillStatusData(0, SKILL_DELETED)));
++                CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_CHARACTER_SKILL);
++                stmt->SetData(0, GetGUID().GetCounter());
++                stmt->SetData(1, skill);
++                CharacterDatabase.Execute(stmt);
+                 continue;
+             }
+ 
+             // set fixed skill ranges
+-            switch (GetSkillRangeType(rcEntry))
++            if (rcEntry)
+             {
+-                case SKILL_RANGE_LANGUAGE:                      // 300..300
+-                    value = max = 300;
+-                    break;
+-                case SKILL_RANGE_MONO:                          // 1..1, grey monolite bar
+-                    value = max = 1;
+-                    break;
+-                case SKILL_RANGE_LEVEL:
+-                    max = GetMaxSkillValueForLevel();
+-                default:
+-                    break;
++                switch (GetSkillRangeType(rcEntry))
++                {
++                    case SKILL_RANGE_LANGUAGE:                      // 300..300
++                        value = max = 300;
++                        break;
++                    case SKILL_RANGE_MONO:                          // 1..1, grey monolite bar
++                        value = max = 1;
++                        break;
++                    case SKILL_RANGE_LEVEL:
++                        max = GetMaxSkillValueForLevel();
++                    default:
++                        break;
++                }
+             }
+ 
+             if (value == 0)
+@@ -14332,7 +14346,7 @@ void Player::_LoadSkills(PreparedQueryResult result)
+ 
+                 CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_CHARACTER_SKILL);
+ 
+-                stmt->SetData(0, GetGUID().GetRawValue());
++                stmt->SetData(0, GetGUID().GetCounter());
+                 stmt->SetData(1, skill);
+ 
+                 CharacterDatabase.Execute(stmt);
+@@ -14341,7 +14355,7 @@ void Player::_LoadSkills(PreparedQueryResult result)
+             }
+ 
+             uint16 skillStep = 0;
+-            if (SkillTiersEntry const* skillTier = sSkillTiersStore.LookupEntry(rcEntry->SkillTierID))
++            if (SkillTiersEntry const* skillTier = rcEntry ? sSkillTiersStore.LookupEntry(rcEntry->SkillTierID) : nullptr)
+             {
+                 for (uint32 i = 0; i < MAX_SKILL_STEP; ++i)
+                 {
+diff --git a/src/server/game/Entities/Player/PlayerStorage.cpp b/src/server/game/Entities/Player/PlayerStorage.cpp
+index 7f85c162e..649953647 100644
+--- a/src/server/game/Entities/Player/PlayerStorage.cpp
++++ b/src/server/game/Entities/Player/PlayerStorage.cpp
+@@ -6632,7 +6657,7 @@ void Player::_LoadSpells(PreparedQueryResult result)
+                 removeSpell(spellId, SPEC_MASK_ALL, false);
+ 
+                 CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_CHAR_SPELL_BY_SPELL);
+-                stmt->SetData(0, GetGUID().GetRawValue());
++                stmt->SetData(0, GetGUID().GetCounter());
+                 stmt->SetData(1, spellId);
+                 CharacterDatabase.Execute(stmt);
+             }

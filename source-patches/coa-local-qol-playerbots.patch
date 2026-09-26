@@ -1,0 +1,255 @@
+diff --git a/modules/mod-ascension-compat/src/AscensionCompat.cpp b/modules/mod-ascension-compat/src/AscensionCompat.cpp
+index da2e17e5a..ee04e2cb5 100644
+--- a/modules/mod-ascension-compat/src/AscensionCompat.cpp
++++ b/modules/mod-ascension-compat/src/AscensionCompat.cpp
+@@ -268,6 +268,8 @@ struct PlayerCollectionState {
+   uint32 CompanionLootTimer = 0;
+   uint32 CompanionSkinningTimer = 0;
+   uint32 CosmeticTimer = 0;
++  uint32 PendingUtilitySpell = 0;
++  uint32 UtilityActionTimer = 0;
+   std::unordered_set<uint32> AppliedCosmeticSpells;
+   bool CanSeeItemAppearances = true;
+   bool CanSeeSpellAppearances = true;
+@@ -2290,10 +2292,15 @@ public:
+                             if (!itemId)
+                               return;
+ 
++                            uint32 learnedSpell = ReadRecordField(record, 76);
++                            // The older duplicate catalog entry points at a
++                            // spell that does not render this mount client-side.
++                            if (itemId == 1179217)
++                              learnedSpell = 9931327;
+                             _vanityItems[itemId] =
+                                 // f44 is an empty locale column. The physical
+                                 // record has 77 DWORDs; f76 is LearnedSpell.
+-                                VanityInfo{ReadRecordField(record, 76),
++                                VanityInfo{learnedSpell,
+                                            ReadRecordField(record, 12),
+                                            ReadRecordField(record, 2)};
+                             _allVanityItemIds.push_back(itemId);
+@@ -2412,6 +2419,7 @@ public:
+     ProcessPendingCompanionSpells(player, diff);
+     ProcessCompanionLoot(player, diff);
+     ProcessCompanionLoot(player, diff, true);
++    ProcessPendingUtilityAction(player, diff);
+     if (auto state = GetState(player))
+     {
+         if (state->CosmeticTimer <= diff)
+@@ -2424,13 +2432,65 @@ public:
+     }
+   }
+ 
++  void QueueUtilityAction(Player* player, uint32 spellId)
++  {
++    auto state = GetState(player);
++    if (!state)
++      return;
++
++    state->PendingUtilitySpell = spellId;
++    state->UtilityActionTimer = 100;
++  }
++
++  void ProcessPendingUtilityAction(Player* player, uint32 diff)
++  {
++    auto state = GetState(player);
++    if (!state || !state->PendingUtilitySpell)
++      return;
++    if (state->UtilityActionTimer > diff)
++    {
++      state->UtilityActionTimer -= diff;
++      return;
++    }
++
++    uint32 const spellId = state->PendingUtilitySpell;
++    state->PendingUtilitySpell = 0;
++    state->UtilityActionTimer = 0;
++
++    if (spellId == 91737 || spellId == 9931327)
++    {
++      player->Mount(99008, 0, 80403);
++      return;
++    }
++
++    if (spellId == 750750)
++    {
++      Creature* book = player->GetMap()->GetCreature(player->GetCritterGUID());
++      if (!book || book->GetEntry() != 57500)
++        return;
++      book->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
++      book->SetNpcFlag(UNIT_NPC_FLAG_TRAINER);
++      player->GetSession()->SendTrainerList(book);
++    }
++  }
++
+     void ProcessCompanionLoot(Player* player, uint32 diff, bool skin = false)
+     {
+         uint32 const category = skin ? APPEARANCE_CATEGORY_COMPANION_SKINNING : APPEARANCE_CATEGORY_COMPANION_LOOT;
+         uint32 const appearance = skin ? APPEARANCE_SKIN_PEELER : APPEARANCE_LOOT_TRANSFIGURATOR;
+         auto state = GetState(player);
+-        if (!state || state->ActiveAppearances[category] != appearance ||
+-            !state->CollectedAppearances.contains(appearance))
++        if (!state)
++            return;
++        Creature* companion = player->GetMap()->GetCreature(player->GetCritterGUID());
++        // The client can summon Lootbot 3000 independently of the wardrobe's
++        // active-companion category.  A later appearance update can also omit
++        // that category and clear its persisted selection.  The owned,
++        // currently summoned Lootbot is therefore the authoritative opt-in.
++        bool const summonedLootbot = !skin && companion && companion->GetEntry() == 44022 &&
++            companion->IsAlive() && companion->GetOwnerGUID() == player->GetGUID();
++        bool const selectedAppearance = state->ActiveAppearances[category] == appearance &&
++            state->CollectedAppearances.contains(appearance);
++        if (!selectedAppearance && !summonedLootbot)
+             return;
+         uint32& timer = skin ? state->CompanionSkinningTimer : state->CompanionLootTimer;
+         if (timer > diff)
+@@ -2442,7 +2502,6 @@ public:
+         if (!spell || !spell->Effects[EFFECT_0].Amplitude)
+             return;
+         timer = spell->Effects[EFFECT_0].Amplitude;
+-        Creature* companion = player->GetMap()->GetCreature(player->GetCritterGUID());
+         if (!companion || !companion->IsAlive() || companion->GetOwnerGUID() != player->GetGUID())
+             return;
+         float const radius = spell->Effects[EFFECT_0].CalcRadius(player);
+@@ -3453,6 +3512,8 @@ public:
+         {"localvanity", HandleLocalVanityCommand, SEC_PLAYER, Console::No},
+         {"localtalent", HandleLocalTalentCommand, SEC_PLAYER, Console::No},
+         {"localspec", HandleLocalSpecCommand, SEC_PLAYER, Console::No},
++        {"localspecstate", HandleLocalSpecStateCommand, SEC_PLAYER,
++         Console::No},
+         {"localresource", HandleLocalResourceCommand, SEC_PLAYER,
+          Console::No},
+         {"localcharges", HandleLocalChargesCommand, SEC_PLAYER, Console::No},
+@@ -3613,6 +3674,14 @@ public:
+     return true;
+   }
+ 
++  // The Ascension client polls this private-server extension after login. The
++  // published CoA sources do not include the original implementation, but the
++  // client does not require a chat response: accepting the query silently
++  // prevents the command dispatcher from flooding the player's chat window.
++  static bool HandleLocalSpecStateCommand(ChatHandler *handler) {
++    return handler->GetPlayer() != nullptr;
++  }
++
+   static bool HandleLocalClassRepairCommand(ChatHandler *handler) {
+     Player *player = handler->GetPlayer();
+     if (!player)
+@@ -3762,8 +3831,17 @@ public:
+       return true;
+ 
+     handled = true;
+-    return AscensionClassService::Instance().InitializeLiveBaseline(player) &&
+-           AscensionClassService::Instance().InitializeLiveStarterKit(player);
++    if (!AscensionClassService::Instance().InitializeLiveBaseline(player) ||
++        !AscensionClassService::Instance().InitializeLiveStarterKit(player))
++      return false;
++
++    constexpr uint32 localStarterBag = 1004037;
++    for (uint8 bag = INVENTORY_SLOT_BAG_START; bag < INVENTORY_SLOT_BAG_END; ++bag)
++      if (!player->GetItemByPos(INVENTORY_SLOT_BAG_0, bag) &&
++          !player->StoreNewItemInBestSlots(localStarterBag, 1))
++        return false;
++
++    return true;
+   }
+ 
+   void OnPlayerLogin(Player *player) override {
+@@ -3970,14 +4048,17 @@ public:
+             AscensionResourceService::Instance().CanPrepare(spell);
+     }
+ 
+-    void OnSpellCast(Spell* spell, Unit* /*caster*/,
+-        SpellInfo const* /*spellInfo*/, bool /*skipCheck*/) override
++    void OnSpellCast(Spell* spell, Unit* caster,
++        SpellInfo const* spellInfo, bool /*skipCheck*/) override
+     {
+         if (ascensionCompatConfig.GetConfigValue<bool>(
+                 AscensionCompatConfig::ENABLED))
+         {
+             AscensionResourceService::Instance().OnSpellCast(spell);
+             HandleAscensionClassMechanicsCast(spell);
++            if (Player* player = caster ? caster->ToPlayer() : nullptr)
++                if (spellInfo && (spellInfo->Id == 91737 || spellInfo->Id == 9931327 || spellInfo->Id == 750750))
++                    AscensionCollectionService::Instance().QueueUtilityAction(player, spellInfo->Id);
+         }
+     }
+ 
+@@ -4574,6 +4655,37 @@ class spell_ascension_local_mount : public SpellScript
+     }
+ };
+ 
++// Both catalog generations of Sunwarmed Furline apply the correct permanent
++// mount aura, but this custom client build does not turn that aura's creature
++// entry into a visible mount. Preserve the native aura for speed and removal,
++// and repair only the missing display after a successful cast.
++class spell_ascension_sunwarmed_furline : public SpellScript
++{
++    PrepareSpellScript(spell_ascension_sunwarmed_furline);
++
++    static constexpr uint32 DisplayId = 99008;
++    static constexpr uint32 CreatureEntry = 80403;
++
++    bool Load() override
++    {
++        return ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED) &&
++            GetCaster()->IsPlayer();
++    }
++
++    void EnsureMountDisplay()
++    {
++        Player* player = GetCaster()->ToPlayer();
++        if (player && player->HasAura(GetSpellInfo()->Id) &&
++            player->GetUInt32Value(UNIT_FIELD_MOUNTDISPLAYID) != DisplayId)
++            player->Mount(DisplayId, 0, CreatureEntry);
++    }
++
++    void Register() override
++    {
++        AfterCast += SpellCastFn(spell_ascension_sunwarmed_furline::EnsureMountDisplay);
++    }
++};
++
+ class npc_ascension_training_book : public CreatureScript
+ {
+ public:
+@@ -4672,6 +4784,7 @@ void AddAscensionCompatScripts() {
+   new npc_ascension_training_book();
+   RegisterSpellScript(spell_ascension_experience_potion);
+   RegisterSpellScript(spell_ascension_local_mount);
++  RegisterSpellScript(spell_ascension_sunwarmed_furline);
+   RegisterSpellScript(spell_ascension_legacy_quest_reward);
+   new AscensionTradesmanScroll();
+   new AscensionCompatServerScript();
+diff --git a/modules/mod-ascension-compat/tests/companion_loot/run.py b/modules/mod-ascension-compat/tests/companion_loot/run.py
+index 460a394c1..8bac4c15d 100644
+--- a/modules/mod-ascension-compat/tests/companion_loot/run.py
++++ b/modules/mod-ascension-compat/tests/companion_loot/run.py
+@@ -88,7 +88,7 @@ struct CreatureTemplate
+ {uint32 skill=SKILL_SKINNING;uint32 GetRequiredLootSkill()const{return skill;}};
+ struct Creature
+ {
+-    ObjectGuid guid{3},owner{1};bool alive=false,inRange=true,los=true,reward=true;
++    ObjectGuid guid{3},owner{1};bool alive=false,inRange=true,los=true,reward=true;uint32 entry=0;
+     Player* recipient=nullptr;Group* group=nullptr;
+     Loot loot;std::list<Creature*> nearby;
+     CreatureTemplate definition;uint32 flags=UNIT_FLAG_SKINNABLE;int32 level=20;
+@@ -100,6 +100,7 @@ struct Creature
+     void GetDeadCreatureListInGrid(std::list<Creature*>& out,float radius,bool deadOnly)const
+     {assert((radius==40 || radius==20) && deadOnly);out=nearby;}
+     ObjectGuid GetGUID()const{return guid;}ObjectGuid GetOwnerGUID()const{return owner;}
++    uint32 GetEntry()const{return entry;}
+     bool IsAlive()const{return alive;}
+     bool isDead()const{return !alive;}bool IsDamageEnoughForLootingAndReward()const{return reward;}
+     bool IsLootRewardDisabled()const{return false;}Player* GetLootRecipient()const{return recipient;}
+@@ -264,6 +265,9 @@ int main()
+         cosmetics.ProcessCompanionLoot(&c.player,1);assert(c.player.session.moneyCalls==2);
+         cosmetics.collection->ActiveAppearances[38]=0;
+         cosmetics.ProcessCompanionLoot(&c.player,1000);assert(c.player.session.moneyCalls==2);}
++    {Case c;Cosmetics cosmetics;c.pet.entry=44022;c.pet.nearby={&c.corpse};
++        cosmetics.ProcessCompanionLoot(&c.player,1);assert(c.player.stored.size()==3);
++        assert(c.player.session.moneyCalls==1);}
+     {Case c;c.collect();assert((c.player.stored==std::vector<uint8>{0,1,2}));assert(c.player.session.moneyCalls==1);
+         assert(c.player.session.releases==1 && !c.player.IsWithinLootDistance(&c.corpse));}
+     {Case c;c.player.full=true;c.collect();assert(c.player.stored.empty() && !c.corpse.loot.items[0].is_looted);

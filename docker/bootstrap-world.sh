@@ -36,6 +36,11 @@ for attempt in {1..30}; do
   sleep 2
 done
 
+if [[ "${COA_PLAYERBOTS_ENABLED:-0}" == "1" ]]; then
+  mysql --defaults-extra-file="$credentials" \
+    --execute="CREATE DATABASE IF NOT EXISTS acore_playerbots"
+fi
+
 table_count="$(mysql --defaults-extra-file="$credentials" --batch --skip-column-names \
   --execute="SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='acore_world'")"
 ledger_count="$(mysql --defaults-extra-file="$credentials" --batch --skip-column-names \

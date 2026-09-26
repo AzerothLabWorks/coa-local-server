@@ -22,6 +22,7 @@ The installer has been validated end-to-end on Ubuntu/WSL2. It:
 - applies local QoL defaults: 3x XP, 4x profession gains, 5,000 starter gold,
   and four 30-slot bags for newly created characters;
 - supports a non-destructive `--dry-run` preflight.
+- optionally builds the open-source Playerbots core/module integration and initializes its database.
 
 The installer does not yet download or infer proprietary inputs. Supply legally obtained files yourself.
 
@@ -71,6 +72,47 @@ After the preflight succeeds, rerun without `--dry-run`:
   --data-dir /path/to/prepared-coa-server-data
 ```
 
+### Optional Playerbots build
+
+Playerbots requires its own AzerothCore fork hooks; adding only the module to ordinary COA source is not sufficient.
+The installer therefore pins the COA revision used by the repack-era build, applies the audited Playerbots core delta,
+and checks out the matching open-source module revision:
+
+```bash
+./scripts/install-coa.sh \
+  --dir ~/wow-server-coa-bots \
+  --data-dir '/mnt/c/Games/COA Repack/CoA-Repack/CoA-Repack/Data' \
+  --with-playerbots
+```
+
+To also install the repack's UnBot client addon, pass both Windows locations as WSL paths. An existing UnBot folder
+is renamed to a timestamped backup before the new copy is installed:
+
+```bash
+./scripts/install-coa.sh \
+  --dir ~/wow-server-coa-bots \
+  --data-dir '/mnt/c/Games/COA Repack/CoA-Repack/CoA-Repack/Data' \
+  --with-playerbots \
+  --client-dir /mnt/c/Games/Ascension-WOW \
+  --playerbots-package-dir '/mnt/c/Games/COA Repack/CoA-Repack/CoA-Repack/CoA-Bots'
+```
+
+This installs the open-source Playerbots engine and its `acore_playerbots` database. The repack `Data` directory is
+required because its Playerbots DBC layout differs from the client-extracted non-bot data. The installer verifies two
+layout-sensitive DBC hashes before building.
+
+The local compatibility patch also contains an initial COA AI adapter reconstructed from the data and behavior in
+the repack package. It permits random characters using custom class IDs, preserves their COA spellbooks during bot
+randomization, and selects usable offensive abilities dynamically from their learned spells. This is an experimental
+combat baseline, not yet feature-equivalent to the repack's compiled COA layer: specialization profiles, healing,
+tanking, dispels, interrupts, and `.playerbots coa tank|heal|dps` are still being developed.
+
+New Playerbots installations reserve 120 bot accounts and restrict newly generated characters to COA class IDs. This
+leaves any pre-existing classic bot characters intact while ensuring the expanded pool contains testable COA bots.
+The default online population is 12; override it cautiously with `COA_MIN_RANDOM_BOTS`, `COA_MAX_RANDOM_BOTS`, and
+`COA_RANDOM_BOT_ACCOUNT_COUNT` in `.env`. UnBot remains available for the standard Playerbots controls; its bot
+management bar is a client-side command interface and does not implement the server AI itself.
+
 The initial C++ image build can take a long time. Follow progress with:
 
 ```bash
@@ -106,6 +148,7 @@ wow-server-coa-dev/
   source/                 cloned upstream COA source
   orchestration/          copied first-boot helper image inputs
   state/upstream-commit   exact source revision
+  state/playerbots-module-commit  exact module revision (Playerbots installs only)
 ```
 
 Docker database state is stored in the named volume `coa-local-database`. Removing that volume destroys all

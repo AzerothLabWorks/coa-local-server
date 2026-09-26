@@ -1,0 +1,310 @@
+diff --git a/conf/playerbots.conf.dist b/conf/playerbots.conf.dist
+index eaa040b7..08a01154 100644
+--- a/conf/playerbots.conf.dist
++++ b/conf/playerbots.conf.dist
+@@ -96,6 +96,11 @@ AiPlayerbot.MaxRandomBots = 500
+ # Default: 0 (automatic)
+ AiPlayerbot.RandomBotAccountCount = 0
+ 
++# Restrict characters created on new random-bot accounts to Ascension custom
++# classes (class IDs 12-32). Existing bot characters are never modified.
++# Default: 0
++AiPlayerbot.RandomBotCustomClassesOnly = 0
++
+ # Addclass accounts
+ # Number of accounts created for bots reserved for the addclass command. As with randombots, each account has
+ # 10 bots (or 9 if WotLK is disabled), one bot for each class.
+diff --git a/src/Bot/Engine/AiObjectContext.cpp b/src/Bot/Engine/AiObjectContext.cpp
+index 44eb4048..a2948025 100644
+--- a/src/Bot/Engine/AiObjectContext.cpp
++++ b/src/Bot/Engine/AiObjectContext.cpp
+@@ -10,6 +10,7 @@
+ #include "Helpers.h"
+ #include "HunterAiObjectContext.h"
+ #include "MageAiObjectContext.h"
++#include "CoaAiObjectContext.h"
+ #include "PaladinAiObjectContext.h"
+ #include "PriestAiObjectContext.h"
+ #include "RogueAiObjectContext.h"
+@@ -39,6 +40,7 @@ void AiObjectContext::BuildAllSharedContexts()
+     AiObjectContext::BuildSharedContexts();
+     PriestAiObjectContext::BuildSharedContexts();
+     MageAiObjectContext::BuildSharedContexts();
++    CoaAiObjectContext::BuildSharedContexts();
+     WarlockAiObjectContext::BuildSharedContexts();
+     WarriorAiObjectContext::BuildSharedContexts();
+     ShamanAiObjectContext::BuildSharedContexts();
+diff --git a/src/Bot/Factory/AiFactory.cpp b/src/Bot/Factory/AiFactory.cpp
+index bb1fa527..b445d6d0 100644
+--- a/src/Bot/Factory/AiFactory.cpp
++++ b/src/Bot/Factory/AiFactory.cpp
+@@ -6,6 +6,7 @@
+ 
+ #include "AiFactory.h"
+ #include "BattlegroundMgr.h"
++#include "CoaAiObjectContext.h"
+ #include "DKAiObjectContext.h"
+ #include "DruidAiObjectContext.h"
+ #include "Engine.h"
+@@ -37,6 +38,9 @@ constexpr uint32 SPELL_DRUID_THICK_HIDE = 16931;
+ 
+ AiObjectContext* AiFactory::createAiObjectContext(Player* player, PlayerbotAI* botAI)
+ {
++    if (player->getClass() >= 12)
++        return new CoaAiObjectContext(botAI);
++
+     switch (player->getClass())
+     {
+         case CLASS_PRIEST:
+@@ -292,6 +296,9 @@ void AiFactory::AddDefaultCombatStrategies(Player* player, PlayerbotAI* const fa
+ 
+     engine->addStrategy("formation", false);
+ 
++    if (player->getClass() >= 12)
++        engine->addStrategiesNoInit("coa", "dps assist", nullptr);
++
+     switch (player->getClass())
+     {
+         case CLASS_PRIEST:
+diff --git a/src/Bot/Factory/PlayerbotFactory.cpp b/src/Bot/Factory/PlayerbotFactory.cpp
+index 8ee48859..1b1d6577 100644
+--- a/src/Bot/Factory/PlayerbotFactory.cpp
++++ b/src/Bot/Factory/PlayerbotFactory.cpp
+@@ -796,25 +796,33 @@ void PlayerbotFactory::Randomize(bool incremental)
+     LOG_DEBUG("playerbots", "Resetting player...");
+     PerfMonitorOperation* pmo = sPerfMonitor.start(PERF_MON_RNDBOT, "PlayerbotFactory_Reset");
+ 
+-    if (!sPlayerbotAIConfig.equipAndSpecPersistence ||
++    bool const coaClass = bot->getClass() >= 12;
++
++    if (!coaClass && (!sPlayerbotAIConfig.equipAndSpecPersistence ||
+         level < uint32(sPlayerbotAIConfig.equipAndSpecPersistenceLevel))
++       )
+     {
+         bot->resetTalents(true);
+     }
+ 
+     if (!incremental)
+     {
+-        ClearSkills();
+-        ClearSpells();
++        if (!coaClass)
++        {
++            ClearSkills();
++            ClearSpells();
++        }
+         ResetQuests();
+ 
+-        if (!sPlayerbotAIConfig.equipAndSpecPersistence ||
++        if (!coaClass && (!sPlayerbotAIConfig.equipAndSpecPersistence ||
+             level < uint32(sPlayerbotAIConfig.equipAndSpecPersistenceLevel) || level < oldLevel)
++           )
+         {
+             ClearAllItems();
+         }
+     }
+-    ClearInventory();
++    if (!coaClass)
++        ClearInventory();
+     bot->RemoveAllSpellCooldown();
+     UnbindInstance();
+ 
+@@ -849,22 +857,29 @@ void PlayerbotFactory::Randomize(bool incremental)
+ 
+     LOG_DEBUG("playerbots", "Initializing skills (step 1)...");
+     pmo = sPerfMonitor.start(PERF_MON_RNDBOT, "PlayerbotFactory_Skills1");
+-    bot->LearnDefaultSkills();
+-    InitSkills();
++    if (!coaClass)
++    {
++        bot->LearnDefaultSkills();
++        InitSkills();
++    }
+     if (pmo)
+         pmo->finish();
+ 
+     pmo = sPerfMonitor.start(PERF_MON_RNDBOT, "PlayerbotFactory_Spells1");
+     LOG_DEBUG("playerbots", "Initializing spells (step 1)...");
+-    InitClassSpells();
+-    InitAvailableSpells();
++    if (!coaClass)
++    {
++        InitClassSpells();
++        InitAvailableSpells();
++    }
+     if (pmo)
+         pmo->finish();
+ 
+     pmo = sPerfMonitor.start(PERF_MON_RNDBOT, "PlayerbotFactory_Talents");
+     LOG_DEBUG("playerbots", "Initializing talents...");
+-    if (!incremental || !sPlayerbotAIConfig.equipAndSpecPersistence ||
++    if (!coaClass && (!incremental || !sPlayerbotAIConfig.equipAndSpecPersistence ||
+         bot->GetLevel() < sPlayerbotAIConfig.equipAndSpecPersistenceLevel)
++       )
+     {
+         uint32 specIndex = InitTalentsTree();
+         sRandomPlayerbotMgr.SetValue(bot->GetGUID().GetCounter(), "specNo", specIndex + 1);
+@@ -880,7 +895,8 @@ void PlayerbotFactory::Randomize(bool incremental)
+ 
+     pmo = sPerfMonitor.start(PERF_MON_RNDBOT, "PlayerbotFactory_Spells2");
+     LOG_DEBUG("playerbots", "Initializing spells (step 2)...");
+-    InitAvailableSpells();
++    if (!coaClass)
++        InitAvailableSpells();
+     if (pmo)
+         pmo->finish();
+ 
+@@ -892,13 +908,15 @@ void PlayerbotFactory::Randomize(bool incremental)
+ 
+     LOG_DEBUG("playerbots", "Initializing special spells...");
+     pmo = sPerfMonitor.start(PERF_MON_RNDBOT, "PlayerbotFactory_Spells3");
+-    InitSpecialSpells();
++    if (!coaClass)
++        InitSpecialSpells();
+     if (pmo)
+         pmo->finish();
+ 
+     pmo = sPerfMonitor.start(PERF_MON_RNDBOT, "PlayerbotFactory_Mounts");
+     LOG_DEBUG("playerbots", "Initializing mounts...");
+-    InitMounts();
++    if (!coaClass)
++        InitMounts();
+     // bot->SaveToDB(false, false);
+     if (pmo)
+         pmo->finish();
+@@ -911,8 +929,9 @@ void PlayerbotFactory::Randomize(bool incremental)
+ 
+     pmo = sPerfMonitor.start(PERF_MON_RNDBOT, "PlayerbotFactory_Equip");
+     LOG_DEBUG("playerbots", "Initializing equipmemt...");
+-    if (!incremental || !sPlayerbotAIConfig.equipAndSpecPersistence ||
++    if (!coaClass && (!incremental || !sPlayerbotAIConfig.equipAndSpecPersistence ||
+         bot->GetLevel() < sPlayerbotAIConfig.equipAndSpecPersistenceLevel)
++       )
+     {
+         InitEquipment(incremental, incremental ? false : sPlayerbotAIConfig.twoRoundsGearInit);
+     }
+diff --git a/src/Bot/Factory/RandomPlayerbotFactory.cpp b/src/Bot/Factory/RandomPlayerbotFactory.cpp
+index c9abb812..73d9529a 100644
+--- a/src/Bot/Factory/RandomPlayerbotFactory.cpp
++++ b/src/Bot/Factory/RandomPlayerbotFactory.cpp
+@@ -709,16 +709,35 @@ void RandomPlayerbotFactory::CreateRandomBots()
+                                                 time_t(0), LOCALE_enUS, 0, false, false, 0, true);
+         sessionBots.push_back(session);
+ 
+-        for (uint8 cls = CLASS_WARRIOR; cls < MAX_CLASSES - count; ++cls)
++        std::vector<uint8> playableClasses;
++        for (uint8 cls = CLASS_WARRIOR; cls < MAX_CLASSES; ++cls)
+         {
+             // skip nonexistent classes
+-            if (!((1 << (cls - 1)) & CLASSMASK_ALL_PLAYABLE) || !sChrClassesStore.LookupEntry(cls))
++            if (!((uint32(1) << (cls - 1)) & CLASSMASK_ALL_PLAYABLE) || !sChrClassesStore.LookupEntry(cls))
+                 continue;
+ 
+             // skip disabled with config classes
+-            if ((1 << (cls - 1)) & sWorld->getIntConfig(CONFIG_CHARACTER_CREATING_DISABLED_CLASSMASK))
++            if ((uint32(1) << (cls - 1)) & sWorld->getIntConfig(CONFIG_CHARACTER_CREATING_DISABLED_CLASSMASK))
+                 continue;
+ 
++            if (sPlayerbotAIConfig.randomBotCustomClassesOnly && cls < 12)
++                continue;
++
++            playableClasses.push_back(cls);
++        }
++
++        if (playableClasses.empty())
++        {
++            LOG_ERROR("playerbots", "No playable classes are available for random bot character creation");
++            continue;
++        }
++
++        uint32 const slotsAvailable = 10 - count;
++        uint32 const firstClass = (accountNumber * 10 + count) % playableClasses.size();
++        for (uint32 slot = 0; slot < slotsAvailable; ++slot)
++        {
++            uint8 const cls = playableClasses[(firstClass + slot) % playableClasses.size()];
++
+             Player* playerBot = factory.CreateRandomBot(session, cls, nameCache);
+             if (!playerBot)
+             {
+diff --git a/src/Bot/RandomPlayerbotMgr.cpp b/src/Bot/RandomPlayerbotMgr.cpp
+index 994d334d..16431688 100644
+--- a/src/Bot/RandomPlayerbotMgr.cpp
++++ b/src/Bot/RandomPlayerbotMgr.cpp
+@@ -539,6 +539,30 @@ void RandomPlayerbotMgr::AssignAccountTypes()
+         }
+     }
+ 
++    std::vector<uint32> rndBotAccountCandidates = allRandomBotAccounts;
++    if (sPlayerbotAIConfig.randomBotCustomClassesOnly)
++    {
++        rndBotAccountCandidates.clear();
++        for (uint32 accountId : allRandomBotAccounts)
++        {
++            QueryResult customCharacters = CharacterDatabase.Query(
++                "SELECT 1 FROM characters WHERE account = {} AND class >= 12 LIMIT 1", accountId);
++            if (customCharacters)
++            {
++                rndBotAccountCandidates.push_back(accountId);
++                continue;
++            }
++
++            if (currentAssignments[accountId] == 1)
++            {
++                PlayerbotsDatabase.Execute(
++                    "UPDATE playerbots_account_type SET account_type = 0, assignment_date = NOW() WHERE account_id = {}",
++                    accountId);
++                currentAssignments[accountId] = 0;
++            }
++        }
++    }
++
+     // Calculate needed RNDbot accounts
+     uint32 neededRndBotAccounts = 0;
+     if (sPlayerbotAIConfig.maxRandomBots > 0)
+@@ -572,9 +596,9 @@ void RandomPlayerbotMgr::AssignAccountTypes()
+         uint32 toAssign = neededRndBotAccounts - existingRndBotAccounts;
+         uint32 assigned = 0;
+ 
+-        for (uint32 i = 0; i < allRandomBotAccounts.size() && assigned < toAssign; i++)
++        for (uint32 i = 0; i < rndBotAccountCandidates.size() && assigned < toAssign; i++)
+         {
+-            uint32 accountId = allRandomBotAccounts[i];
++            uint32 accountId = rndBotAccountCandidates[i];
+             if (currentAssignments[accountId] == 0) // Unassigned
+             {
+                 PlayerbotsDatabase.Execute("UPDATE playerbots_account_type SET account_type = 1, assignment_date = NOW() WHERE account_id = {}", accountId);
+@@ -714,6 +738,10 @@ uint32 RandomPlayerbotMgr::AddRandomBots()
+                 info.rClass = fields[1].Get<uint8>();
+                 info.rRace = fields[2].Get<uint8>();
+                 info.accountId = accountId;
++
++                if (sPlayerbotAIConfig.randomBotCustomClassesOnly && info.rClass < 12)
++                    continue;
++
+                 allCharacters.push_back(info);
+             } while (result->NextRow());
+         }
+diff --git a/src/PlayerbotAIConfig.cpp b/src/PlayerbotAIConfig.cpp
+index e3cb3a31..47918969 100644
+--- a/src/PlayerbotAIConfig.cpp
++++ b/src/PlayerbotAIConfig.cpp
+@@ -575,6 +575,7 @@ bool PlayerbotAIConfig::Initialize()
+ 
+     randomBotAccountPrefix = sConfigMgr->GetOption<std::string>("AiPlayerbot.RandomBotAccountPrefix", "rndbot");
+     randomBotAccountCount = sConfigMgr->GetOption<int32>("AiPlayerbot.RandomBotAccountCount", 0);
++    randomBotCustomClassesOnly = sConfigMgr->GetOption<bool>("AiPlayerbot.RandomBotCustomClassesOnly", false);
+     deleteRandomBotAccounts = sConfigMgr->GetOption<bool>("AiPlayerbot.DeleteRandomBotAccounts", false);
+     randomBotGuildCount = sConfigMgr->GetOption<int32>("AiPlayerbot.RandomBotGuildCount", 20);
+     randomBotGuildSizeMax = sConfigMgr->GetOption<int32>("AiPlayerbot.RandomBotGuildSizeMax", 15);
+diff --git a/src/PlayerbotAIConfig.h b/src/PlayerbotAIConfig.h
+index 8f266f4f..c553229e 100644
+--- a/src/PlayerbotAIConfig.h
++++ b/src/PlayerbotAIConfig.h
+@@ -295,6 +295,7 @@ public:
+     std::string commandPrefix, commandSeparator;
+     std::string randomBotAccountPrefix;
+     uint32 randomBotAccountCount;
++    bool randomBotCustomClassesOnly;
+     bool randomBotRandomPassword;
+     bool deleteRandomBotAccounts;
+     uint32 randomBotGuildCount, randomBotGuildSizeMax;

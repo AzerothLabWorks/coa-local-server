@@ -24,6 +24,7 @@ services:
     image: coa-local/world-bootstrap:${COA_IMAGE_TAG:-dev}
     environment:
       COA_DB_ROOT_PASSWORD: ${COA_DB_ROOT_PASSWORD}
+      COA_PLAYERBOTS_ENABLED: ${COA_PLAYERBOTS_ENABLED:-0}
     volumes:
       - ${COA_SOURCE_DIR:?Set COA_SOURCE_DIR in .env}:/coa-source:ro
     depends_on:
@@ -46,11 +47,24 @@ services:
       AC_LOGIN_DATABASE_INFO: database;3306;root;${COA_DB_ROOT_PASSWORD};acore_auth
       AC_WORLD_DATABASE_INFO: database;3306;root;${COA_DB_ROOT_PASSWORD};acore_world
       AC_CHARACTER_DATABASE_INFO: database;3306;root;${COA_DB_ROOT_PASSWORD};acore_characters
+      AC_PLAYERBOTS_DATABASE_INFO: database;3306;root;${COA_DB_ROOT_PASSWORD};acore_playerbots
     volumes:
       - coa-etc:/azerothcore/env/dist/etc
       - coa-logs:/azerothcore/env/dist/logs
     depends_on:
       world-bootstrap:
+        condition: service_completed_successfully
+
+  playerbots-bootstrap:
+    image: coa-local/world-bootstrap:${COA_IMAGE_TAG:-dev}
+    entrypoint: ["/usr/local/bin/bootstrap-playerbots"]
+    environment:
+      COA_DB_ROOT_PASSWORD: ${COA_DB_ROOT_PASSWORD}
+      COA_PLAYERBOTS_ENABLED: ${COA_PLAYERBOTS_ENABLED:-0}
+    volumes:
+      - ${COA_SOURCE_DIR:?Set COA_SOURCE_DIR in .env}:/coa-source:ro
+    depends_on:
+      db-import:
         condition: service_completed_successfully
 
   realm-config:
@@ -62,10 +76,21 @@ services:
       - -ec
       - >-
         mysql --host=database --user=root acore_auth
-        --execute="UPDATE realmlist SET address='${COA_REALM_ADDRESS:-127.0.0.1}',
-        localAddress='127.0.0.1', port=${COA_WORLD_PORT:-38085} WHERE id=1"
+        --execute="INSERT INTO realmlist
+        (id, name, address, localAddress, localSubnetMask, port, icon, flag,
+        timezone, allowedSecurityLevel, population, gamebuild)
+        VALUES (1, 'AzerothCore', '${COA_REALM_ADDRESS:-127.0.0.1}',
+        '127.0.0.1', '255.255.255.0', ${COA_WORLD_PORT:-38085}, 0, 0, 1, 0, 0, 12340)
+        ON DUPLICATE KEY UPDATE
+        name=VALUES(name), address=VALUES(address), localAddress=VALUES(localAddress),
+        localSubnetMask=VALUES(localSubnetMask), port=VALUES(port), flag=0,
+        gamebuild=VALUES(gamebuild)";
+        test "$$(mysql --host=database --user=root acore_auth --batch --skip-column-names
+        --execute="SELECT COUNT(*) FROM realmlist WHERE id=1
+        AND address='${COA_REALM_ADDRESS:-127.0.0.1}'
+        AND port=${COA_WORLD_PORT:-38085} AND flag=0")" = 1
     depends_on:
-      db-import:
+      playerbots-bootstrap:
         condition: service_completed_successfully
 
   module-config:
@@ -128,6 +153,17 @@ services:
       # dedicated to the matching Ascension client, whose world headers remain
       # plaintext after authentication.
       AC_ASCENSION_COMPAT_ALLOW_REMOTE_CLIENTS: 1
+      AC_ASCENSION_COMPAT_DBC_DIRECTORY: /azerothcore/env/dist/data/dbc/Ascension
+      # Module SQL is imported by playerbots-bootstrap because runtime images
+      # intentionally do not contain module source trees.
+      AC_PLAYERBOTS_UPDATES_ENABLE_DATABASES: 0
+      # Keep the first COA-aware test pool deliberately small while class spell
+      # selection and specialization profiles are validated in live play.
+      AC_AI_PLAYERBOT_RANDOM_BOT_AUTOLOGIN: 1
+      AC_AI_PLAYERBOT_MIN_RANDOM_BOTS: ${COA_MIN_RANDOM_BOTS:-12}
+      AC_AI_PLAYERBOT_MAX_RANDOM_BOTS: ${COA_MAX_RANDOM_BOTS:-12}
+      AC_AI_PLAYERBOT_RANDOM_BOT_ACCOUNT_COUNT: ${COA_RANDOM_BOT_ACCOUNT_COUNT:-120}
+      AC_AI_PLAYERBOT_RANDOM_BOT_CUSTOM_CLASSES_ONLY: 1
       AC_DYNAMIC_XP_REMINDER_INTERVAL: ${COA_XP_REMINDER_INTERVAL:-40}
       AC_DYNAMIC_XP_PRESET: ${COA_XP_RATE:-3}
       AC_SKILL_GAIN_CRAFTING: ${COA_PROFESSION_RATE:-4}
