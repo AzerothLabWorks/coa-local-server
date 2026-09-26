@@ -138,6 +138,10 @@ prepare_runtime() {
     git -C "$INSTALL_DIR/source/modules/mod-playerbots" checkout --detach "$PLAYERBOTS_MODULE_REF"
     git -C "$INSTALL_DIR/source/modules/mod-playerbots" apply \
       "$REPO_ROOT/source-patches/playerbots-coa.patch"
+    git -C "$INSTALL_DIR/source/modules/mod-playerbots" apply \
+      "$REPO_ROOT/source-patches/playerbots-follow-mount.patch"
+    git -C "$INSTALL_DIR/source/modules/mod-playerbots" apply \
+      "$REPO_ROOT/source-patches/playerbots-coa-noncombat.patch"
     git -C "$INSTALL_DIR/source" apply "$REPO_ROOT/source-patches/coa-local-qol-playerbots.patch"
     git -C "$INSTALL_DIR/source" apply "$REPO_ROOT/source-patches/coa-progression-validation.patch"
     printf '%s\n' "$PLAYERBOTS_MODULE_REF" > "$INSTALL_DIR/state/playerbots-module-commit"
@@ -190,6 +194,7 @@ COA_PLAYERBOTS_ENABLED=$([[ "$WITH_PLAYERBOTS" == true ]] && printf 1 || printf 
 COA_MIN_RANDOM_BOTS=12
 COA_MAX_RANDOM_BOTS=12
 COA_RANDOM_BOT_ACCOUNT_COUNT=120
+COA_BREWING_PILOT_NAME=
 EOF
   chmod 600 "$INSTALL_DIR/.env"
 }

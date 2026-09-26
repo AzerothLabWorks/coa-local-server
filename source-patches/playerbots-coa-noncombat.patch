@@ -1,0 +1,32 @@
+diff --git a/src/Ai/Class/Coa/CoaAiObjectContext.cpp b/src/Ai/Class/Coa/CoaAiObjectContext.cpp
+--- a/src/Ai/Class/Coa/CoaAiObjectContext.cpp
++++ b/src/Ai/Class/Coa/CoaAiObjectContext.cpp
+@@ -1,6 +1,7 @@
+ #include "CoaAiObjectContext.h"
+ 
+ #include "Group.h"
++#include "NonCombatStrategy.h"
+ #include "Player.h"
+ #include "PlayerbotAI.h"
+ #include "Playerbots.h"
+@@ -145,6 +146,13 @@ class CoaBrewingHealAction final : public Action
+     ActionThreatType getThreatType() override { return ActionThreatType::Aoe; }
+ };
+ 
++class CoaNonCombatStrategy final : public NonCombatStrategy
++{
++public:
++    explicit CoaNonCombatStrategy(PlayerbotAI* ai) : NonCombatStrategy(ai) {}
++    std::string const getName() override { return "nc"; }
++};
++
+ class CoaCombatStrategy final : public Strategy
+ {
+ public:
+@@ -188,5 +196,6 @@ public:
+     CoaStrategyFactory()
+     {
++        creators["nc"] = [](PlayerbotAI* ai) -> Strategy* { return new CoaNonCombatStrategy(ai); };
+         creators["coa"] = [](PlayerbotAI* ai) -> Strategy* { return new CoaCombatStrategy(ai); };
+         creators["coa brewing"] = [](PlayerbotAI* ai) -> Strategy* { return new CoaBrewingStrategy(ai); };
+         creators["coa brewing recovery"] = [](PlayerbotAI* ai) -> Strategy* { return new CoaBrewingRecoveryStrategy(ai); };

@@ -35,7 +35,7 @@ index 44eb4048..a2948025 100644
      WarriorAiObjectContext::BuildSharedContexts();
      ShamanAiObjectContext::BuildSharedContexts();
 diff --git a/src/Bot/Factory/AiFactory.cpp b/src/Bot/Factory/AiFactory.cpp
-index bb1fa527..b445d6d0 100644
+index bb1fa527..fddd1f77 100644
 --- a/src/Bot/Factory/AiFactory.cpp
 +++ b/src/Bot/Factory/AiFactory.cpp
 @@ -6,6 +6,7 @@
@@ -46,7 +46,19 @@ index bb1fa527..b445d6d0 100644
  #include "DKAiObjectContext.h"
  #include "DruidAiObjectContext.h"
  #include "Engine.h"
-@@ -37,6 +38,9 @@ constexpr uint32 SPELL_DRUID_THICK_HIDE = 16931;
+@@ -33,10 +34,21 @@ constexpr uint32 SPELL_ICE_SHARDS = 15047;
+ constexpr uint32 SPELL_WHIRLWIND = 1680;
+ constexpr uint32 SPELL_CAT_FORM = 768;
+ constexpr uint32 SPELL_DRUID_THICK_HIDE = 16931;
++constexpr char COA_ACTIVE_SPEC_SETTING[] = "core.ascension_active_spec";
++constexpr uint32 WITCH_DOCTOR_BREWING_SPEC = 6;
++
++bool IsCoaBrewingHealer(Player* player)
++{
++    return player->getClass() == CLASS_WITCH_DOCTOR &&
++           player->GetPlayerSetting(COA_ACTIVE_SPEC_SETTING, 0).value == WITCH_DOCTOR_BREWING_SPEC;
++}
+ }
  
  AiObjectContext* AiFactory::createAiObjectContext(Player* player, PlayerbotAI* botAI)
  {
@@ -56,12 +68,37 @@ index bb1fa527..b445d6d0 100644
      switch (player->getClass())
      {
          case CLASS_PRIEST:
-@@ -292,6 +296,9 @@ void AiFactory::AddDefaultCombatStrategies(Player* player, PlayerbotAI* const fa
+@@ -140,6 +152,9 @@ std::map<uint8, uint32> AiFactory::GetPlayerSpecTabs(Player* bot)
+ 
+ BotRoles AiFactory::GetPlayerRoles(Player* player)
+ {
++    if (IsCoaBrewingHealer(player))
++        return BOT_ROLE_HEALER;
++
+     BotRoles role = BOT_ROLE_NONE;
+     uint8 tab = GetPlayerSpecTab(player);
+ 
+@@ -292,6 +307,14 @@ void AiFactory::AddDefaultCombatStrategies(Player* player, PlayerbotAI* const fa
  
      engine->addStrategy("formation", false);
  
 +    if (player->getClass() >= 12)
-+        engine->addStrategiesNoInit("coa", "dps assist", nullptr);
++    {
++        if (IsCoaBrewingHealer(player))
++            engine->addStrategiesNoInit("coa brewing", "dps assist", nullptr);
++        else
++            engine->addStrategiesNoInit("coa", "dps assist", nullptr);
++    }
++
+     switch (player->getClass())
+     {
+         case CLASS_PRIEST:
+@@ -508,6 +531,9 @@ void AiFactory::AddDefaultNonCombatStrategies(Player* player, PlayerbotAI* const
+ {
+     uint8 tab = GetPlayerSpecTab(player);
+ 
++    if (IsCoaBrewingHealer(player))
++        nonCombatEngine->addStrategy("coa brewing recovery", false);
 +
      switch (player->getClass())
      {
@@ -226,6 +263,20 @@ index c9abb812..73d9529a 100644
              Player* playerBot = factory.CreateRandomBot(session, cls, nameCache);
              if (!playerBot)
              {
+diff --git a/src/Bot/PlayerbotAI.cpp b/src/Bot/PlayerbotAI.cpp
+index 0f645733..2bd7733c 100644
+--- a/src/Bot/PlayerbotAI.cpp
++++ b/src/Bot/PlayerbotAI.cpp
+@@ -2319,6 +2319,9 @@ bool PlayerbotAI::IsHeal(Player* player, bool bySpec)
+     if (!bySpec && botAi)
+         return botAi->ContainsStrategy(STRATEGY_TYPE_HEAL);
+ 
++    if (player->getClass() >= 12)
++        return (AiFactory::GetPlayerRoles(player) & BOT_ROLE_HEALER) != 0;
++
+     int tab = AiFactory::GetPlayerSpecTab(player);
+     switch (player->getClass())
+     {
 diff --git a/src/Bot/RandomPlayerbotMgr.cpp b/src/Bot/RandomPlayerbotMgr.cpp
 index 994d334d..16431688 100644
 --- a/src/Bot/RandomPlayerbotMgr.cpp
@@ -308,3 +359,258 @@ index 8f266f4f..c553229e 100644
      bool randomBotRandomPassword;
      bool deleteRandomBotAccounts;
      uint32 randomBotGuildCount, randomBotGuildSizeMax;
+diff --git a/src/Ai/Class/Coa/CoaAiObjectContext.cpp b/src/Ai/Class/Coa/CoaAiObjectContext.cpp
+new file mode 100644
+index 00000000..3afd34e3
+--- /dev/null
++++ b/src/Ai/Class/Coa/CoaAiObjectContext.cpp
+@@ -0,0 +1,225 @@
++#include "CoaAiObjectContext.h"
++
++#include "Group.h"
++#include "Player.h"
++#include "PlayerbotAI.h"
++#include "Playerbots.h"
++#include "SpellInfo.h"
++#include "SpellMgr.h"
++
++#include <algorithm>
++#include <array>
++
++namespace
++{
++constexpr float BREWING_HEAL_BELOW_PCT = 80.0f;
++
++// Verified against the installed CoA Spell.dbc. Highest ranks are first.
++constexpr std::array<uint32, 9> LOAS_BREW =
++    {501206, 501205, 501204, 501203, 501202, 501201, 501200, 501199, 501198};
++constexpr std::array<uint32, 7> SPIRIT_IN_A_BOTTLE =
++    {501213, 501212, 501211, 501210, 501209, 501208, 501207};
++constexpr std::array<uint32, 6> POTION_TOSS =
++    {573435, 573434, 573433, 573432, 573431, 573430};
++
++Player* FindBrewingHealTarget(Player* bot)
++{
++    Player* target = bot->GetHealthPct() < BREWING_HEAL_BELOW_PCT ? bot : nullptr;
++    Group* group = bot->GetGroup();
++    if (!group)
++        return target;
++
++    for (GroupReference* member = group->GetFirstMember(); member; member = member->next())
++    {
++        Player* player = member->GetSource();
++        if (!player || !player->IsInWorld() || !player->IsAlive() || player->GetMap() != bot->GetMap() ||
++            bot->GetDistance2d(player) > 35.0f || !bot->IsWithinLOSInMap(player))
++            continue;
++
++        // Include the human group leader even when their account has GM rights.
++        if (player->GetHealthPct() < BREWING_HEAL_BELOW_PCT &&
++            (!target || player->GetHealthPct() < target->GetHealthPct()))
++            target = player;
++    }
++
++    return target;
++}
++
++template <std::size_t N>
++bool CastFirstAvailableHeal(PlayerbotAI* ai, Player* bot, Unit* target, std::array<uint32, N> const& ranks)
++{
++    for (uint32 spellId : ranks)
++        if (bot->HasSpell(spellId) && ai->CanCastSpell(spellId, target) && ai->CastSpell(spellId, target))
++            return true;
++
++    return false;
++}
++
++bool IsDamageSpell(SpellInfo const* spell)
++{
++    if (!spell || spell->IsPassive() || spell->IsPositive())
++        return false;
++
++    for (SpellEffectInfo const& effect : spell->Effects)
++        switch (effect.Effect)
++        {
++            case SPELL_EFFECT_SCHOOL_DAMAGE:
++            case SPELL_EFFECT_WEAPON_DAMAGE:
++            case SPELL_EFFECT_WEAPON_DAMAGE_NOSCHOOL:
++            case SPELL_EFFECT_NORMALIZED_WEAPON_DMG:
++            case SPELL_EFFECT_WEAPON_PERCENT_DAMAGE:
++            case SPELL_EFFECT_HEALTH_LEECH:
++            case SPELL_EFFECT_POWER_DRAIN:
++                return true;
++            default:
++                break;
++        }
++
++    return false;
++}
++
++class CoaAttackAction final : public Action
++{
++public:
++    explicit CoaAttackAction(PlayerbotAI* ai) : Action(ai, "coa attack") {}
++
++    bool Execute(Event) override
++    {
++        Unit* target = AI_VALUE(Unit*, "current target");
++        if (!target || !target->IsAlive())
++            return false;
++
++        Player* bot = botAI->GetBot();
++        std::vector<SpellInfo const*> candidates;
++        for (auto const& [spellId, playerSpell] : bot->GetSpellMap())
++        {
++            if (!playerSpell->Active || playerSpell->State == PLAYERSPELL_REMOVED)
++                continue;
++            SpellInfo const* spell = sSpellMgr->GetSpellInfo(spellId);
++            if (IsDamageSpell(spell))
++                candidates.push_back(spell);
++        }
++
++        std::sort(candidates.begin(), candidates.end(), [](SpellInfo const* left, SpellInfo const* right)
++        {
++            if (left->SpellLevel != right->SpellLevel)
++                return left->SpellLevel > right->SpellLevel;
++            return left->Id > right->Id;
++        });
++
++        for (SpellInfo const* spell : candidates)
++            if (botAI->CanCastSpell(spell->Id, target) && botAI->CastSpell(spell->Id, target))
++                return true;
++
++        return false;
++    }
++
++    bool isUseful() override { return AI_VALUE(Unit*, "current target") != nullptr; }
++    ActionThreatType getThreatType() override { return ActionThreatType::Single; }
++};
++
++class CoaBrewingHealAction final : public Action
++{
++public:
++    explicit CoaBrewingHealAction(PlayerbotAI* ai) : Action(ai, "coa brewing heal") {}
++
++    bool Execute(Event) override
++    {
++        Player* bot = botAI->GetBot();
++        Player* target = FindBrewingHealTarget(bot);
++        if (!target)
++            return false;
++
++        if (target->GetHealthPct() < 40.0f &&
++            CastFirstAvailableHeal(botAI, bot, target, SPIRIT_IN_A_BOTTLE))
++            return true;
++
++        if (target->GetHealthPct() < 65.0f &&
++            CastFirstAvailableHeal(botAI, bot, target, POTION_TOSS))
++            return true;
++
++        return CastFirstAvailableHeal(botAI, bot, target, LOAS_BREW);
++    }
++
++    bool isUseful() override { return FindBrewingHealTarget(botAI->GetBot()) != nullptr; }
++    ActionThreatType getThreatType() override { return ActionThreatType::Aoe; }
++};
++
++class CoaCombatStrategy final : public Strategy
++{
++public:
++    explicit CoaCombatStrategy(PlayerbotAI* ai) : Strategy(ai) {}
++    std::string const getName() override { return "coa"; }
++    uint32 GetType() const override { return STRATEGY_TYPE_COMBAT | STRATEGY_TYPE_DPS; }
++    std::vector<NextAction> getDefaultActions() override
++    {
++        return {NextAction("coa attack", ACTION_NORMAL), NextAction("melee", ACTION_DEFAULT)};
++    }
++};
++
++class CoaBrewingStrategy final : public Strategy
++{
++public:
++    explicit CoaBrewingStrategy(PlayerbotAI* ai) : Strategy(ai) {}
++    std::string const getName() override { return "coa brewing"; }
++    uint32 GetType() const override { return STRATEGY_TYPE_HEAL | STRATEGY_TYPE_RANGED; }
++    std::vector<NextAction> getDefaultActions() override
++    {
++        return {NextAction("coa brewing heal", ACTION_HIGH), NextAction("coa attack", ACTION_NORMAL),
++                NextAction("melee", ACTION_DEFAULT)};
++    }
++};
++
++class CoaBrewingRecoveryStrategy final : public Strategy
++{
++public:
++    explicit CoaBrewingRecoveryStrategy(PlayerbotAI* ai) : Strategy(ai) {}
++    std::string const getName() override { return "coa brewing recovery"; }
++    uint32 GetType() const override { return STRATEGY_TYPE_HEAL; }
++    std::vector<NextAction> getDefaultActions() override
++    {
++        return {NextAction("coa brewing heal", ACTION_NORMAL)};
++    }
++};
++
++class CoaStrategyFactory final : public NamedObjectContext<Strategy>
++{
++public:
++    CoaStrategyFactory()
++    {
++        creators["coa"] = [](PlayerbotAI* ai) -> Strategy* { return new CoaCombatStrategy(ai); };
++        creators["coa brewing"] = [](PlayerbotAI* ai) -> Strategy* { return new CoaBrewingStrategy(ai); };
++        creators["coa brewing recovery"] = [](PlayerbotAI* ai) -> Strategy* { return new CoaBrewingRecoveryStrategy(ai); };
++    }
++};
++
++class CoaActionFactory final : public NamedObjectContext<Action>
++{
++public:
++    CoaActionFactory()
++    {
++        creators["coa attack"] = [](PlayerbotAI* ai) -> Action* { return new CoaAttackAction(ai); };
++        creators["coa brewing heal"] = [](PlayerbotAI* ai) -> Action* { return new CoaBrewingHealAction(ai); };
++    }
++};
++}
++
++SharedNamedObjectContextList<Strategy> CoaAiObjectContext::sharedStrategyContexts;
++SharedNamedObjectContextList<Action> CoaAiObjectContext::sharedActionContexts;
++SharedNamedObjectContextList<Trigger> CoaAiObjectContext::sharedTriggerContexts;
++SharedNamedObjectContextList<UntypedValue> CoaAiObjectContext::sharedValueContexts;
++
++CoaAiObjectContext::CoaAiObjectContext(PlayerbotAI* ai)
++    : AiObjectContext(ai, sharedStrategyContexts, sharedActionContexts, sharedTriggerContexts, sharedValueContexts)
++{
++}
++
++void CoaAiObjectContext::BuildSharedContexts()
++{
++    AiObjectContext::BuildSharedStrategyContexts(sharedStrategyContexts);
++    sharedStrategyContexts.Add(new CoaStrategyFactory());
++    AiObjectContext::BuildSharedActionContexts(sharedActionContexts);
++    sharedActionContexts.Add(new CoaActionFactory());
++    AiObjectContext::BuildSharedTriggerContexts(sharedTriggerContexts);
++    AiObjectContext::BuildSharedValueContexts(sharedValueContexts);
++}
+diff --git a/src/Ai/Class/Coa/CoaAiObjectContext.h b/src/Ai/Class/Coa/CoaAiObjectContext.h
+new file mode 100644
+index 00000000..6ac22e6a
+--- /dev/null
++++ b/src/Ai/Class/Coa/CoaAiObjectContext.h
+@@ -0,0 +1,18 @@
++#ifndef PLAYERBOTS_COAAIOBJECTCONTEXT_H
++#define PLAYERBOTS_COAAIOBJECTCONTEXT_H
++
++#include "AiObjectContext.h"
++
++class CoaAiObjectContext : public AiObjectContext
++{
++public:
++    explicit CoaAiObjectContext(PlayerbotAI* botAI);
++
++    static void BuildSharedContexts();
++    static SharedNamedObjectContextList<Strategy> sharedStrategyContexts;
++    static SharedNamedObjectContextList<Action> sharedActionContexts;
++    static SharedNamedObjectContextList<Trigger> sharedTriggerContexts;
++    static SharedNamedObjectContextList<UntypedValue> sharedValueContexts;
++};
++
++#endif

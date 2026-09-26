@@ -21,7 +21,7 @@ The installer has been validated end-to-end on Ubuntu/WSL2. It:
 - deliberately bypasses AzerothCore's stock client-data downloader;
 - applies local QoL defaults: 3x XP, 4x profession gains, 5,000 starter gold,
   and four 30-slot bags for newly created characters;
-- supports a non-destructive `--dry-run` preflight.
+- supports a non-destructive `--dry-run` preflight;
 - optionally builds the open-source Playerbots core/module integration and initializes its database.
 
 The installer does not yet download or infer proprietary inputs. Supply legally obtained files yourself.
@@ -103,15 +103,28 @@ layout-sensitive DBC hashes before building.
 
 The local compatibility patch also contains an initial COA AI adapter reconstructed from the data and behavior in
 the repack package. It permits random characters using custom class IDs, preserves their COA spellbooks during bot
-randomization, and selects usable offensive abilities dynamically from their learned spells. This is an experimental
-combat baseline, not yet feature-equivalent to the repack's compiled COA layer: specialization profiles, healing,
-tanking, dispels, interrupts, and `.playerbots coa tank|heal|dps` are still being developed.
+randomization, and selects usable offensive abilities dynamically from their learned spells. A first, experimental
+Witch Doctor Brewing healing profile can be enabled for one named bot with `COA_BREWING_PILOT_NAME` in `.env`.
+The class service assigns spec 6 only to that bot if it has no spec yet. The adapter is not yet feature-equivalent to
+the repack's compiled COA layer:
+tanking, broad spec rotations, dispels, interrupts, and `.playerbots coa tank|heal|dps` are still being developed.
+See [the Playerbots roadmap](docs/playerbots-roadmap.md) for the staged test sequence and source-of-truth boundaries.
 
 New Playerbots installations reserve 120 bot accounts and restrict newly generated characters to COA class IDs. This
 leaves any pre-existing classic bot characters intact while ensuring the expanded pool contains testable COA bots.
 The default online population is 12; override it cautiously with `COA_MIN_RANDOM_BOTS`, `COA_MAX_RANDOM_BOTS`, and
 `COA_RANDOM_BOT_ACCOUNT_COUNT` in `.env`. UnBot remains available for the standard Playerbots controls; its bot
 management bar is a client-side command interface and does not implement the server AI itself.
+
+When grouped, bots now pause rather than acquire a persistent `stay` command while the leader is dead; they resume
+following after resurrection. The Follow command clears any prior Stay state, and mount selection first tries the
+leader's known mount, with a usable ground-mount fallback when a COA mount cannot be cast. Player-led bots prioritize
+mounting and following a moving leader over optional corpse looting. COA classes register the noncombat strategy
+that runs the automatic mount-state check. In-game testing confirmed that a grouped COA bot matched the leader's
+ground mount, followed, dismounted when the leader did, then matched a Blossomback Arboon and followed in flight.
+This applies to eligible COA bots generally, not to one named pilot; ordinary mount requirements still apply.
+Switching mount types while the bot remains mounted has not been tested as an automatic transition. Post-combat
+follow and the Brewing healer pilot remain experimental; see the [Playerbots roadmap](docs/playerbots-roadmap.md).
 
 The initial C++ image build can take a long time. Follow progress with:
 
@@ -160,14 +173,19 @@ The generated `.env` exposes the QoL rates as `COA_XP_RATE`, `COA_PROFESSION_RAT
 
 ## Included gameplay compatibility fixes
 
-The installer applies a small, auditable source patch for local play. In addition to the QoL defaults above, it:
+The installer applies auditable source patches for local play. In addition to the QoL defaults above, they:
 
-- equips new Ascension-class characters with four 30-slot Elementiumweave Bags;
-- repairs both Sunwarmed Furline collection records and supplies the missing server-side mount display behavior;
-- restores the Book of Artisans model and interaction bounds; and
-- opens the Book of Artisans profession trainer after it is summoned, allowing professions to be learned normally.
+- equip new Ascension-class characters with four 30-slot Elementiumweave Bags;
+- repair both Sunwarmed Furline collection records and supply the missing server-side mount display behavior;
+- restore the Book of Artisans model and interaction bounds;
+- open the Book of Artisans profession trainer after it is summoned, allowing professions to be learned normally;
+- let Lootbot 3000 process nearby loot independently of the vanity collection's active-pet selection;
+- accept the client's `localspecstate` query without flooding chat; and
+- preserve valid custom-class spells and skills when characters log in.
 
-These changes are deliberately limited to the affected collection records and local character initialization.
+The Sunwarmed Furline, Book of Artisans, and Lootbot behavior has been verified in local play. Client-only addon
+adjustments and client files are not part of this repository; this installer does not install those changes. Existing
+runtime databases, accounts, and characters are not reset by a new source build.
 
 Prepared server data remains in the directory passed with `--data-dir` and is mounted read-only; the installer
 does not duplicate its multi-gigabyte map files.
@@ -179,6 +197,16 @@ Run the fast checks from Linux or WSL:
 ```bash
 ./tests/run.sh
 ```
+
+For a Playerbots build, also verify that every patch applies to the pinned source revisions:
+
+```bash
+./tests/validate-playerbots-patches.sh
+```
+
+Keep this README aligned with verified behavior. Record experimental bot results and remaining work in the
+[Playerbots roadmap](docs/playerbots-roadmap.md); do not describe a new behavior as confirmed until it passes an
+in-game test. Local `.env` files, client data, and credentials stay outside Git.
 
 See [docs/architecture.md](docs/architecture.md) for the isolation and data-flow decisions.
 

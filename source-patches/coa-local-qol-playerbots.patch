@@ -1,8 +1,16 @@
 diff --git a/modules/mod-ascension-compat/src/AscensionCompat.cpp b/modules/mod-ascension-compat/src/AscensionCompat.cpp
-index da2e17e5a..ee04e2cb5 100644
+index da2e17e5a..d22abae6a 100644
 --- a/modules/mod-ascension-compat/src/AscensionCompat.cpp
 +++ b/modules/mod-ascension-compat/src/AscensionCompat.cpp
-@@ -268,6 +268,8 @@ struct PlayerCollectionState {
+@@ -75,6 +75,7 @@
+ 
+ #include <algorithm>
+ #include <array>
++#include <cstdlib>
+ #include <cstring>
+ #include <type_traits>
+ #include <deque>
+@@ -268,6 +269,8 @@ struct PlayerCollectionState {
    uint32 CompanionLootTimer = 0;
    uint32 CompanionSkinningTimer = 0;
    uint32 CosmeticTimer = 0;
@@ -11,7 +19,24 @@ index da2e17e5a..ee04e2cb5 100644
    std::unordered_set<uint32> AppliedCosmeticSpells;
    bool CanSeeItemAppearances = true;
    bool CanSeeSpellAppearances = true;
-@@ -2290,10 +2292,15 @@ public:
+@@ -1134,6 +1137,16 @@ public:
+     if (specializationId)
+         _activeSpecializations[player->GetGUID().GetCounter()] = specializationId;
+ 
++#ifdef MOD_PLAYERBOTS
++    // Opt in a single existing bot for the Brewing healer pilot. The normal
++    // spec switch validates the class/spec pair and grants its progression.
++    char const* pilotName = std::getenv("COA_BREWING_PILOT_NAME");
++    if (!specializationId && pilotName && *pilotName && player->GetSession() &&
++        player->GetSession()->IsBot() && player->getClass() == CLASS_WITCH_DOCTOR &&
++        player->GetName() == pilotName && !SwitchSpecialization(player, 6))
++        LOG_ERROR("module.ascension_compat", "Could not select Brewing for pilot bot {}", player->GetName());
++#endif
++
+     SynchronizeProgression(player);
+     SynchronizeProficiencies(player);
+     RepairStarterKit(player, false);
+@@ -2290,10 +2303,15 @@ public:
                              if (!itemId)
                                return;
  
@@ -28,7 +53,7 @@ index da2e17e5a..ee04e2cb5 100644
                                             ReadRecordField(record, 12),
                                             ReadRecordField(record, 2)};
                              _allVanityItemIds.push_back(itemId);
-@@ -2412,6 +2419,7 @@ public:
+@@ -2412,6 +2430,7 @@ public:
      ProcessPendingCompanionSpells(player, diff);
      ProcessCompanionLoot(player, diff);
      ProcessCompanionLoot(player, diff, true);
@@ -36,7 +61,7 @@ index da2e17e5a..ee04e2cb5 100644
      if (auto state = GetState(player))
      {
          if (state->CosmeticTimer <= diff)
-@@ -2424,13 +2432,65 @@ public:
+@@ -2424,13 +2443,65 @@ public:
      }
    }
  
@@ -104,7 +129,7 @@ index da2e17e5a..ee04e2cb5 100644
              return;
          uint32& timer = skin ? state->CompanionSkinningTimer : state->CompanionLootTimer;
          if (timer > diff)
-@@ -2442,7 +2502,6 @@ public:
+@@ -2442,7 +2513,6 @@ public:
          if (!spell || !spell->Effects[EFFECT_0].Amplitude)
              return;
          timer = spell->Effects[EFFECT_0].Amplitude;
@@ -112,7 +137,7 @@ index da2e17e5a..ee04e2cb5 100644
          if (!companion || !companion->IsAlive() || companion->GetOwnerGUID() != player->GetGUID())
              return;
          float const radius = spell->Effects[EFFECT_0].CalcRadius(player);
-@@ -3453,6 +3512,8 @@ public:
+@@ -3453,6 +3523,8 @@ public:
          {"localvanity", HandleLocalVanityCommand, SEC_PLAYER, Console::No},
          {"localtalent", HandleLocalTalentCommand, SEC_PLAYER, Console::No},
          {"localspec", HandleLocalSpecCommand, SEC_PLAYER, Console::No},
@@ -121,7 +146,7 @@ index da2e17e5a..ee04e2cb5 100644
          {"localresource", HandleLocalResourceCommand, SEC_PLAYER,
           Console::No},
          {"localcharges", HandleLocalChargesCommand, SEC_PLAYER, Console::No},
-@@ -3613,6 +3674,14 @@ public:
+@@ -3613,6 +3685,14 @@ public:
      return true;
    }
  
@@ -136,7 +161,7 @@ index da2e17e5a..ee04e2cb5 100644
    static bool HandleLocalClassRepairCommand(ChatHandler *handler) {
      Player *player = handler->GetPlayer();
      if (!player)
-@@ -3762,8 +3831,17 @@ public:
+@@ -3762,8 +3842,17 @@ public:
        return true;
  
      handled = true;
@@ -156,7 +181,7 @@ index da2e17e5a..ee04e2cb5 100644
    }
  
    void OnPlayerLogin(Player *player) override {
-@@ -3970,14 +4048,17 @@ public:
+@@ -3970,14 +4059,17 @@ public:
              AscensionResourceService::Instance().CanPrepare(spell);
      }
  
@@ -176,7 +201,7 @@ index da2e17e5a..ee04e2cb5 100644
          }
      }
  
-@@ -4574,6 +4655,37 @@ class spell_ascension_local_mount : public SpellScript
+@@ -4574,6 +4666,37 @@ class spell_ascension_local_mount : public SpellScript
      }
  };
  
@@ -214,7 +239,7 @@ index da2e17e5a..ee04e2cb5 100644
  class npc_ascension_training_book : public CreatureScript
  {
  public:
-@@ -4672,6 +4784,7 @@ void AddAscensionCompatScripts() {
+@@ -4672,6 +4795,7 @@ void AddAscensionCompatScripts() {
    new npc_ascension_training_book();
    RegisterSpellScript(spell_ascension_experience_potion);
    RegisterSpellScript(spell_ascension_local_mount);

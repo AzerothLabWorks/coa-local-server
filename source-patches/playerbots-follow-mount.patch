@@ -1,0 +1,246 @@
+diff --git a/src/Ai/Base/Actions/ChatShortcutActions.cpp b/src/Ai/Base/Actions/ChatShortcutActions.cpp
+index 28fdb12c..01e98c85 100644
+--- a/src/Ai/Base/Actions/ChatShortcutActions.cpp
++++ b/src/Ai/Base/Actions/ChatShortcutActions.cpp
+@@ -50,7 +50,7 @@ bool FollowChatShortcutAction::Execute(Event /*event*/)
+         return false;
+ 
+     // botAI->Reset();
+-    botAI->ChangeStrategy("+follow,-passive,-grind,-move from group", BOT_STATE_NON_COMBAT);
++    botAI->ChangeStrategy("+follow,-stay,-passive,-grind,-move from group", BOT_STATE_NON_COMBAT);
+     botAI->ChangeStrategy("-stay,-follow,-passive,-grind,-move from group", BOT_STATE_COMBAT);
+     botAI->GetAiObjectContext()->GetValue<GuidVector>("prioritized targets")->Reset();
+ 
+diff --git a/src/Ai/Base/Strategy/FollowMasterStrategy.cpp b/src/Ai/Base/Strategy/FollowMasterStrategy.cpp
+index cb9bc9f1..26a3bc2d 100644
+--- a/src/Ai/Base/Strategy/FollowMasterStrategy.cpp
++++ b/src/Ai/Base/Strategy/FollowMasterStrategy.cpp
+@@ -5,11 +5,14 @@
+  */
+ 
+ #include "FollowMasterStrategy.h"
++#include "PlayerbotAI.h"
+ 
+ std::vector<NextAction> FollowMasterStrategy::getDefaultActions()
+ {
+     return {
+-        NextAction("follow", 1.0f)
++        // Follow a moving human leader before optional corpse looting (6-7).
++        // The action is only useful once the bot is outside formation range.
++        NextAction("follow", botAI->HasGameClientMaster() ? 8.0f : 1.0f)
+     };
+ }
+ 
+diff --git a/src/Ai/Base/Strategy/NonCombatStrategy.cpp b/src/Ai/Base/Strategy/NonCombatStrategy.cpp
+index ca21d8c8..c7104af0 100644
+--- a/src/Ai/Base/Strategy/NonCombatStrategy.cpp
++++ b/src/Ai/Base/Strategy/NonCombatStrategy.cpp
+@@ -5,11 +5,15 @@
+  */
+ 
+ #include "NonCombatStrategy.h"
++#include "PlayerbotAI.h"
+ 
+ void NonCombatStrategy::InitTriggers(std::vector<TriggerNode*>& triggers)
+ {
+     triggers.push_back(new TriggerNode("random", { NextAction("clean quest log", 1.0f) }));
+-    triggers.push_back(new TriggerNode("timer", { NextAction("check mount state", 1.0f) }));
++    // A player-led bot must evaluate mount changes before its ordinary follow
++    // movement; otherwise a continuously useful follow action can win every tick.
++    float mountRelevance = botAI->HasGameClientMaster() ? 9.0f : 1.0f;
++    triggers.push_back(new TriggerNode("timer", { NextAction("check mount state", mountRelevance) }));
+ }
+ 
+ void CollisionStrategy::InitTriggers(std::vector<TriggerNode*>& triggers)
+
+diff --git a/src/Ai/Base/Actions/CheckMountStateAction.cpp b/src/Ai/Base/Actions/CheckMountStateAction.cpp
+index c63cd1aa..d609cd33 100644
+--- a/src/Ai/Base/Actions/CheckMountStateAction.cpp
++++ b/src/Ai/Base/Actions/CheckMountStateAction.cpp
+@@ -31,7 +31,7 @@ MountData CollectMountData(Player const* bot)
+     {
+         uint32 spellId = entry.first;
+         SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spellId);
+-        if (!spellInfo || spellInfo->Effects[0].ApplyAuraName != SPELL_AURA_MOUNTED)
++        if (!spellInfo || !spellInfo->HasAura(SPELL_AURA_MOUNTED))
+             continue;
+ 
+         if (entry.second->State == PLAYERSPELL_REMOVED || !entry.second->Active || spellInfo->IsPassive())
+@@ -47,8 +47,7 @@ MountData CollectMountData(Player const* bot)
+             data.maxSpeed = speed;  // In BG, clamp max speed to 99 later; here we just store the maximum found.
+ 
+         // Determine index: flight if either effect has flight aura or specific mount ID.
+-        uint32 index = (spellInfo->Effects[1].ApplyAuraName == SPELL_AURA_MOD_INCREASE_MOUNTED_FLIGHT_SPEED ||
+-                        spellInfo->Effects[2].ApplyAuraName == SPELL_AURA_MOD_INCREASE_MOUNTED_FLIGHT_SPEED ||
++        uint32 index = (spellInfo->HasAura(SPELL_AURA_MOD_INCREASE_MOUNTED_FLIGHT_SPEED) ||
+                         // Winged Steed of the Ebon Blade
+                         // This mount is meant to autoscale from a 150% flyer
+                         // up to a 280% as you train your flying skill up.
+@@ -86,7 +85,7 @@ bool CheckMountStateAction::Execute(Event /*event*/)
+     bool shouldMount = false;
+ 
+     Unit* currentTarget = AI_VALUE(Unit*, "current target");
+-    if (currentTarget)
++    if (currentTarget && currentTarget->IsAlive())
+     {
+         float dismountDistance = CalculateDismountDistance();
+         float mountDistance = CalculateMountDistance();
+@@ -101,6 +100,14 @@ bool CheckMountStateAction::Execute(Event /*event*/)
+         shouldMount = true;
+     }
+ 
++    // A mounted human leader is traveling. A nearby selected creature should
++    // not keep an idle follower on foot when nobody is attacking the group.
++    if (master && master != bot && master->IsMounted() && noAttackers && !bot->IsInCombat())
++    {
++        shouldDismount = false;
++        shouldMount = true;
++    }
++
+     // If should dismount, or master (if any) is no longer in travel form, yet bot still is, remove the shapeshifts
+     if (shouldDismount ||
+         (masterInShapeshiftForm != FORM_TRAVEL && botInShapeshiftForm == FORM_TRAVEL) ||
+@@ -173,7 +180,8 @@ bool CheckMountStateAction::isUseful()
+     // to mostly be an issue in tunnels of WSG and AV)
+     float posZ = bot->GetPositionZ();
+     float groundLevel = bot->GetMapWaterOrGroundLevel(bot->GetPositionX(), bot->GetPositionY(), posZ);
+-    if (!bot->IsMounted() && !bot->HasWaterWalkAura() && posZ < groundLevel)
++    if (!bot->IsMounted() && !bot->HasWaterWalkAura() && posZ + 2.0f < groundLevel &&
++        (!master || !master->IsMounted()))
+         return false;
+ 
+     // Not useful when bot does not have mount strat and is not currently mounted
+@@ -215,7 +223,9 @@ bool CheckMountStateAction::Mount()
+         botAI->RemoveAura("tree of life");
+     }
+ 
+-    if (TryPreferredMount(master))
++    // Collection mounts may not appear in a bot's preferred-mount table. If
++    // the bot knows the leader's exact mount spell, mirror it first.
++    if (TryMasterMount(master) || TryPreferredMount(master))
+         return true;
+ 
+     // Get bot mount data
+@@ -236,6 +246,13 @@ bool CheckMountStateAction::Mount()
+             return true;
+     }
+ 
++    // COA collection mounts can fly in Azeroth or have speed values that do
++    // not match a bot's learned mounts. Fall back to any usable ground mount
++    // rather than leaving the bot on foot when no matching mount could cast.
++    auto groundIt = mountData.allSpells.find(0);
++    if (groundIt != mountData.allSpells.end() && TryRandomMountFiltered(groundIt->second, 0))
++        return true;
++
+     std::vector<Item*> items = AI_VALUE2(std::vector<Item*>, "inventory items", "mount");
+     if (!items.empty())
+         return UseItemAuto(*items.begin());
+@@ -335,6 +352,22 @@ bool CheckMountStateAction::TryForms(Player* master, int32 masterMountType, int3
+     return false;
+ }
+ 
++bool CheckMountStateAction::TryMasterMount(Player* master) const
++{
++    if (!master || master == bot)
++        return false;
++
++    for (AuraEffect const* aura : master->GetAuraEffectsByType(SPELL_AURA_MOUNTED))
++    {
++        uint32 spellId = aura->GetSpellInfo()->Id;
++        if (bot->HasSpell(spellId) && botAI->CanCastSpell(spellId, bot) &&
++            botAI->CastSpell(spellId, bot))
++            return true;
++    }
++
++    return false;
++}
++
+ bool CheckMountStateAction::TryPreferredMount(Player* master) const
+ {
+     uint32 botGUID = bot->GetGUID().GetRawValue();
+@@ -418,8 +451,7 @@ bool CheckMountStateAction::TryPreferredMount(Player* master) const
+     // Check if spell can be cast - for now allow all, even if the bot does not have the actual mount
+     //if (botAI->CanCastSpell(mountId, botAI->GetBot()))
+     //{
+-    botAI->CastSpell(chosenMountId, botAI->GetBot());
+-    return true;
++    return botAI->CastSpell(chosenMountId, botAI->GetBot());
+     //}
+ 
+     LOG_DEBUG("playerbots", "Preferred mount failed! | Bot Guid: {}", botGUID);
+@@ -443,12 +475,12 @@ bool CheckMountStateAction::TryRandomMountFiltered(std::map<int32, std::vector<u
+             if (bot->isMoving())
+                 bot->StopMoving();
+ 
+-            uint32 index = urand(0, ids.size() - 1);
+-
+-            if (botAI->CanCastSpell(ids[index], bot))
++            uint32 start = urand(0, ids.size() - 1);
++            for (size_t offset = 0; offset < ids.size(); ++offset)
+             {
+-                botAI->CastSpell(ids[index], bot);
+-                return true;
++                uint32 spellId = ids[(start + offset) % ids.size()];
++                if (botAI->CanCastSpell(spellId, bot) && botAI->CastSpell(spellId, bot))
++                    return true;
+             }
+         }
+     }
+diff --git a/src/Ai/Base/Actions/CheckMountStateAction.h b/src/Ai/Base/Actions/CheckMountStateAction.h
+index 360f7a48..20d0df70 100644
+--- a/src/Ai/Base/Actions/CheckMountStateAction.h
++++ b/src/Ai/Base/Actions/CheckMountStateAction.h
+@@ -60,6 +60,7 @@ private:
+     bool CheckForSwiftMount() const;
+     std::map<uint32, std::map<int32, std::vector<uint32>>> GetAllMountSpells() const;
+     bool TryForms(Player* master, int32 masterMountType, int32 masterSpeed) const;
++    bool TryMasterMount(Player* master) const;
+     bool TryPreferredMount(Player* master) const;
+     uint32 GetMountType(Player* master) const;
+     bool TryRandomMountFiltered(std::map<int32, std::vector<uint32>> const& spells, int32 masterSpeed) const;
+diff --git a/src/Ai/Base/Actions/EmoteAction.cpp b/src/Ai/Base/Actions/EmoteAction.cpp
+index 3e8b4dda..2d46b0d3 100644
+--- a/src/Ai/Base/Actions/EmoteAction.cpp
++++ b/src/Ai/Base/Actions/EmoteAction.cpp
+@@ -170,7 +170,7 @@ bool EmoteActionBase::ReceiveEmote(Player* source, uint32 emote, bool verbal)
+         case 324:
+             if (botAI->GetMaster() == source)
+             {
+-                botAI->ChangeStrategy("+follow", BOT_STATE_NON_COMBAT);
++                botAI->ChangeStrategy("+follow,-stay", BOT_STATE_NON_COMBAT);
+                 botAI->TellMasterNoFacing("Wherever you go, I'll follow..");
+             }
+             break;
+diff --git a/src/Ai/Base/Actions/FollowActions.cpp b/src/Ai/Base/Actions/FollowActions.cpp
+index deeb19a8..51dcc683 100644
+--- a/src/Ai/Base/Actions/FollowActions.cpp
++++ b/src/Ai/Base/Actions/FollowActions.cpp
+@@ -264,6 +264,11 @@ bool FollowAction::isUseful()
+         if (fTarget->HasUnitState(UNIT_STATE_IN_FLIGHT))
+             return false;
+ 
++        // Wait for a dead leader without mutating follow/stay strategies so
++        // following resumes automatically when the leader resurrects.
++        if (bot->IsAlive() && !fTarget->IsAlive())
++            return false;
++
+         if (!CanDeadFollow(fTarget))
+             return false;
+ 
+diff --git a/src/Ai/Base/Actions/ReleaseSpiritAction.cpp b/src/Ai/Base/Actions/ReleaseSpiritAction.cpp
+index b9a99ad9..2be42350 100644
+--- a/src/Ai/Base/Actions/ReleaseSpiritAction.cpp
++++ b/src/Ai/Base/Actions/ReleaseSpiritAction.cpp
+@@ -25,9 +25,9 @@ bool ReleaseSpiritAction::Execute(Event event)
+         {
+             botAI->TellMasterNoFacing(PlayerbotTextMgr::instance().GetBotTextOrDefault(
+                 "release_spirit_not_dead_wait", "I am not dead, will wait here", {}));
+-            // -follow in bg is overwriten each tick with +follow
+-            // +stay in bg causes stuttering effect as bot is cycled between +stay and +follow each tick
+-            botAI->ChangeStrategy("-follow,+stay", BOT_STATE_NON_COMBAT);
++            // The bot's follow action pauses while its master is dead. Do not
++            // persist a stay strategy here, or the bot remains stranded after
++            // its master resurrects (and after a summon).
+         }
+ 
+         return false;
