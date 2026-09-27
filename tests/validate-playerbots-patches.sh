@@ -14,10 +14,18 @@ git -C "$WORK/source/modules/mod-playerbots" apply "$ROOT/source-patches/playerb
 git -C "$WORK/source/modules/mod-playerbots" apply "$ROOT/source-patches/playerbots-follow-mount.patch"
 git -C "$WORK/source/modules/mod-playerbots" apply "$ROOT/source-patches/playerbots-coa-noncombat.patch"
 git -C "$WORK/source" apply "$ROOT/source-patches/coa-local-qol-playerbots.patch"
+git -C "$WORK/source" apply "$ROOT/source-patches/coa-local-furline-spellbook.patch"
 git -C "$WORK/source" apply "$ROOT/source-patches/coa-progression-validation.patch"
+cp -a "$ROOT/modules/mod-local-profession-tools" "$WORK/source/modules/"
+cp "$ROOT/sql/rev_20260926_00_local_artisans_model_fallback.sql" \
+  "$WORK/source/data/sql/updates/pending_db_world/rev_20260926_00_local_artisans_model_fallback.sql"
 
 test -f "$WORK/source/modules/mod-playerbots/conf/playerbots.conf.dist"
 grep -q 'localStarterBag = 1004037' "$WORK/source/modules/mod-ascension-compat/src/AscensionCompat.cpp"
+grep -q 'itr->second->State = PLAYERSPELL_CHANGED' "$WORK/source/modules/mod-ascension-compat/src/AscensionCompat.cpp"
+grep -q '!player->GetSession()->IsBot()' "$WORK/source/modules/mod-ascension-compat/src/AscensionCompat.cpp"
+grep -q 'spells.push_back(91737)' "$WORK/source/modules/mod-ascension-compat/src/AscensionCompat.cpp"
+grep -q '(57500, 0, 48501' "$WORK/source/data/sql/updates/pending_db_world/rev_20260926_00_local_artisans_model_fallback.sql"
 grep -q '"localspecstate", HandleLocalSpecStateCommand' "$WORK/source/modules/mod-ascension-compat/src/AscensionCompat.cpp"
 grep -q 'MOD_PLAYERBOTS_FOUND' "$WORK/source/modules/CMakeLists.txt"
 grep -q 'RandomBotCustomClassesOnly' "$WORK/source/modules/mod-playerbots/src/PlayerbotAIConfig.cpp"

@@ -1,30 +1,53 @@
 # COA Local Server
 
-Local, source-built Conquest of Azeroth server tooling for Ubuntu/WSL2 and Docker Compose.
+Build and run a local Conquest of Azeroth server on Ubuntu/WSL2 with Docker Compose, gameplay repairs,
+quality-of-life improvements, and experimental COA Playerbots.
 
-This repository is the control plane for a private development server. It clones and builds the public
-[`jealous-sound/azerothcore-wotlk-coa`](https://github.com/jealous-sound/azerothcore-wotlk-coa) source, but does
-not vendor that source or distribute clients, patches, game data, database packages, or other proprietary files.
+We build on the public [`jealous-sound/azerothcore-wotlk-coa`](https://github.com/jealous-sound/azerothcore-wotlk-coa)
+source. This repository contains the installer, configuration, source patches, and our small compatibility
+modules. The upstream server is cloned separately. Clients, client patches, extracted game data, database
+packages, and repack binaries are not included.
 
-## Current development status
+## What players get
 
-The installer has been validated end-to-end on Ubuntu/WSL2. It:
+| Improvement | Behavior in the current build |
+| --- | --- |
+| Faster progression | A configurable 3x XP preset and crafting/gathering skill gains set to 4. |
+| Starter supplies | New characters start with 5,000 gold; new COA-class characters receive four 30-slot Elementiumweave Bags. |
+| Persistent mount and pet buttons | Account-owned mount and companion spells are saved in Playerbots builds, so their action-bar buttons survive logout and login. |
+| Working Sunwarmed Furline | The mount renders correctly and uses its native mount aura and riding-speed behavior. Older collection entries keep working. |
+| Book of Artisans | The book summons with a valid model and opens its profession trainer so characters can learn professions. |
+| Automatic profession tools | Learning a supported profession supplies missing starter tools. Existing characters receive missing tools on login. |
+| Lootbot 3000 | A summoned, owned Lootbot can collect nearby loot even when the collection UI has not retained its active-pet selection. |
+| COA character compatibility | Valid custom-class spells and skills are preserved at login, and the client's `localspecstate` query no longer floods chat. |
+| Grouped bot travel | Eligible COA bots can match the leader's mount, follow on the ground or in flight, and dismount with the leader. |
 
-- creates an isolated `coa-local` Compose project;
-- clones the COA source into a separate runtime directory;
-- records the exact upstream commit used for a build;
-- generates a strong local database password;
-- verifies and imports the world baseline bundled with the selected COA source revision;
-- requires user-supplied COA server data;
-- builds the authserver, worldserver, and database importer from source;
-- configures the realm endpoint to match the published Docker world port;
-- deliberately bypasses AzerothCore's stock client-data downloader;
-- applies local QoL defaults: 3x XP, 4x profession gains, 5,000 starter gold,
-  and four 30-slot bags for newly created characters;
-- supports a non-destructive `--dry-run` preflight;
-- optionally builds the open-source Playerbots core/module integration and initializes its database.
+The upstream local-play defaults also unlock the local appearance and vanity catalogs and grant riding
+300/300 plus Cold Weather Flying. Available collection entries depend on the supplied COA data and spell support.
 
-The installer does not yet download or infer proprietary inputs. Supply legally obtained files yourself.
+The profession kit covers **Fishing, Skinning, Mining, Blacksmithing, Engineering, Enchanting, Inscription, and
+Jewelcrafting**. It checks equipment, bags, and the bank before granting tools, recognizes compatible multi-tools,
+and never replaces equipped weapons. See the [tool list and delivery rules](modules/mod-local-profession-tools/README.md).
+Crafting materials and advanced crafted tools remain part of normal profession progression.
+
+Sunwarmed Furline may appear twice in the Mounts list because we retain the older collection entry alongside
+the native riding-speed spell. This repair does not globally enable flying in Azeroth. After updating an older
+server, a mount or pet button already removed by the old login behavior may need to be added once more.
+
+## Current status
+
+The pinned **Playerbots build is the tested installation path**. It has been built and run on Ubuntu/WSL2 with
+12 online bots. The latest gameplay fixes were reported working in local playtesting on 2026-09-27, including
+profession training and tool delivery, Furline, and mount/pet action-bar persistence. Installer checks, patch
+application checks, and the worldserver build passed; the latest deployment introduced no new startup errors.
+These are local test results, not coverage of every class, spell, item, or dungeon.
+
+COA bot combat is still experimental. Group invitations, summoning, attacking, and mount/dismount following
+have been exercised in game. Complete tank/healer/DPS rotations and reliable dungeon parties are the next stage;
+see the [Playerbots roadmap](docs/playerbots-roadmap.md) for observed results and remaining tests.
+
+New installations **without `--with-playerbots` are currently unsupported**: the older non-Playerbots vanity
+patch needs rebasing onto upstream `main`. Use the pinned Playerbots path below while that work remains open.
 
 ## Requirements
 
@@ -34,49 +57,29 @@ The installer does not yet download or infer proprietary inputs. Supply legally 
 - OpenSSL
 - Prepared server data containing at least `dbc`, `maps`, `vmaps`, and `mmaps`
 
-The COA source specifically requires DBCs extracted from the matching COA client. Stock AzerothCore DBCs are
-not a compatible substitute.
+The tested Playerbots build requires the matching repack `Data` directory. Its DBC layout differs from the
+client-extracted non-bot data, and the installer checks two layout-sensitive DBC hashes before building.
+Stock AzerothCore data is not a compatible substitute. Supply your own legally obtained COA client and server data.
 
-Prepare the server data from an existing client and COA source checkout:
-
-```bash
-./scripts/prepare-coa-data.sh \
-  --client-dir /mnt/c/Games/Ascension-WOW \
-  --source-dir /path/to/azerothcore-wotlk-coa \
-  --mpqcli /path/to/mpqcli \
-  --output ~/wow-server-coa-dev-data
-```
-
-This downloads v20 standard map data, then replaces its DBC set with tables extracted from and validated against the
-supplied COA client. The client is read-only and is not modified.
+`scripts/prepare-coa-data.sh` remains available for client-extracted data work; its output is not a substitute
+for the matching repack data required by the current Playerbots build.
 
 ## Quick start
 
-From Ubuntu/WSL2:
+From Ubuntu/WSL2, choose a new runtime directory and point `--data-dir` at your matching repack data:
 
 ```bash
 git clone https://github.com/AzerothLabWorks/coa-local-server.git
 cd coa-local-server
 
 ./scripts/install-coa.sh \
-  --dir ~/wow-server-coa-dev \
-  --data-dir /path/to/prepared-coa-server-data \
+  --dir ~/wow-server-coa-bots \
+  --data-dir '/mnt/c/Games/COA Repack/CoA-Repack/CoA-Repack/Data' \
+  --with-playerbots \
   --dry-run
 ```
 
 After the preflight succeeds, rerun without `--dry-run`:
-
-```bash
-./scripts/install-coa.sh \
-  --dir ~/wow-server-coa-dev \
-  --data-dir /path/to/prepared-coa-server-data
-```
-
-### Optional Playerbots build
-
-Playerbots requires its own AzerothCore fork hooks; adding only the module to ordinary COA source is not sufficient.
-The installer therefore pins the COA revision used by the repack-era build, applies the audited Playerbots core delta,
-and checks out the matching open-source module revision:
 
 ```bash
 ./scripts/install-coa.sh \
@@ -85,8 +88,21 @@ and checks out the matching open-source module revision:
   --with-playerbots
 ```
 
-To also install the repack's UnBot client addon, pass both Windows locations as WSL paths. An existing UnBot folder
-is renamed to a timestamped backup before the new copy is installed:
+The installer creates an isolated `coa-local` Compose project, generates a local database password, records
+the selected source revisions, imports the upstream COA world baseline, and builds the server components from
+source. Playerbots requires core hooks as well as the module; the installer applies both at compatible pinned
+revisions and initializes `acore_playerbots`. It also installs the gameplay patches and profession-tool module.
+The stock AzerothCore client-data downloader is bypassed.
+
+The first C++ build can take a long time; build output appears in the installation terminal. The installer
+refuses to overwrite an existing runtime directory. `--dry-run` validates inputs without creating a server.
+
+### Optional client tools
+
+For a new installation, add `--client-dir` to include the optional
+[COA WeakAuras range helper](client-addons/COAWeakAurasRange/README.md). Also add `--playerbots-package-dir`
+to copy UnBot from your repack. Close the client first and use WSL paths for Windows directories. Existing
+copies of these addons receive timestamped backups. For example, use this instead of the installation command above:
 
 ```bash
 ./scripts/install-coa.sh \
@@ -97,9 +113,7 @@ is renamed to a timestamped backup before the new copy is installed:
   --playerbots-package-dir '/mnt/c/Games/COA Repack/CoA-Repack/CoA-Repack/CoA-Bots'
 ```
 
-This installs the open-source Playerbots engine and its `acore_playerbots` database. The repack `Data` directory is
-required because its Playerbots DBC layout differs from the client-extracted non-bot data. The installer verifies two
-layout-sensitive DBC hashes before building.
+## Playerbots: working foundation, ongoing AI development
 
 The local compatibility patch also contains an initial COA AI adapter reconstructed from the data and behavior in
 the repack package. It permits random characters using custom class IDs, preserves their COA spellbooks during bot
@@ -116,9 +130,9 @@ The default online population is 12; override it cautiously with `COA_MIN_RANDOM
 `COA_RANDOM_BOT_ACCOUNT_COUNT` in `.env`. UnBot remains available for the standard Playerbots controls; its bot
 management bar is a client-side command interface and does not implement the server AI itself.
 
-When grouped, bots now pause rather than acquire a persistent `stay` command while the leader is dead; they resume
-following after resurrection. The Follow command clears any prior Stay state, and mount selection first tries the
-leader's known mount, with a usable ground-mount fallback when a COA mount cannot be cast. Player-led bots prioritize
+When grouped, bots now pause rather than acquire a persistent `stay` command while the leader is dead; the patch
+allows following to resume after resurrection. The Follow command clears any prior Stay state, and mount selection
+first tries the leader's known mount, with a usable ground-mount fallback when a COA mount cannot be cast. Player-led bots prioritize
 mounting and following a moving leader over optional corpse looting. COA classes register the noncombat strategy
 that runs the automatic mount-state check. In-game testing confirmed that a grouped COA bot matched the leader's
 ground mount, followed, dismounted when the leader did, then matched a Blossomback Arboon and followed in flight.
@@ -126,36 +140,29 @@ This applies to eligible COA bots generally, not to one named pilot; ordinary mo
 Switching mount types while the bot remains mounted has not been tested as an automatic transition. Post-combat
 follow and the Brewing healer pilot remain experimental; see the [Playerbots roadmap](docs/playerbots-roadmap.md).
 
-The initial C++ image build can take a long time. Follow progress with:
-
-```bash
-cd ~/wow-server-coa-dev
-docker compose --env-file .env -f compose.yaml logs -f
-```
-
 ## Management
 
 ```bash
-./scripts/coa-server.sh --dir ~/wow-server-coa-dev status
-./scripts/coa-server.sh --dir ~/wow-server-coa-dev logs
-./scripts/coa-server.sh --dir ~/wow-server-coa-dev stop
-./scripts/coa-server.sh --dir ~/wow-server-coa-dev start
+./scripts/coa-server.sh --dir ~/wow-server-coa-bots status
+./scripts/coa-server.sh --dir ~/wow-server-coa-bots logs
+./scripts/coa-server.sh --dir ~/wow-server-coa-bots stop
+./scripts/coa-server.sh --dir ~/wow-server-coa-bots start
 ```
 
 Create the first account after the worldserver is running:
 
 ```bash
-./scripts/coa-server.sh --dir ~/wow-server-coa-dev console
+./scripts/coa-server.sh --dir ~/wow-server-coa-bots console
 account create admin CHANGE_THIS_PASSWORD
 account set gmlevel admin 3 -1
 ```
 
 ## Runtime layout
 
-The default runtime directory is `~/wow-server-coa-dev`:
+The quick start uses `~/wow-server-coa-bots`; if `--dir` is omitted, the default is `~/wow-server-coa-dev`:
 
 ```text
-wow-server-coa-dev/
+wow-server-coa-bots/
   .env                    generated secrets and local paths
   compose.yaml            installed Compose definition
   source/                 cloned upstream COA source
@@ -171,24 +178,16 @@ The generated `.env` exposes the QoL rates as `COA_XP_RATE`, `COA_PROFESSION_RAT
 `COA_STARTER_MONEY_COPPER`. The default XP preset is 3; the included dynamic-XP module also supports presets
 1, 5, and 7.
 
-## Included gameplay compatibility fixes
+## Existing servers and updates
 
-The installer applies auditable source patches for local play. In addition to the QoL defaults above, they:
+Pulling this repository does not change a running server. The installer creates fresh runtimes; it is not an
+in-place updater. Existing installations need the applicable source/module changes, any new SQL migrations,
+and a rebuilt server image. Review the changes and back up affected state before deployment.
 
-- equip new Ascension-class characters with four 30-slot Elementiumweave Bags;
-- repair both Sunwarmed Furline collection records and supply the missing server-side mount display behavior;
-- restore the Book of Artisans model and interaction bounds;
-- open the Book of Artisans profession trainer after it is summoned, allowing professions to be learned normally;
-- let Lootbot 3000 process nearby loot independently of the vanity collection's active-pet selection;
-- accept the client's `localspecstate` query without flooding chat; and
-- preserve valid custom-class spells and skills when characters log in.
-
-The Sunwarmed Furline, Book of Artisans, and Lootbot behavior has been verified in local play. Client-only addon
-adjustments and client files are not part of this repository; this installer does not install those changes. Existing
-runtime databases, accounts, and characters are not reset by a new source build.
-
-Prepared server data remains in the directory passed with `--data-dir` and is mounted read-only; the installer
-does not duplicate its multi-gigabyte map files.
+Profession-tool checks apply to existing trained characters on login. The 5,000-gold and four-bag defaults
+apply to character creation; the installer does not retroactively reset balances or overwrite existing bags.
+Characters and accounts live in the database volume and are retained by ordinary rebuilds and restarts.
+Prepared server data stays in the `--data-dir` directory and is mounted read-only rather than copied into each build.
 
 ## Development
 
@@ -207,6 +206,11 @@ For a Playerbots build, also verify that every patch applies to the pinned sourc
 Keep this README aligned with verified behavior. Record experimental bot results and remaining work in the
 [Playerbots roadmap](docs/playerbots-roadmap.md); do not describe a new behavior as confirmed until it passes an
 in-game test. Local `.env` files, client data, and credentials stay outside Git.
+
+Community test reports are welcome. Include the repository revision, character class and level, steps to
+reproduce, expected and actual behavior, and relevant client/server logs with credentials removed. Bot reports
+should include the bot's class, level, selected specialization, and active strategies. Testing one level-matched
+party is more useful at this stage than raising the population before combat roles are validated.
 
 See [docs/architecture.md](docs/architecture.md) for the isolation and data-flow decisions.
 

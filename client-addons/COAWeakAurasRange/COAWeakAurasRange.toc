@@ -1,0 +1,7 @@
+## Interface: 30300
+## Title: COA WeakAuras Range
+## Notes: Accurate COA spell probes for WeakAuras Range Check triggers.
+## Dependencies: WeakAuras
+## Version: 0.1.0
+
+COAWeakAurasRange.lua

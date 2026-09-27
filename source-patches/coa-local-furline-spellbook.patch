@@ -1,0 +1,20 @@
+diff --git a/modules/mod-ascension-compat/src/AscensionCompat.cpp b/modules/mod-ascension-compat/src/AscensionCompat.cpp
+--- a/modules/mod-ascension-compat/src/AscensionCompat.cpp
++++ b/modules/mod-ascension-compat/src/AscensionCompat.cpp
+@@ -2593,3 +2593,16 @@ public:
++        // The client catalog casts 9931327, but the native 91737 entry has
++        // the usable riding-speed auras and a normal Mounts spellbook entry.
++        // Keep both: the former preserves the collection Summon button.
++        bool const ownsFurline = std::any_of(_vanityItems.begin(), _vanityItems.end(),
++            [&state, unlockAll](auto const& entry)
++            {
++                return entry.second.LearnedSpell == 9931327 &&
++                    (entry.second.CategoryMask & VANITY_CATEGORY_MOUNTS) &&
++                    (unlockAll || state.OwnedVanityItems.contains(entry.first));
++            });
++        if (ownsFurline && !player->HasSpell(91737) && sSpellMgr->GetSpellInfo(91737))
++            spells.push_back(91737);
++
+         std::sort(spells.begin(), spells.end());
+         spells.erase(std::unique(spells.begin(), spells.end()), spells.end());
+         return spells;

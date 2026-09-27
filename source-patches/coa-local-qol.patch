@@ -169,14 +169,14 @@ index 759d5c263..4cc7b946c 100644
          }
      }
  
-@@ -6524,6 +6604,37 @@ class spell_ascension_wildcard_mount : public SpellScript
+@@ -6524,6 +6604,52 @@ class spell_ascension_wildcard_mount : public SpellScript
      }
  };
  
-+// Both catalog generations of Sunwarmed Furline apply the correct permanent
-+// mount aura, but this custom client build does not turn that aura's creature
-+// entry into a visible mount. Preserve the native aura for speed and removal,
-+// and repair only the missing display after a successful cast.
++// The newer Furline vanity spell has a mount aura but no riding-speed auras.
++// Replace that aura with the older native spell, which has ground and flight
++// speed auras. Both spell variants need the missing visible model repaired
++// for this custom client build.
 +class spell_ascension_sunwarmed_furline : public SpellScript
 +{
 +    PrepareSpellScript(spell_ascension_sunwarmed_furline);
@@ -193,7 +193,22 @@ index 759d5c263..4cc7b946c 100644
 +    void EnsureMountDisplay()
 +    {
 +        Player* player = GetCaster()->ToPlayer();
-+        if (player && player->HasAura(GetSpellInfo()->Id) &&
++        if (!player)
++            return;
++
++        // The newer vanity spell has a mount aura but no riding-speed aura.
++        // Replace only that aura with the native spell after a successful cast;
++        // the collection still recognizes and casts its original spell ID.
++        if (GetSpellInfo()->Id == 9931327)
++        {
++            if (!player->HasAura(9931327))
++                return;
++            player->RemoveAurasDueToSpell(9931327);
++            player->CastSpell(player, 91737, true);
++            return;
++        }
++
++        if (player->HasAura(GetSpellInfo()->Id) &&
 +            player->GetUInt32Value(UNIT_FIELD_MOUNTDISPLAYID) != DisplayId)
 +            player->Mount(DisplayId, 0, CreatureEntry);
 +    }
@@ -207,7 +222,7 @@ index 759d5c263..4cc7b946c 100644
  class npc_ascension_training_book : public CreatureScript
  {
  public:
-@@ -6773,6 +6884,7 @@ void AddAscensionCompatScripts() {
+@@ -6773,6 +6899,7 @@ void AddAscensionCompatScripts() {
    RegisterSpellScript(spell_ascension_local_mount);
    RegisterSpellScript(spell_ascension_jailers_bargain);
    RegisterSpellScript(spell_ascension_wildcard_mount);

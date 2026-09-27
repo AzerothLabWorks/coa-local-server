@@ -31,9 +31,9 @@ Options:
   --dir DIR           Runtime directory (default: ~/wow-server-coa-dev)
   --upstream-ref REF  Upstream branch, tag, or commit (default: main)
   --with-playerbots    Build the pinned open-source Playerbots core and module
-  --client-dir DIR     Optionally install UnBot into this COA client
+  --client-dir DIR     Optionally install COA WeakAuras range support into this client
   --playerbots-package-dir DIR
-                       Repack CoA-Bots directory containing Client/Interface/AddOns/UnBot
+                       Also install UnBot from this repack CoA-Bots directory
   --no-start          Prepare and build images, but do not start services
   --dry-run           Validate inputs and print the planned work only
   -h, --help          Show this help
@@ -104,10 +104,13 @@ validate_inputs() {
       die "Playerbots requires the matching CoA-Bots repack Data directory; these DBCs are incompatible."
   fi
 
-  if [[ -n "$CLIENT_DIR" || -n "$PLAYERBOTS_PACKAGE_DIR" ]]; then
-    [[ "$WITH_PLAYERBOTS" == true ]] || die "Client addon installation requires --with-playerbots."
-    [[ -n "$CLIENT_DIR" && -n "$PLAYERBOTS_PACKAGE_DIR" ]] || die "Use --client-dir and --playerbots-package-dir together."
+  if [[ -n "$CLIENT_DIR" ]]; then
     [[ -d "$CLIENT_DIR/Interface/AddOns" ]] || die "Client AddOns directory not found: $CLIENT_DIR/Interface/AddOns"
+    [[ -d "$REPO_ROOT/client-addons/COAWeakAurasRange" ]] || die "COAWeakAurasRange addon is missing from this installer."
+  fi
+  if [[ -n "$PLAYERBOTS_PACKAGE_DIR" ]]; then
+    [[ "$WITH_PLAYERBOTS" == true ]] || die "UnBot installation requires --with-playerbots."
+    [[ -n "$CLIENT_DIR" ]] || die "UnBot installation requires --client-dir."
     [[ -d "$PLAYERBOTS_PACKAGE_DIR/Client/Interface/AddOns/UnBot" ]] || die "UnBot not found below: $PLAYERBOTS_PACKAGE_DIR"
   fi
 
@@ -122,7 +125,22 @@ show_plan() {
   printf '  World DB:     bundled, verified upstream COA baseline\n'
   printf '  Server data:  %s\n' "$DATA_DIR"
   printf '  Playerbots:   %s\n' "$([[ "$WITH_PLAYERBOTS" == true ]] && printf yes || printf no)"
+  printf '  Client:       %s\n' "${CLIENT_DIR:-none}"
+  printf '  UnBot addon:  %s\n' "$([[ -n "$PLAYERBOTS_PACKAGE_DIR" ]] && printf yes || printf no)"
   printf '  Start stack:  %s\n' "$([[ "$NO_START" == true ]] && printf no || printf yes)"
+}
+
+backup_client_addon() {
+  local name="$1" target="$CLIENT_DIR/Interface/AddOns/$1" backup suffix
+  [[ -e "$target" || -L "$target" ]] || return 0
+  backup="$target.backup.$(date +%Y%m%d%H%M%S)"
+  suffix=1
+  while [[ -e "$backup" ]]; do
+    backup="$target.backup.$(date +%Y%m%d%H%M%S).$suffix"
+    ((suffix += 1))
+  done
+  mv -- "$target" "$backup"
+  log "Backed up client addon $name to $backup"
 }
 
 prepare_runtime() {
@@ -148,6 +166,10 @@ prepare_runtime() {
   else
     git -C "$INSTALL_DIR/source" apply "$REPO_ROOT/source-patches/coa-local-qol.patch"
   fi
+  git -C "$INSTALL_DIR/source" apply "$REPO_ROOT/source-patches/coa-local-furline-spellbook.patch"
+  cp -a "$REPO_ROOT/modules/mod-local-profession-tools" "$INSTALL_DIR/source/modules/"
+  cp "$REPO_ROOT/sql/rev_20260926_00_local_artisans_model_fallback.sql" \
+    "$INSTALL_DIR/source/data/sql/updates/pending_db_world/rev_20260926_00_local_artisans_model_fallback.sql"
   git -C "$INSTALL_DIR/source" rev-parse HEAD > "$INSTALL_DIR/state/upstream-commit"
 
   cp "$REPO_ROOT/compose.yaml" "$INSTALL_DIR/compose.yaml"
@@ -156,11 +178,12 @@ prepare_runtime() {
   cp "$REPO_ROOT/docker/bootstrap-playerbots.sh" "$INSTALL_DIR/orchestration/bootstrap-playerbots.sh"
 
   if [[ -n "$CLIENT_DIR" ]]; then
-    if [[ -e "$CLIENT_DIR/Interface/AddOns/UnBot" ]]; then
-      mv "$CLIENT_DIR/Interface/AddOns/UnBot" \
-        "$CLIENT_DIR/Interface/AddOns/UnBot.backup.$(date +%Y%m%d%H%M%S)"
+    backup_client_addon COAWeakAurasRange
+    cp -a "$REPO_ROOT/client-addons/COAWeakAurasRange" "$CLIENT_DIR/Interface/AddOns/COAWeakAurasRange"
+    if [[ -n "$PLAYERBOTS_PACKAGE_DIR" ]]; then
+      backup_client_addon UnBot
+      cp -a "$PLAYERBOTS_PACKAGE_DIR/Client/Interface/AddOns/UnBot" "$CLIENT_DIR/Interface/AddOns/UnBot"
     fi
-    cp -a "$PLAYERBOTS_PACKAGE_DIR/Client/Interface/AddOns/UnBot" "$CLIENT_DIR/Interface/AddOns/UnBot"
   fi
 
   local password user_id group_id source_dir orchestration_dir data_dir

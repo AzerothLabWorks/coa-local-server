@@ -137,7 +137,28 @@ index da2e17e5a..d22abae6a 100644
          if (!companion || !companion->IsAlive() || companion->GetOwnerGUID() != player->GetGUID())
              return;
          float const radius = spell->Effects[EFFECT_0].CalcRadius(player);
-@@ -3453,6 +3523,8 @@ public:
+@@ -2486,6 +2556,18 @@ public:
+         for (uint32 spellId : spells)
+         {
+             player->learnSpell(spellId, false);
+-            if (player->HasSpell(spellId))
+-                ++learned;
++            if (!player->HasSpell(spellId))
++                continue;
++
++            // This grant occurs while the session is loading. Core treats a
++            // newly learned spell as already stored, so its next save skips
++            // the INSERT and the following login drops its action button.
++            // CHANGED forces the normal DELETE + INSERT persistence path.
++            PlayerSpellMap& knownSpells = player->GetSpellMap();
++            auto itr = knownSpells.find(spellId);
++            // Random bots are numerous and do not need action-bar persistence.
++            if (player->GetSession() && !player->GetSession()->IsBot() &&
++                itr != knownSpells.end() && itr->second->State == PLAYERSPELL_UNCHANGED)
++                itr->second->State = PLAYERSPELL_CHANGED;
++            ++learned;
+         }
+@@ -3453,6 +3535,8 @@ public:
          {"localvanity", HandleLocalVanityCommand, SEC_PLAYER, Console::No},
          {"localtalent", HandleLocalTalentCommand, SEC_PLAYER, Console::No},
          {"localspec", HandleLocalSpecCommand, SEC_PLAYER, Console::No},
@@ -146,7 +167,7 @@ index da2e17e5a..d22abae6a 100644
          {"localresource", HandleLocalResourceCommand, SEC_PLAYER,
           Console::No},
          {"localcharges", HandleLocalChargesCommand, SEC_PLAYER, Console::No},
-@@ -3613,6 +3685,14 @@ public:
+@@ -3613,6 +3697,14 @@ public:
      return true;
    }
  
@@ -161,7 +182,7 @@ index da2e17e5a..d22abae6a 100644
    static bool HandleLocalClassRepairCommand(ChatHandler *handler) {
      Player *player = handler->GetPlayer();
      if (!player)
-@@ -3762,8 +3842,17 @@ public:
+@@ -3762,8 +3854,17 @@ public:
        return true;
  
      handled = true;
@@ -181,7 +202,7 @@ index da2e17e5a..d22abae6a 100644
    }
  
    void OnPlayerLogin(Player *player) override {
-@@ -3970,14 +4059,17 @@ public:
+@@ -3970,14 +4071,17 @@ public:
              AscensionResourceService::Instance().CanPrepare(spell);
      }
  
@@ -201,14 +222,14 @@ index da2e17e5a..d22abae6a 100644
          }
      }
  
-@@ -4574,6 +4666,37 @@ class spell_ascension_local_mount : public SpellScript
+@@ -4574,6 +4678,52 @@ class spell_ascension_local_mount : public SpellScript
      }
  };
  
-+// Both catalog generations of Sunwarmed Furline apply the correct permanent
-+// mount aura, but this custom client build does not turn that aura's creature
-+// entry into a visible mount. Preserve the native aura for speed and removal,
-+// and repair only the missing display after a successful cast.
++// The newer Furline vanity spell has a mount aura but no riding-speed auras.
++// Replace that aura with the older native spell, which has ground and flight
++// speed auras. Both spell variants need the missing visible model repaired
++// for this custom client build.
 +class spell_ascension_sunwarmed_furline : public SpellScript
 +{
 +    PrepareSpellScript(spell_ascension_sunwarmed_furline);
@@ -225,7 +246,22 @@ index da2e17e5a..d22abae6a 100644
 +    void EnsureMountDisplay()
 +    {
 +        Player* player = GetCaster()->ToPlayer();
-+        if (player && player->HasAura(GetSpellInfo()->Id) &&
++        if (!player)
++            return;
++
++        // The newer vanity spell has a mount aura but no riding-speed aura.
++        // Replace only that aura with the native spell after a successful cast;
++        // the collection still recognizes and casts its original spell ID.
++        if (GetSpellInfo()->Id == 9931327)
++        {
++            if (!player->HasAura(9931327))
++                return;
++            player->RemoveAurasDueToSpell(9931327);
++            player->CastSpell(player, 91737, true);
++            return;
++        }
++
++        if (player->HasAura(GetSpellInfo()->Id) &&
 +            player->GetUInt32Value(UNIT_FIELD_MOUNTDISPLAYID) != DisplayId)
 +            player->Mount(DisplayId, 0, CreatureEntry);
 +    }
@@ -239,7 +275,7 @@ index da2e17e5a..d22abae6a 100644
  class npc_ascension_training_book : public CreatureScript
  {
  public:
-@@ -4672,6 +4795,7 @@ void AddAscensionCompatScripts() {
+@@ -4672,6 +4822,7 @@ void AddAscensionCompatScripts() {
    new npc_ascension_training_book();
    RegisterSpellScript(spell_ascension_experience_potion);
    RegisterSpellScript(spell_ascension_local_mount);

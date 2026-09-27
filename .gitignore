@@ -2,6 +2,7 @@
 .runtime/
 *.log
 *.sql
+!sql/rev_20260926_00_local_artisans_model_fallback.sql
 *.sql.gz
 *.zip
 client/
