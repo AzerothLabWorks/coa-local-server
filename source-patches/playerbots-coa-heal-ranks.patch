@@ -1,0 +1,23 @@
+diff --git a/src/Ai/Class/Coa/CoaAiObjectContext.cpp b/src/Ai/Class/Coa/CoaAiObjectContext.cpp
+--- a/src/Ai/Class/Coa/CoaAiObjectContext.cpp
++++ b/src/Ai/Class/Coa/CoaAiObjectContext.cpp
+@@ -17,12 +17,13 @@ namespace
+ constexpr float BREWING_HEAL_BELOW_PCT = 80.0f;
+ 
+ // Verified against the installed CoA Spell.dbc. Highest ranks are first.
+-constexpr std::array<uint32, 9> LOAS_BREW =
+-    {501206, 501205, 501204, 501203, 501202, 501201, 501200, 501199, 501198};
+-constexpr std::array<uint32, 7> SPIRIT_IN_A_BOTTLE =
+-    {501213, 501212, 501211, 501210, 501209, 501208, 501207};
+-constexpr std::array<uint32, 6> POTION_TOSS =
+-    {573435, 573434, 573433, 573432, 573431, 573430};
++// Native base spells remain usable before the first ranked upgrade is learned.
++constexpr std::array<uint32, 10> LOAS_BREW =
++    {501206, 501205, 501204, 501203, 501202, 501201, 501200, 501199, 501198, 801670};
++constexpr std::array<uint32, 8> SPIRIT_IN_A_BOTTLE =
++    {501213, 501212, 501211, 501210, 501209, 501208, 501207, 801696};
++constexpr std::array<uint32, 7> POTION_TOSS =
++    {573435, 573434, 573433, 573432, 573431, 573430, 801661};
+ 
+ Player* FindBrewingHealTarget(Player* bot)
+ {

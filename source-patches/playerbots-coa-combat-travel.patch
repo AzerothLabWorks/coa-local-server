@@ -1,0 +1,60 @@
+diff --git a/src/Ai/Base/Actions/CheckMountStateAction.cpp b/src/Ai/Base/Actions/CheckMountStateAction.cpp
+index d609cd3..b90cb98 100644
+--- a/src/Ai/Base/Actions/CheckMountStateAction.cpp
++++ b/src/Ai/Base/Actions/CheckMountStateAction.cpp
+@@ -188,8 +188,14 @@ bool CheckMountStateAction::isUseful()
+     if (!GET_PLAYERBOT_AI(bot)->HasStrategy("mount", BOT_STATE_NON_COMBAT) && !bot->IsMounted())
+         return false;
+ 
+-    // Not useful when level lower than minimum required
+-    if (bot->GetLevel() < sPlayerbotAIConfig.useGroundMountAtMinLevel)
++    // COA companions can have trained riding before the stock AI minimum.
++    // Keep native spell checks and the roaming/BG policy; allow this while the
++    // leader is unmounted too, so the same action can synchronize dismounts.
++    bool const trainedCoaCompanion = bot->getClass() >= 12 && bot->getClass() <= 32 &&
++        master && master != bot && botAI->HasGameClientMaster() && bot->GetGroup() &&
++        bot->GetGroup() == master->GetGroup() && !bot->InBattleground() &&
++        bot->GetPureSkillValue(SKILL_RIDING) >= 75;
++    if (bot->GetLevel() < sPlayerbotAIConfig.useGroundMountAtMinLevel && !trainedCoaCompanion)
+         return false;
+ 
+     // Allow mounting while transformed only if the form allows it
+diff --git a/src/Ai/Class/Coa/CoaAiObjectContext.cpp b/src/Ai/Class/Coa/CoaAiObjectContext.cpp
+index 8df1d8a..9d5cbd4 100644
+--- a/src/Ai/Class/Coa/CoaAiObjectContext.cpp
++++ b/src/Ai/Class/Coa/CoaAiObjectContext.cpp
+@@ -1,5 +1,6 @@
+ #include "CoaAiObjectContext.h"
+ 
++#include "CombatStrategy.h"
+ #include "Group.h"
+ #include "NonCombatStrategy.h"
+ #include "Player.h"
+@@ -154,10 +155,12 @@ public:
+     std::string const getName() override { return "nc"; }
+ };
+ 
+-class CoaCombatStrategy final : public Strategy
++// Keep shared invalid-target cleanup so a kill returns the AI to noncombat
++// following, recovery and mount synchronization.
++class CoaCombatStrategy final : public CombatStrategy
+ {
+ public:
+-    explicit CoaCombatStrategy(PlayerbotAI* ai) : Strategy(ai) {}
++    explicit CoaCombatStrategy(PlayerbotAI* ai) : CombatStrategy(ai) {}
+     std::string const getName() override { return "coa"; }
+     uint32 GetType() const override { return STRATEGY_TYPE_COMBAT | STRATEGY_TYPE_DPS; }
+     std::vector<NextAction> getDefaultActions() override
+@@ -166,10 +169,10 @@ public:
+     }
+ };
+ 
+-class CoaBrewingStrategy final : public Strategy
++class CoaBrewingStrategy final : public CombatStrategy
+ {
+ public:
+-    explicit CoaBrewingStrategy(PlayerbotAI* ai) : Strategy(ai) {}
++    explicit CoaBrewingStrategy(PlayerbotAI* ai) : CombatStrategy(ai) {}
+     std::string const getName() override { return "coa brewing"; }
+     uint32 GetType() const override { return STRATEGY_TYPE_HEAL | STRATEGY_TYPE_RANGED; }
+     std::vector<NextAction> getDefaultActions() override

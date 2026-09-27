@@ -166,6 +166,9 @@ services:
       AC_AI_PLAYERBOT_RANDOM_BOT_CUSTOM_CLASSES_ONLY: 1
       # Exact bot name for the opt-in Witch Doctor Brewing healer pilot.
       COA_BREWING_PILOT_NAME: ${COA_BREWING_PILOT_NAME:-}
+      # Explicit allowlist for GM-controlled low-level test companions. Empty
+      # by default; does not change the autonomous random-bot population.
+      COA_TEST_PILOT_NAMES: ${COA_TEST_PILOT_NAMES:-}
       AC_DYNAMIC_XP_REMINDER_INTERVAL: ${COA_XP_REMINDER_INTERVAL:-40}
       AC_DYNAMIC_XP_PRESET: ${COA_XP_RATE:-3}
       AC_SKILL_GAIN_CRAFTING: ${COA_PROFESSION_RATE:-4}

@@ -160,13 +160,23 @@ prepare_runtime() {
       "$REPO_ROOT/source-patches/playerbots-follow-mount.patch"
     git -C "$INSTALL_DIR/source/modules/mod-playerbots" apply \
       "$REPO_ROOT/source-patches/playerbots-coa-noncombat.patch"
+    git -C "$INSTALL_DIR/source/modules/mod-playerbots" apply \
+      "$REPO_ROOT/source-patches/playerbots-coa-roles.patch"
+    git -C "$INSTALL_DIR/source/modules/mod-playerbots" apply \
+      "$REPO_ROOT/source-patches/playerbots-coa-heal-ranks.patch"
+    git -C "$INSTALL_DIR/source/modules/mod-playerbots" apply \
+      "$REPO_ROOT/source-patches/playerbots-coa-pilot-recruit.patch"
+    git -C "$INSTALL_DIR/source/modules/mod-playerbots" apply \
+      "$REPO_ROOT/source-patches/playerbots-coa-combat-travel.patch"
     git -C "$INSTALL_DIR/source" apply "$REPO_ROOT/source-patches/coa-local-qol-playerbots.patch"
     git -C "$INSTALL_DIR/source" apply "$REPO_ROOT/source-patches/coa-progression-validation.patch"
+    git -C "$INSTALL_DIR/source" apply "$REPO_ROOT/source-patches/coa-bot-pilot-prepare.patch"
     printf '%s\n' "$PLAYERBOTS_MODULE_REF" > "$INSTALL_DIR/state/playerbots-module-commit"
   else
     git -C "$INSTALL_DIR/source" apply "$REPO_ROOT/source-patches/coa-local-qol.patch"
   fi
   git -C "$INSTALL_DIR/source" apply "$REPO_ROOT/source-patches/coa-local-furline-spellbook.patch"
+  git -C "$INSTALL_DIR/source" apply "$REPO_ROOT/source-patches/coa-talent-state.patch"
   cp -a "$REPO_ROOT/modules/mod-local-profession-tools" "$INSTALL_DIR/source/modules/"
   cp "$REPO_ROOT/sql/rev_20260926_00_local_artisans_model_fallback.sql" \
     "$INSTALL_DIR/source/data/sql/updates/pending_db_world/rev_20260926_00_local_artisans_model_fallback.sql"
@@ -218,6 +228,7 @@ COA_MIN_RANDOM_BOTS=12
 COA_MAX_RANDOM_BOTS=12
 COA_RANDOM_BOT_ACCOUNT_COUNT=120
 COA_BREWING_PILOT_NAME=
+COA_TEST_PILOT_NAMES=
 EOF
   chmod 600 "$INSTALL_DIR/.env"
 }

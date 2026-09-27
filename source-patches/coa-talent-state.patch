@@ -1,0 +1,240 @@
+diff --git a/modules/mod-ascension-compat/src/AscensionCompat.cpp b/modules/mod-ascension-compat/src/AscensionCompat.cpp
+index 0162574..1debfae 100644
+--- a/modules/mod-ascension-compat/src/AscensionCompat.cpp
++++ b/modules/mod-ascension-compat/src/AscensionCompat.cpp
+@@ -129,6 +129,8 @@ constexpr uint32 SPELL_REAPER_SOUL_FRAGMENT = 805077;
+ constexpr uint32 SPELL_REAPER_GENERATE_SOUL = 805078;
+ constexpr char ASCENSION_LOCAL_RESOURCE_PREFIX[] = "ASC_LOCAL_RESOURCE";
+ constexpr char ASCENSION_ACTIVE_SPEC_SETTING[] = "core.ascension_active_spec";
++constexpr char ASCENSION_TALENT_SETTING_PREFIX[] = "core.coa_talent.";
++constexpr char ASCENSION_TALENT_RECORDS_SETTING[] = "core.coa_talent_records";
+ 
+ enum CompanionLoot : uint32
+ {
+@@ -1176,6 +1178,104 @@ public:
+     return itr == _activeSpecializations.end() ? 0 : itr->second;
+   }
+ 
++    static uint32 GetRecordedTalentRank(Player const* player, uint32 entryId)
++    {
++        auto const* settings = player->FindPlayerSettings(
++            std::string(ASCENSION_TALENT_SETTING_PREFIX) + std::to_string(entryId));
++        return settings && !settings->empty() ? (*settings)[0].value : 0;
++    }
++
++    static void RecordTalentSelection(Player* player, AscensionCompatData::CoATalentEntry const& entry, uint32 rank)
++    {
++        uint32 const freeChoiceGroup = GetSelectableFreeGroup(entry.EntryId);
++        if (entry.ClassId != player->getClass() || rank > entry.SpellCount ||
++            (!entry.AECost && !entry.TECost && !freeChoiceGroup))
++            return;
++
++        // Only accepted, explicit choices reach this method. A learned spell is
++        // not proof of a purchase: progression and older grants may share it.
++        if (rank && freeChoiceGroup)
++            for (auto const& other : AscensionCompatData::CoATalentEntries)
++                if (other.ClassId == entry.ClassId && other.SpecId == entry.SpecId &&
++                    other.EntryId != entry.EntryId && GetSelectableFreeGroup(other.EntryId) == freeChoiceGroup &&
++                    GetRecordedTalentRank(player, other.EntryId))
++                    player->UpdatePlayerSetting(
++                        std::string(ASCENSION_TALENT_SETTING_PREFIX) + std::to_string(other.EntryId), 0, 0);
++
++        player->UpdatePlayerSetting(
++            std::string(ASCENSION_TALENT_SETTING_PREFIX) + std::to_string(entry.EntryId), 0, rank);
++        if (entry.SpecId)
++            player->UpdatePlayerSetting(ASCENSION_TALENT_RECORDS_SETTING, 1, entry.SpecId);
++        else
++            player->UpdatePlayerSetting(ASCENSION_TALENT_RECORDS_SETTING, 0, 1);
++    }
++
++    static void ClearRecordedTalentSelections(Player* player, uint32 specializationId)
++    {
++        // Match the existing actual-specialization-change refund, including
++        // class-wide entries. Never run this during login or same-spec sync.
++        for (auto const& entry : AscensionCompatData::CoATalentEntries)
++            if (entry.ClassId == player->getClass() && GetRecordedTalentRank(player, entry.EntryId))
++                player->UpdatePlayerSetting(
++                    std::string(ASCENSION_TALENT_SETTING_PREFIX) + std::to_string(entry.EntryId), 0, 0);
++
++        player->UpdatePlayerSetting(ASCENSION_TALENT_RECORDS_SETTING, 0, 1);
++        player->UpdatePlayerSetting(ASCENSION_TALENT_RECORDS_SETTING, 1, specializationId);
++    }
++
++    void SendTalentState(Player* player) const
++    {
++        if (!IsAscensionCustomClass(player) || !player->GetSession())
++            return;
++#ifdef MOD_PLAYERBOTS
++        if (player->GetSession()->IsBot())
++            return;
++#endif
++
++        // At most 10 entry-ID digits, a colon, 3 rank digits and a space per
++        // catalog entry. Even the entire catalog plus chat overhead fits one
++        // native packet. The client replaces its map, so do not split/truncate.
++        static_assert(AscensionCompatData::CoATalentEntries.size() * 15 + 64 <
++            std::numeric_limits<uint16>::max(), "COA talent snapshot needs a larger complete-snapshot protocol");
++
++        uint32 const specializationId = GetActiveSpecialization(player);
++        auto const* records = player->FindPlayerSettings(ASCENSION_TALENT_RECORDS_SETTING);
++        bool const classRecorded = records && !records->empty() && (*records)[0].value != 0;
++        bool const specRecorded = specializationId && records && records->size() > 1 &&
++            (*records)[1].value == specializationId;
++        std::string talents;
++        for (auto const& entry : AscensionCompatData::CoATalentEntries)
++        {
++            if (entry.ClassId != player->getClass() || (entry.SpecId && entry.SpecId != specializationId) ||
++                (!entry.AECost && !entry.TECost && !GetSelectableFreeGroup(entry.EntryId)))
++                continue;
++
++            uint32 const rank = GetRecordedTalentRank(player, entry.EntryId);
++            if (!rank || rank > entry.SpellCount)
++                continue;
++            if (!talents.empty())
++                talents += ' ';
++            talents += std::to_string(entry.EntryId) + ':' + std::to_string(rank);
++        }
++
++        std::array<std::string, 3> const messages =
++        {{
++            "ASC_LOCAL_SPEC\t" + std::to_string(specializationId),
++            std::string("ASC_LOCAL_RECORDS\t") + (classRecorded ? "1" : "0") + ' ' + (specRecorded ? "1" : "0"),
++            "ASC_LOCAL_TALENTS\t" + talents
++        }};
++        for (auto const& message : messages)
++        {
++            WorldPacket packet;
++            // The GUID overload with gmMessage=false reaches CHAT_MSG_ADDON
++            // even for GM characters, unlike the WorldObject overload.
++            ChatHandler::BuildChatPacket(packet, CHAT_MSG_WHISPER, LANG_ADDON,
++                player->GetGUID(), player->GetGUID(), message, 0,
++                player->GetName(), player->GetName(), 0, false);
++            player->GetSession()->SendPacket(&packet);
++        }
++    }
++
+   bool SwitchSpecialization(Player *player, uint32 specializationId) {
+     if (!IsAscensionCustomClass(player) || !specializationId)
+       return false;
+@@ -1227,6 +1327,7 @@ public:
+     _activeSpecializations[player->GetGUID().GetCounter()] =
+         specializationId;
+     player->UpdatePlayerSetting(ASCENSION_ACTIVE_SPEC_SETTING, 0, specializationId);
++    ClearRecordedTalentSelections(player, specializationId);
+ 
+     uint32 granted = SynchronizeProgression(player);
+     ChatHandler(player->GetSession())
+@@ -3767,10 +3868,40 @@ public:
+     }
+ 
+     uint32 selectedSpellId = rank > 0 ? itr->SpellIds[rank - 1] : 0;
+-    if (rank > 0 && (!selectedSpellId || !sSpellMgr->GetSpellInfo(selectedSpellId)))
++    SpellInfo const* selectedSpell = rank > 0 ? sSpellMgr->GetSpellInfo(selectedSpellId) : nullptr;
++    if (rank > 0 && (!selectedSpellId || !selectedSpell || selectedSpell->IsDeprecatedForPlayers ||
++        !SpellMgr::IsSpellValid(selectedSpell) || selectedSpell->HasEffect(SPELL_EFFECT_LEARN_SPELL)))
+     {
+         handler->PSendSysMessage(
+-            "Talent entry {} rank {} references a missing server spell.", entryId, rank);
++            "Talent entry {} rank {} cannot be learned by the server.", entryId, rank);
++        return true;
++    }
++
++    // Save only the explicit choices this command can replace. Never reconstruct
++    // a talent build from the entire spellbook or mutate its ledger on failure.
++    std::vector<AscensionCompatData::CoATalentEntry const*> affectedEntries{&*itr};
++    if (rank > 0 && freeChoiceGroup)
++        for (auto const& other : AscensionCompatData::CoATalentEntries)
++            if (other.ClassId == player->getClass() && other.SpecId == itr->SpecId && other.EntryId != entryId &&
++                AscensionClassService::GetSelectableFreeGroup(other.EntryId) == freeChoiceGroup)
++                affectedEntries.push_back(&other);
++
++    std::unordered_set<uint32> previousSpells;
++    for (auto const* entry : affectedEntries)
++        for (uint32 spellId : entry->SpellIds)
++            if (spellId && player->HasSpell(spellId))
++                // Native removal also removes known higher ranks recursively.
++                for (uint32 knownRank = spellId; knownRank; knownRank = sSpellMgr->GetNextSpellInChain(knownRank))
++                    if (player->HasSpell(knownRank))
++                        previousSpells.insert(knownRank);
++
++    // Prove native acceptance before removing the previous rank or free choice.
++    // Reselecting an already-known spell does not need a new grant.
++    if (rank > 0 && !player->HasSpell(selectedSpellId))
++        player->learnSpell(selectedSpellId, false);
++    if (rank > 0 && !player->HasSpell(selectedSpellId))
++    {
++        handler->PSendSysMessage("Talent entry {} could not be learned; your previous choice was retained.", entryId);
+         return true;
+     }
+ 
+@@ -3782,18 +3913,46 @@ public:
+             if (other.ClassId == player->getClass() && other.SpecId == itr->SpecId && other.EntryId != entryId &&
+                 AscensionClassService::GetSelectableFreeGroup(other.EntryId) == freeChoiceGroup)
+                 for (uint32 spellId : other.SpellIds)
+-                    if (spellId && player->HasSpell(spellId))
++                    if (spellId && spellId != selectedSpellId && player->HasSpell(spellId))
+                         player->removeSpell(spellId, SPEC_MASK_ALL, false);
+     }
+ 
+     for (uint32 spellId : itr->SpellIds) {
+-      if (spellId && player->HasSpell(spellId))
++      if (spellId && spellId != selectedSpellId && player->HasSpell(spellId))
+         player->removeSpell(spellId, SPEC_MASK_ALL, false);
+     }
+ 
+-    if (rank > 0)
++    if (rank > 0 && !player->HasActiveSpell(selectedSpellId))
++    {
++        // Removing a lower native rank can recursively remove the accepted
++        // rank. A downgrade can instead leave its lower rank known but inactive.
++        // Reapply only in those cases; an idempotent selection stays untouched.
++        if (player->HasSpell(selectedSpellId))
++            player->removeSpell(selectedSpellId, SPEC_MASK_ALL, false);
+         player->learnSpell(selectedSpellId, false);
++    }
+ 
++    if (rank > 0 && !player->HasSpell(selectedSpellId))
++    {
++        for (uint32 spellId : previousSpells)
++            if (!player->HasSpell(spellId))
++                player->learnSpell(spellId, false);
++
++        // Keep the old recorded selection after restoration. If even its old
++        // spell is no longer accepted, do not report an unowned rank as spent.
++        for (auto const* entry : affectedEntries)
++        {
++            uint32 const previousRank = AscensionClassService::GetRecordedTalentRank(player, entry->EntryId);
++            if (previousRank && previousRank <= entry->SpellCount &&
++                !player->HasSpell(entry->SpellIds[previousRank - 1]))
++                AscensionClassService::RecordTalentSelection(player, *entry, 0);
++        }
++        handler->PSendSysMessage("Talent entry {} replacement failed; previous explicit spells were restored where valid.",
++            entryId);
++        return true;
++    }
++
++    AscensionClassService::RecordTalentSelection(player, *itr, rank);
+     AscensionClassService::Instance().SynchronizeProgression(player);
+ 
+     LOG_INFO("module.ascension_compat",
+@@ -3816,12 +3975,15 @@ public:
+     return true;
+   }
+ 
+-  // The Ascension client polls this private-server extension after login. The
+-  // published CoA sources do not include the original implementation, but the
+-  // client does not require a chat response: accepting the query silently
+-  // prevents the command dispatcher from flooding the player's chat window.
++  // The client requests one complete snapshot after its ordered edit batch,
++  // on startup, and after a spec change. Reads never infer choices from spells.
+   static bool HandleLocalSpecStateCommand(ChatHandler *handler) {
+-    return handler->GetPlayer() != nullptr;
++    Player* player = handler->GetPlayer();
++    if (!player)
++      return false;
++
++    AscensionClassService::Instance().SendTalentState(player);
++    return true;
+   }
+ 
+   static bool HandleLocalClassRepairCommand(ChatHandler *handler) {

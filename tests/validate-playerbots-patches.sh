@@ -13,9 +13,15 @@ git -C "$WORK/source/modules/mod-playerbots" checkout --quiet --detach 619a06fc7
 git -C "$WORK/source/modules/mod-playerbots" apply "$ROOT/source-patches/playerbots-coa.patch"
 git -C "$WORK/source/modules/mod-playerbots" apply "$ROOT/source-patches/playerbots-follow-mount.patch"
 git -C "$WORK/source/modules/mod-playerbots" apply "$ROOT/source-patches/playerbots-coa-noncombat.patch"
+git -C "$WORK/source/modules/mod-playerbots" apply "$ROOT/source-patches/playerbots-coa-roles.patch"
+git -C "$WORK/source/modules/mod-playerbots" apply "$ROOT/source-patches/playerbots-coa-heal-ranks.patch"
+git -C "$WORK/source/modules/mod-playerbots" apply "$ROOT/source-patches/playerbots-coa-pilot-recruit.patch"
+git -C "$WORK/source/modules/mod-playerbots" apply "$ROOT/source-patches/playerbots-coa-combat-travel.patch"
 git -C "$WORK/source" apply "$ROOT/source-patches/coa-local-qol-playerbots.patch"
 git -C "$WORK/source" apply "$ROOT/source-patches/coa-local-furline-spellbook.patch"
 git -C "$WORK/source" apply "$ROOT/source-patches/coa-progression-validation.patch"
+git -C "$WORK/source" apply "$ROOT/source-patches/coa-bot-pilot-prepare.patch"
+git -C "$WORK/source" apply "$ROOT/source-patches/coa-talent-state.patch"
 cp -a "$ROOT/modules/mod-local-profession-tools" "$WORK/source/modules/"
 cp "$ROOT/sql/rev_20260926_00_local_artisans_model_fallback.sql" \
   "$WORK/source/data/sql/updates/pending_db_world/rev_20260926_00_local_artisans_model_fallback.sql"
@@ -43,3 +49,7 @@ grep -q 'master->IsMounted() && noAttackers' "$WORK/source/modules/mod-playerbot
 grep -q 'HasGameClientMaster() ? 9.0f' "$WORK/source/modules/mod-playerbots/src/Ai/Base/Strategy/NonCombatStrategy.cpp"
 grep -q 'HasGameClientMaster() ? 8.0f' "$WORK/source/modules/mod-playerbots/src/Ai/Base/Strategy/FollowMasterStrategy.cpp"
 echo "Playerbots patches apply cleanly to their pinned revisions."
+
+if [[ "${COA_VALIDATE_AI:-0}" == "1" ]]; then
+  bash "$ROOT/tests/validate-coa-ai.sh" "$WORK/source"
+fi

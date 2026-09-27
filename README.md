@@ -20,6 +20,7 @@ packages, and repack binaries are not included.
 | Automatic profession tools | Learning a supported profession supplies missing starter tools. Existing characters receive missing tools on login. |
 | Lootbot 3000 | A summoned, owned Lootbot can collect nearby loot even when the collection UI has not retained its active-pet selection. |
 | COA character compatibility | Valid custom-class spells and skills are preserved at login, and the client's `localspecstate` query no longer floods chat. |
+| COA talent-tree persistence | Explicitly saved talent choices are recorded separately from learned spells and restored in the talent UI after logout/login. Existing characters re-select their intended choices once. |
 | Grouped bot travel | Eligible COA bots can match the leader's mount, follow on the ground or in flight, and dismount with the leader. |
 
 The upstream local-play defaults also unlock the local appearance and vanity catalogs and grant riding
@@ -34,11 +35,16 @@ Sunwarmed Furline may appear twice in the Mounts list because we retain the olde
 the native riding-speed spell. This repair does not globally enable flying in Azeroth. After updating an older
 server, a mount or pet button already removed by the old login behavior may need to be added once more.
 
+The talent-tree repair uses the existing client bridge and character settings; it needs no client patch or database
+migration. It does not guess previous choices from the spellbook or reset existing learned spells at login. For an
+older character whose tree appears empty, re-select the intended talents and click **Save Changes** once. Logout/login
+retention was confirmed on Beruwa in local playtesting; automatic bot talent allocation remains separate development work.
+
 ## Current status
 
 The pinned **Playerbots build is the tested installation path**. It has been built and run on Ubuntu/WSL2 with
 12 online bots. The latest gameplay fixes were reported working in local playtesting on 2026-09-27, including
-profession training and tool delivery, Furline, and mount/pet action-bar persistence. Installer checks, patch
+profession training and tool delivery, Furline, mount/pet action-bar persistence, and talent-tree retention. Installer checks, patch
 application checks, and the worldserver build passed; the latest deployment introduced no new startup errors.
 These are local test results, not coverage of every class, spell, item, or dungeon.
 
@@ -124,6 +130,16 @@ the repack's compiled COA layer:
 tanking, broad spec rotations, dispels, interrupts, and `.playerbots coa tank|heal|dps` are still being developed.
 See [the Playerbots roadmap](docs/playerbots-roadmap.md) for the staged test sequence and source-of-truth boundaries.
 
+The current test slice adds opt-in, level-matched Brewing companions through `COA_TEST_PILOT_NAMES` and the
+administrator-only `.localbotprepare brewing` command. It preserves existing equipment/talents and refuses to
+downlevel bots or replace another specialization. Shared role checks and base-rank healing support are included;
+local tests confirmed level preparation, ranged attacks, healing the leader, and post-combat follow/recovery.
+Full healing-priority and dungeon acceptance remain pending. Setup and safeguards are in the roadmap.
+
+Bots already support built-in chat templates and General-channel replies. On the local realm these are enabled;
+`/join World` also exposes eligible cross-zone ambient announcements. World replies are not implemented by the
+pinned module. Population and chat frequency remain unchanged while combat behavior is tested.
+
 New Playerbots installations reserve 120 bot accounts and restrict newly generated characters to COA class IDs. This
 leaves any pre-existing classic bot characters intact while ensuring the expanded pool contains testable COA bots.
 The default online population is 12; override it cautiously with `COA_MIN_RANDOM_BOTS`, `COA_MAX_RANDOM_BOTS`, and
@@ -137,8 +153,12 @@ mounting and following a moving leader over optional corpse looting. COA classes
 that runs the automatic mount-state check. In-game testing confirmed that a grouped COA bot matched the leader's
 ground mount, followed, dismounted when the leader did, then matched a Blossomback Arboon and followed in flight.
 This applies to eligible COA bots generally, not to one named pilot; ordinary mount requirements still apply.
-Switching mount types while the bot remains mounted has not been tested as an automatic transition. Post-combat
-follow and the Brewing healer pilot remain experimental; see the [Playerbots roadmap](docs/playerbots-roadmap.md).
+The latest follow-up restores standard combat target cleanup for both COA combat profiles, so a dead target can
+return the AI to following and recovery. Grouped, human-led COA bots with trained riding also bypass the AI-only
+level-20 mount threshold, including the dismount check; native spell restrictions and roaming bot policy remain.
+The player retest confirmed following after multiple kills, mana recovery, and mounted flight with the leader
+(on a different flying mount). Low-level dismounting and switching mount types while the bot remains mounted
+still need a dedicated retest. The Brewing healer pilot remains experimental; see the roadmap for results.
 
 ## Management
 
@@ -202,6 +222,18 @@ For a Playerbots build, also verify that every patch applies to the pinned sourc
 ```bash
 ./tests/validate-playerbots-patches.sh
 ```
+
+With Python 3 and a C++17 compiler available, run the focused bot regression tests too:
+
+```bash
+COA_VALIDATE_AI=1 bash ./tests/validate-playerbots-patches.sh
+# Or reuse an already patched core source tree:
+bash ./tests/validate-coa-ai.sh /path/to/azerothcore-wotlk-coa
+```
+
+These compile the real role/recruitment policies and exercise extracted production healing, preparation, travel,
+and talent-state code against deterministic API doubles. They cover safety guards and decision logic, not live
+pathfinding, client rendering, or dungeon play.
 
 Keep this README aligned with verified behavior. Record experimental bot results and remaining work in the
 [Playerbots roadmap](docs/playerbots-roadmap.md); do not describe a new behavior as confirmed until it passes an

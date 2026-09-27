@@ -1,0 +1,136 @@
+diff --git a/src/Ai/Class/Coa/CoaRoleProfile.h b/src/Ai/Class/Coa/CoaRoleProfile.h
+new file mode 100644
+--- /dev/null
++++ b/src/Ai/Class/Coa/CoaRoleProfile.h
+@@ -0,0 +1,31 @@
++#ifndef PLAYERBOTS_COAROLEPROFILE_H
++#define PLAYERBOTS_COAROLEPROFILE_H
++
++#include <cstdint>
++
++enum class CoaCombatRole : std::uint8_t
++{
++    Damage,
++    Healer,
++    Tank
++};
++
++struct CoaRoleProfile
++{
++    CoaCombatRole Role;
++    bool Ranged;
++};
++
++// This describes implemented AI profiles, not every role in the repack catalog.
++// Class 13/spec 6 is Witch Doctor Brewing in the installed COA data.
++constexpr CoaRoleProfile GetCoaRoleProfile(std::uint8_t classId, std::uint32_t specializationId)
++{
++    if (classId == 13 && specializationId == 6)
++        return {CoaCombatRole::Healer, true};
++
++    // Unassigned/unsupported specs keep generic offense and the existing
++    // by-spec ranged fallback. No tank role is advertised without tank AI.
++    return {CoaCombatRole::Damage, true};
++}
++
++#endif
+diff --git a/src/Bot/Factory/AiFactory.h b/src/Bot/Factory/AiFactory.h
+--- a/src/Bot/Factory/AiFactory.h
++++ b/src/Bot/Factory/AiFactory.h
+@@ -8,6 +8,7 @@
+ #define PLAYERBOTS_AIFACTORY_H
+ 
+ #include "Common.h"
++#include "CoaRoleProfile.h"
+ #include <map>
+ 
+ class AiObjectContext;
+@@ -29,6 +30,7 @@ public:
+     static uint8 GetPlayerSpecTab(Player* player);
+     static std::map<uint8, uint32> GetPlayerSpecTabs(Player* player);
+     static BotRoles GetPlayerRoles(Player* player);
++    static CoaRoleProfile GetCoaPlayerProfile(Player* player);
+     static std::string GetPlayerSpecName(Player* player);
+ };
+ 
+diff --git a/src/Bot/Factory/AiFactory.cpp b/src/Bot/Factory/AiFactory.cpp
+--- a/src/Bot/Factory/AiFactory.cpp
++++ b/src/Bot/Factory/AiFactory.cpp
+@@ -35,6 +35,7 @@ constexpr uint32 SPELL_CAT_FORM = 768;
+ constexpr uint32 SPELL_DRUID_THICK_HIDE = 16931;
+ constexpr char COA_ACTIVE_SPEC_SETTING[] = "core.ascension_active_spec";
+ constexpr uint32 WITCH_DOCTOR_BREWING_SPEC = 6;
++static_assert(GetCoaRoleProfile(CLASS_WITCH_DOCTOR, WITCH_DOCTOR_BREWING_SPEC).Role == CoaCombatRole::Healer);
+ 
+ bool IsCoaBrewingHealer(Player* player)
+ {
+@@ -150,10 +151,25 @@ std::map<uint8, uint32> AiFactory::GetPlayerSpecTabs(Player* bot)
+     return tabs;
+ }
+ 
++CoaRoleProfile AiFactory::GetCoaPlayerProfile(Player* player)
++{
++    return GetCoaRoleProfile(player->getClass(), player->GetPlayerSetting(COA_ACTIVE_SPEC_SETTING, 0).value);
++}
++
+ BotRoles AiFactory::GetPlayerRoles(Player* player)
+ {
+-    if (IsCoaBrewingHealer(player))
+-        return BOT_ROLE_HEALER;
++    if (player->getClass() >= 12)
++    {
++        switch (GetCoaPlayerProfile(player).Role)
++        {
++            case CoaCombatRole::Healer:
++                return BOT_ROLE_HEALER;
++            case CoaCombatRole::Tank:
++                return BOT_ROLE_TANK;
++            case CoaCombatRole::Damage:
++                return BOT_ROLE_DPS;
++        }
++    }
+ 
+     BotRoles role = BOT_ROLE_NONE;
+     uint8 tab = GetPlayerSpecTab(player);
+diff --git a/src/Bot/PlayerbotAI.cpp b/src/Bot/PlayerbotAI.cpp
+--- a/src/Bot/PlayerbotAI.cpp
++++ b/src/Bot/PlayerbotAI.cpp
+@@ -1912,6 +1912,9 @@ bool PlayerbotAI::IsRanged(Player* player, bool bySpec)
+     if (!bySpec && botAi)
+         return botAi->ContainsStrategy(STRATEGY_TYPE_RANGED);
+ 
++    if (player->getClass() >= 12)
++        return AiFactory::GetCoaPlayerProfile(player).Ranged;
++
+     int tab = AiFactory::GetPlayerSpecTab(player);
+     switch (player->getClass())
+     {
+@@ -2281,6 +2284,9 @@ bool PlayerbotAI::IsTank(Player* player, bool bySpec)
+     if (!bySpec && botAi)
+         return botAi->ContainsStrategy(STRATEGY_TYPE_TANK);
+ 
++    if (player->getClass() >= 12)
++        return AiFactory::GetCoaPlayerProfile(player).Role == CoaCombatRole::Tank;
++
+     int tab = AiFactory::GetPlayerSpecTab(player);
+     switch (player->getClass())
+     {
+@@ -2320,7 +2326,7 @@ bool PlayerbotAI::IsHeal(Player* player, bool bySpec)
+         return botAi->ContainsStrategy(STRATEGY_TYPE_HEAL);
+ 
+     if (player->getClass() >= 12)
+-        return (AiFactory::GetPlayerRoles(player) & BOT_ROLE_HEALER) != 0;
++        return AiFactory::GetCoaPlayerProfile(player).Role == CoaCombatRole::Healer;
+ 
+     int tab = AiFactory::GetPlayerSpecTab(player);
+     switch (player->getClass())
+@@ -2355,6 +2361,9 @@ bool PlayerbotAI::IsDps(Player* player, bool bySpec)
+     if (!bySpec && botAi)
+         return botAi->ContainsStrategy(STRATEGY_TYPE_DPS);
+ 
++    if (player->getClass() >= 12)
++        return AiFactory::GetCoaPlayerProfile(player).Role == CoaCombatRole::Damage;
++
+     int tab = AiFactory::GetPlayerSpecTab(player);
+     switch (player->getClass())
+     {

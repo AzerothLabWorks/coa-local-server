@@ -1,0 +1,157 @@
+diff --git a/src/Bot/CoaTestPilotAccess.h b/src/Bot/CoaTestPilotAccess.h
+new file mode 100644
+--- /dev/null
++++ b/src/Bot/CoaTestPilotAccess.h
+@@ -0,0 +1,63 @@
++/*
++ * This file is part of mod-playerbots, released under GNU GPL v2 or later.
++ */
++#ifndef PLAYERBOTS_COATESTPILOTACCESS_H
++#define PLAYERBOTS_COATESTPILOTACCESS_H
++
++#include <algorithm>
++#include <cstdint>
++#include <string>
++#include <string_view>
++#include <vector>
++
++// An explicit test allowlist, not a prefix or wildcard match. Invalid input
++// disables the exception. At most four named companions can form a party.
++inline std::vector<std::string> ParseCoaTestPilotNames(std::string_view input)
++{
++    std::vector<std::string> names;
++    if (input.empty())
++        return names;
++
++    std::size_t start = 0;
++    while (start <= input.size())
++    {
++        std::size_t const comma = input.find(',', start);
++        std::string_view token = input.substr(start,
++            comma == std::string_view::npos ? input.size() - start : comma - start);
++        std::size_t const first = token.find_first_not_of(" \t\r\n");
++        if (first == std::string_view::npos)
++            return {};
++        token = token.substr(first, token.find_last_not_of(" \t\r\n") - first + 1);
++        if (token.size() < 2 || token.size() > 12)
++            return {};
++
++        std::string name;
++        for (char value : token)
++        {
++            if (!((value >= 'A' && value <= 'Z') || (value >= 'a' && value <= 'z')))
++                return {};
++            name.push_back(value >= 'A' && value <= 'Z' ? char(value - 'A' + 'a') : value);
++        }
++        name[0] = char(name[0] - 'a' + 'A');
++        if (std::find(names.begin(), names.end(), name) == names.end())
++            names.push_back(name);
++        if (names.size() > 4)
++            return {};
++        if (comma == std::string_view::npos)
++            break;
++        start = comma + 1;
++    }
++    return names;
++}
++
++constexpr bool CanRecruitCoaTestPilot(bool realGameMaster, bool generatedAccount, bool unassignedAccount,
++    bool offline, bool groupAllowed, std::uint8_t classId, std::uint8_t botLevel,
++    std::uint8_t masterLevel, std::uint32_t specializationId)
++{
++    // The first supported pilot is Brewing (Witch Doctor class 13, spec 6).
++    return realGameMaster && generatedAccount && unassignedAccount && offline && groupAllowed &&
++        classId == 13 && botLevel > 0 && botLevel <= masterLevel &&
++        (specializationId == 0 || specializationId == 6);
++}
++
++#endif
+diff --git a/src/Bot/PlayerbotMgr.cpp b/src/Bot/PlayerbotMgr.cpp
+--- a/src/Bot/PlayerbotMgr.cpp
++++ b/src/Bot/PlayerbotMgr.cpp
+@@ -9,3 +9,4 @@
+ #include "CharacterCache.h"
+ #include "CharacterPackets.h"
++#include "CoaTestPilotAccess.h"
+ #include "Common.h"
+@@ -32,9 +33,67 @@
+ #include <algorithm>
+ #include <cstdio>
+-#include <cstring>
+-#include <iomanip>
+-#include <openssl/sha.h>
+-#include <string>
+-#include <unordered_set>
++#include <cstdlib>
++#include <cstring>
++#include <iomanip>
++#include <openssl/sha.h>
++#include <sstream>
++#include <string>
++#include <unordered_set>
++
++namespace
++{
++bool IsAllowedCoaTestPilot(Player* master, ObjectGuid guid, uint32 accountId, std::string const& name)
++{
++    static std::vector<std::string> const allowedNames = []
++    {
++        char const* configured = std::getenv("COA_TEST_PILOT_NAMES");
++        return ParseCoaTestPilotNames(configured ? configured : "");
++    }();
++
++    bool const realGameMaster = master && master->GetSession() && !master->GetSession()->IsBot() &&
++        master->GetSession()->GetSecurity() >= SEC_GAMEMASTER;
++    if (!realGameMaster || std::find(allowedNames.begin(), allowedNames.end(), name) == allowedNames.end() ||
++        !sPlayerbotAIConfig.IsInRandomAccountList(accountId))
++        return false;
++
++    CharacterCacheEntry const* candidate = sCharacterCache->GetCharacterCacheByGuid(guid);
++    if (!candidate || candidate->AccountId != accountId || candidate->Name != name ||
++        candidate->Class != CLASS_WITCH_DOCTOR || !candidate->Level || candidate->Level > master->GetLevel() ||
++        ObjectAccessor::FindConnectedPlayer(guid))
++        return false;
++
++    bool const groupAllowed = candidate->GroupGuid.IsEmpty() ||
++        (master->GetGroup() && candidate->GroupGuid == master->GetGroup()->GetGUID());
++    if (!groupAllowed || !sRandomPlayerbotMgr.IsAccountType(accountId, 0))
++        return false;
++
++    // This is an explicit GM command, not a periodic AI check. Reuse the core's
++    // prepared settings query; do not authorize a login after a failed read.
++    auto* statement = CharacterDatabase.GetPreparedStatement(CHAR_SEL_CHAR_SETTINGS);
++    statement->SetData(0, guid.GetCounter());
++    PreparedQueryResult result = CharacterDatabase.Query(statement);
++    if (!result)
++        return false;
++
++    uint32 specializationId = 0;
++    do
++    {
++        Field* fields = result->Fetch();
++        if (fields[0].Get<std::string>() != "core.ascension_active_spec")
++            continue;
++
++        std::istringstream data(fields[1].Get<std::string>());
++        if (!(data >> specializationId))
++            return false;
++        data >> std::ws;
++        if (!data.eof())
++            return false;
++        break;
++    } while (result->NextRow());
++
++    return CanRecruitCoaTestPilot(realGameMaster, true, true, true, groupAllowed,
++        candidate->Class, candidate->Level, master->GetLevel(), specializationId);
++}
++}
+ 
+ class BotInitGuard
+@@ -109,5 +168,6 @@
+     std::string botName;
+     sCharacterCache->GetCharacterNameByGuid(playerGuid, botName);
+-    if (!isRndbot && !sameAccount && !sameGuild && !addClassBot && !linkedAccount)
++    if (!isRndbot && !sameAccount && !sameGuild && !addClassBot && !linkedAccount &&
++        !IsAllowedCoaTestPilot(masterPlayer, playerGuid, accountId, botName))
+     {
+         allowed = false;

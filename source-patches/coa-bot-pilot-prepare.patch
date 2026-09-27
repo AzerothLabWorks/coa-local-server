@@ -1,0 +1,131 @@
+diff --git a/modules/mod-ascension-compat/src/AscensionCompat.cpp b/modules/mod-ascension-compat/src/AscensionCompat.cpp
+index 034cab1..0162574 100644
+--- a/modules/mod-ascension-compat/src/AscensionCompat.cpp
++++ b/modules/mod-ascension-compat/src/AscensionCompat.cpp
+@@ -73,6 +73,12 @@
+ #include "WorldPacket.h"
+ #include "WorldSession.h"
+ 
++#ifdef MOD_PLAYERBOTS
++#include "Group.h"
++#include "PlayerbotAI.h"
++#include "PlayerbotMgr.h"
++#endif
++
+ #include <algorithm>
+ #include <array>
+ #include <cstdlib>
+@@ -3542,6 +3548,9 @@ public:
+         {"resync", HandleSpellChargesResyncCommand, SEC_PLAYER, Console::No}};
+ 
+     static ChatCommandTable commandTable = {
++#ifdef MOD_PLAYERBOTS
++        {"localbotprepare", HandleLocalBotPrepareCommand, SEC_ADMINISTRATOR, Console::No},
++#endif
+         {"localfreshcheck", HandleAscensionFreshCharacterCheck, SEC_ADMINISTRATOR, Console::Yes},
+         {"localappearance", HandleLocalAppearanceCommand, SEC_PLAYER,
+          Console::No},
+@@ -3559,6 +3568,103 @@ public:
+     return commandTable;
+   }
+ 
++#ifdef MOD_PLAYERBOTS
++    static bool HandleLocalBotPrepareCommand(ChatHandler* handler, std::string profile)
++    {
++        Player* leader = handler->GetPlayer();
++        Player* bot = handler->getSelectedPlayer();
++        if (profile != "brewing")
++        {
++            handler->SendSysMessage("Usage: .localbotprepare brewing (target your grouped Witch Doctor bot).");
++            return true;
++        }
++
++        if (!leader || !leader->GetSession() || leader->GetSession()->IsBot() ||
++            !bot || !bot->GetSession() || !bot->GetSession()->IsBot() || bot->getClass() != CLASS_WITCH_DOCTOR)
++        {
++            handler->SendSysMessage("Select a Witch Doctor bot. Human characters cannot be prepared by this command.");
++            return true;
++        }
++
++        PlayerbotAI* ai = sPlayerbotsMgr.GetPlayerbotAI(bot);
++        if (!ai || ai->GetMaster() != leader || !leader->GetGroup() || bot->GetGroup() != leader->GetGroup() ||
++            !leader->GetGroup()->IsLeader(leader->GetGUID()))
++        {
++            handler->SendSysMessage("You must lead the selected bot's group and be its controlling player.");
++            return true;
++        }
++
++        if (!leader->IsInWorld() || !bot->IsInWorld() || !leader->IsAlive() || !bot->IsAlive() ||
++            leader->IsInCombat() || bot->IsInCombat() || leader->IsBeingTeleported() || bot->IsBeingTeleported() ||
++            !bot->IsWithinDistInMap(leader, 30.0f))
++        {
++            handler->SendSysMessage("Both players must be alive, out of combat and within 30 yards, without teleporting.");
++            return true;
++        }
++
++        uint8 const level = leader->GetLevel();
++        uint8 const previousLevel = bot->GetLevel();
++        if (level < 10 || level > DEFAULT_MAX_LEVEL || previousLevel > level)
++        {
++            handler->SendSysMessage("Brewing requires a level 10-80 leader. Higher-level bots are never downleveled.");
++            return true;
++        }
++
++        AscensionClassService& classes = AscensionClassService::Instance();
++        uint32 const previousSpec = classes.GetActiveSpecialization(bot);
++        if (previousSpec && previousSpec != 6)
++        {
++            handler->SendSysMessage("This bot already has another specialization; its existing build was left unchanged.");
++            return true;
++        }
++
++        bool const validProfile = std::any_of(AscensionCompatData::CoATalentEntries.begin(),
++            AscensionCompatData::CoATalentEntries.end(), [](auto const& entry)
++            {
++                return entry.ClassId == CLASS_WITCH_DOCTOR && entry.SpecId == 6;
++            });
++        if (!validProfile)
++        {
++            handler->SendSysMessage("Brewing is unavailable in the installed COA catalog. No changes were made.");
++            return true;
++        }
++
++        if (previousLevel < level)
++        {
++            bot->GiveLevel(level);
++            if (bot->GetLevel() != level)
++            {
++                handler->SendSysMessage("The server rejected the requested level. The bot's specialization is unchanged.");
++                return true;
++            }
++            bot->SetUInt32Value(PLAYER_XP, 0);
++        }
++
++        // Prevalidated class/spec pair. The unassigned/same-spec path is additive;
++        // it cannot enter SwitchSpecialization's talent-refund path.
++        if (!classes.SwitchSpecialization(bot, 6))
++        {
++            handler->SendSysMessage("Could not activate Brewing; check the server log before continuing the test.");
++            return true;
++        }
++
++        classes.SynchronizeProgression(bot);
++        classes.SynchronizeProficiencies(bot);
++        classes.RepairStarterKit(bot, false);
++        ai->ResetStrategies();
++        bot->SaveToDB(false, false);
++
++        LOG_INFO("module.ascension_compat",
++            "Prepared Brewing pilot {} at level {} (previous {}) for leader {} without resetting inventory or talents",
++            bot->GetName(), uint32(level), uint32(previousLevel), leader->GetName());
++        handler->PSendSysMessage(
++            "Prepared {}: level {}, Brewing healer. Existing items and talents preserved; no gear/talent build applied.",
++            bot->GetName(), uint32(level));
++        handler->SendSysMessage("Use /w <bot> co ? to check for coa brewing, then test healing on a safe same-level enemy.");
++        return true;
++    }
++#endif
++
+   static bool HandleLocalAppearanceCommand(ChatHandler *handler,
+                                            uint32 categoryId,
+                                            uint32 appearanceId) {

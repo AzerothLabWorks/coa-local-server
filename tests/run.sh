@@ -8,6 +8,7 @@ bash -n "$ROOT/scripts/coa-server.sh"
 bash -n "$ROOT/scripts/prepare-coa-data.sh"
 bash -n "$ROOT/docker/bootstrap-world.sh"
 bash -n "$ROOT/docker/bootstrap-playerbots.sh"
+bash -n "$ROOT/tests/validate-coa-ai.sh"
 
 grep -q 'ac-client-data-init' "$ROOT/compose.yaml" && {
   echo "ERROR: stock client-data downloader must not be present" >&2
@@ -47,6 +48,13 @@ grep -q 'playerbots-core.patch' "$ROOT/scripts/install-coa.sh"
 grep -q 'playerbots-coa.patch' "$ROOT/scripts/install-coa.sh"
 grep -q 'coa-progression-validation.patch' "$ROOT/scripts/install-coa.sh"
 grep -q 'COA_RANDOM_BOT_ACCOUNT_COUNT=120' "$ROOT/scripts/install-coa.sh"
+for patch in playerbots-coa-roles playerbots-coa-heal-ranks playerbots-coa-pilot-recruit coa-bot-pilot-prepare playerbots-coa-combat-travel coa-talent-state; do
+  test -s "$ROOT/source-patches/$patch.patch"
+  grep -q "$patch.patch" "$ROOT/scripts/install-coa.sh"
+  grep -q "$patch.patch" "$ROOT/tests/validate-playerbots-patches.sh"
+done
+grep -q 'COA_TEST_PILOT_NAMES' "$ROOT/compose.yaml"
+grep -q 'COA_TEST_PILOT_NAMES=' "$ROOT/scripts/install-coa.sh"
 grep -q 'player->getClass() >= 12' "$ROOT/source-patches/playerbots-coa.patch"
 grep -q 'randomBotCustomClassesOnly' "$ROOT/source-patches/playerbots-coa.patch"
 test -f "$ROOT/client-addons/COAWeakAurasRange/COAWeakAurasRange.toc"
