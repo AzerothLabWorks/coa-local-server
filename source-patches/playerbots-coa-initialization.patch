@@ -1,0 +1,69 @@
+diff --git a/src/Bot/Factory/PlayerbotFactory.cpp b/src/Bot/Factory/PlayerbotFactory.cpp
+--- a/src/Bot/Factory/PlayerbotFactory.cpp
++++ b/src/Bot/Factory/PlayerbotFactory.cpp
+@@ -808,16 +808,20 @@ void PlayerbotFactory::Randomize(bool incremental)
+     if (!incremental)
+     {
+-        ClearSkills();
+         if (!coaClass)
++        {
++            ClearSkills();
+             ClearSpells();
++        }
+         ResetQuests();
+ 
+-        if (!sPlayerbotAIConfig.equipAndSpecPersistence ||
++        if (!coaClass && (!sPlayerbotAIConfig.equipAndSpecPersistence ||
+             level < uint32(sPlayerbotAIConfig.equipAndSpecPersistenceLevel) || level < oldLevel)
++           )
+         {
+             ClearAllItems();
+         }
+     }
+-    ClearInventory();
++    if (!coaClass)
++        ClearInventory();
+     bot->RemoveAllSpellCooldown();
+     UnbindInstance();
+@@ -856,7 +860,10 @@ void PlayerbotFactory::Randomize(bool incremental)
+ 
+     LOG_DEBUG("playerbots", "Initializing skills (step 1)...");
+     pmo = sPerfMonitor.start(PERF_MON_RNDBOT, "PlayerbotFactory_Skills1");
+-    bot->LearnDefaultSkills();
+-    InitSkills();
++    if (!coaClass)
++    {
++        bot->LearnDefaultSkills();
++        InitSkills();
++    }
+     if (pmo)
+         pmo->finish();
+@@ -897,13 +904,15 @@ void PlayerbotFactory::Randomize(bool incremental)
+ 
+     LOG_DEBUG("playerbots", "Initializing special spells...");
+     pmo = sPerfMonitor.start(PERF_MON_RNDBOT, "PlayerbotFactory_Spells3");
+-    InitSpecialSpells();
++    if (!coaClass)
++        InitSpecialSpells();
+     if (pmo)
+         pmo->finish();
+ 
+     pmo = sPerfMonitor.start(PERF_MON_RNDBOT, "PlayerbotFactory_Mounts");
+     LOG_DEBUG("playerbots", "Initializing mounts...");
+-    InitMounts();
++    if (!coaClass)
++        InitMounts();
+     // bot->SaveToDB(false, false);
+     if (pmo)
+         pmo->finish();
+@@ -918,8 +927,9 @@ void PlayerbotFactory::Randomize(bool incremental)
+ 
+     pmo = sPerfMonitor.start(PERF_MON_RNDBOT, "PlayerbotFactory_Equip");
+     LOG_DEBUG("playerbots", "Initializing equipmemt...");
+-    if (!incremental || !sPlayerbotAIConfig.equipAndSpecPersistence ||
++    if (!coaClass && (!incremental || !sPlayerbotAIConfig.equipAndSpecPersistence ||
+         bot->GetLevel() < sPlayerbotAIConfig.equipAndSpecPersistenceLevel)
++       )
+     {
+         InitEquipment(incremental, incremental ? false : sPlayerbotAIConfig.twoRoundsGearInit);
+     }

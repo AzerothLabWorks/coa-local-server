@@ -1,0 +1,152 @@
+diff --git a/src/Ai/Base/Actions/CheckMountStateAction.cpp b/src/Ai/Base/Actions/CheckMountStateAction.cpp
+--- a/src/Ai/Base/Actions/CheckMountStateAction.cpp
++++ b/src/Ai/Base/Actions/CheckMountStateAction.cpp
+@@ -6,6 +6,7 @@
+ 
+ #include "CheckMountStateAction.h"
+ #include "AreaDefines.h"
++#include "AscensionBotMounts.h"
+ #include "BattleGroundTactics.h"
+ #include "BattlegroundEY.h"
+ #include "BattlegroundWS.h"
+@@ -15,7 +16,9 @@
+ #include "PlayerbotAIConfig.h"
+ #include "Playerbots.h"
+ #include "ServerFacade.h"
++#include "Spell.h"
+ #include "SpellAuraEffects.h"
++#include <cmath>
+ 
+ static constexpr uint32 SPELL_COLD_WEATHER_FLYING = 54197;
+ static constexpr float PARACHUTE_LAND_THRESHOLD = 15.0f;
+@@ -127,6 +130,9 @@
+     // If there is a master and bot not in BG, follow master's mount state regardless of group leader
+     if (!noRealMaster && !inBattleground)
+     {
++        if (TryUpgradeMasterMount(master, noAttackers))
++            return true;
++
+         if (ShouldFollowMasterMountState(master, noAttackers, shouldMount))
+             return Mount();
+ 
+@@ -363,14 +369,98 @@
+     if (!master || master == bot)
+         return false;
+ 
++    bool const ownedCoaCompanion = bot->getClass() >= 12 && bot->getClass() <= 32 &&
++        bot->GetSession() && bot->GetSession()->IsBot() &&
++        master->GetSession() && !master->GetSession()->IsBot() && botAI->HasGameClientMaster() &&
++        bot->GetGroup() && bot->GetGroup() == master->GetGroup() && !bot->InBattleground();
++
+     for (AuraEffect const* aura : master->GetAuraEffectsByType(SPELL_AURA_MOUNTED))
+     {
+-        uint32 spellId = aura->GetSpellInfo()->Id;
+-        if (bot->HasSpell(spellId) && botAI->CanCastSpell(spellId, bot) &&
+-            botAI->CastSpell(spellId, bot))
++        SpellInfo const* spellInfo = aura->GetSpellInfo();
++        uint32 const spellId = spellInfo->Id;
++        if (!spellInfo->HasAura(SPELL_AURA_MOUNTED) || spellId == failedMountUpgradeSpellId)
++            continue;
++
++        if (!bot->HasSpell(spellId) && ownedCoaCompanion)
++            AscensionBotMounts::LearnOwnedMount(bot, spellId);
++
++        if (!bot->HasSpell(spellId))
++            continue;
++
++        if (ownedCoaCompanion && bot->isMoving())
++            bot->StopMoving();
++
++        if (botAI->CanCastSpell(spellId, bot) && botAI->CastSpell(spellId, bot))
+             return true;
+     }
+ 
++    return false;
++}
++
++bool CheckMountStateAction::TryUpgradeMasterMount(Player* master, bool noAttackers)
++{
++    if (!master || master == bot || !master->IsMounted())
++    {
++        failedMountUpgradeSpellId = 0;
++        return false;
++    }
++
++    auto const& mountAuras = master->GetAuraEffectsByType(SPELL_AURA_MOUNTED);
++    if (mountAuras.empty())
++    {
++        failedMountUpgradeSpellId = 0;
++        return false;
++    }
++
++    SpellInfo const* spellInfo = mountAuras.front()->GetSpellInfo();
++    uint32 const spellId = spellInfo->Id;
++    if (failedMountUpgradeSpellId != spellId)
++        failedMountUpgradeSpellId = 0;
++
++    if (!bot->GetSession() || !bot->GetSession()->IsBot() ||
++        !master->GetSession() || master->GetSession()->IsBot() || !botAI->HasGameClientMaster() ||
++        !botAI->HasStrategy("mount", BOT_STATE_NON_COMBAT) ||
++        bot->getClass() < 12 || bot->getClass() > 32 || !bot->GetGroup() ||
++        bot->GetGroup() != master->GetGroup() || bot->GetMapId() != master->GetMapId() ||
++        bot->InBattleground() || !noAttackers ||
++        master->IsInCombat() || bot->IsInCombat() || botAI->GetState() == BOT_STATE_COMBAT ||
++        !master->IsAlive() || !master->IsInWorld() || master->IsBeingTeleported() ||
++        !bot->IsAlive() || !bot->IsInWorld() || bot->IsBeingTeleported() ||
++        !master->IsFlying() || !bot->IsMounted() || bot->IsFlying() ||
++        bot->HasIncreaseMountedFlightSpeedAura() || bot->HasFlyAura() ||
++        bot->HasUnitState(UNIT_STATE_IN_FLIGHT) ||
++        bot->HasUnitMovementFlag(MOVEMENTFLAG_FALLING | MOVEMENTFLAG_FALLING_FAR) ||
++        bot->IsNonMeleeSpellCast(true) || failedMountUpgradeSpellId == spellId ||
++        !spellInfo->HasAura(SPELL_AURA_MOUNTED) ||
++        !spellInfo->HasAura(SPELL_AURA_MOD_INCREASE_MOUNTED_FLIGHT_SPEED))
++        return false;
++
++    float const groundLevel = bot->GetMapWaterOrGroundLevel(bot->GetPositionX(), bot->GetPositionY(), bot->GetPositionZ());
++    if (!std::isfinite(groundLevel) || !std::isfinite(bot->GetPositionZ()) ||
++        groundLevel == INVALID_HEIGHT || groundLevel == VMAP_INVALID_HEIGHT_VALUE ||
++        std::abs(bot->GetPositionZ() - groundLevel) > 2.0f)
++        return false;
++
++    if (!bot->HasSpell(spellId) && !AscensionBotMounts::LearnOwnedMount(bot, spellId))
++        return false;
++
++    if (!bot->HasSpell(spellId) || bot->HasSpellCooldown(spellId) ||
++        spellInfo->CheckLocation(bot->GetMapId(), bot->GetZoneId(), bot->GetAreaId(), bot) != SPELL_CAST_OK)
++        return false;
++
++    if (bot->isMoving())
++        bot->StopMoving();
++
++    Spell preflight(bot, spellInfo, TRIGGERED_IGNORE_CASTER_MOUNTED_OR_ON_VEHICLE);
++    preflight.m_targets.SetUnitTarget(bot);
++    if (preflight.CheckCast(true) != SPELL_CAST_OK)
++        return false;
++
++    Dismount();
++    if (botAI->CanCastSpell(spellId, bot) && botAI->CastSpell(spellId, bot))
++        return true;
++
++    failedMountUpgradeSpellId = spellId;
+     return false;
+ }
+ 
+diff --git a/src/Ai/Base/Actions/CheckMountStateAction.h b/src/Ai/Base/Actions/CheckMountStateAction.h
+--- a/src/Ai/Base/Actions/CheckMountStateAction.h
++++ b/src/Ai/Base/Actions/CheckMountStateAction.h
+@@ -48,6 +48,7 @@
+     Player* master;
+     ShapeshiftForm masterInShapeshiftForm;
+     ShapeshiftForm botInShapeshiftForm;
++    uint32 failedMountUpgradeSpellId = 0;
+     static std::unordered_map<uint32, PreferredMountCache> mountCache;
+     static bool preferredMountTableChecked;
+     float CalculateDismountDistance() const;
+@@ -61,6 +62,7 @@
+     std::map<uint32, std::map<int32, std::vector<uint32>>> GetAllMountSpells() const;
+     bool TryForms(Player* master, int32 masterMountType, int32 masterSpeed) const;
+     bool TryMasterMount(Player* master) const;
++    bool TryUpgradeMasterMount(Player* master, bool noAttackers);
+     bool TryPreferredMount(Player* master) const;
+     uint32 GetMountType(Player* master) const;
+     bool TryRandomMountFiltered(std::map<int32, std::vector<uint32>> const& spells, int32 masterSpeed) const;

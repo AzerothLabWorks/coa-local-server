@@ -1,4 +1,9 @@
-# COA WeakAuras Range (optional client addon)
+# COA WeakAuras Range retired helper
+
+This spell-specific workaround is retained as historical source, not recommended for new installations.
+It can overwrite tighter estimates and should not remain active alongside the
+[shared COA range-library repair](../../client-patches/coa-range/README.md). The staging installer preserves
+the installed helper outside AddOns for rollback. Production retirement remains a separate promotion step.
 
 The 3.3.5 `LibRangeCheck-2.0` bundled with QuestHelper uses original WotLK class spell tables. Its estimated range can remain at 35–40 yards even when a COA-class spell is in range. This small addon loads after WeakAuras and adds verified COA spell probes for hostile `target` range checks; it does not change the worldserver or third-party addon files.
 
@@ -6,7 +11,8 @@ Supported probes: Seismic Crash (spell 803981, 0–20 yards) and Lichfrost (spel
 
 A positive probe supplies a coarse upper bound of 20 or 30 yards, not an exact distance. It can replace a finer library estimate, so use the matching `<= 20` or `<= 30` threshold; arbitrary melee, 10-yard, or lower-bound checks are not validated by this helper.
 
-With the WoW client **closed**, copy the `COAWeakAurasRange` directory to `C:\Games\Ascension-WOW\Interface\AddOns\` (or the corresponding `Interface/AddOns` directory for another installation). Enable the addon on the character-selection AddOns screen. To undo the change, close the client and remove this one directory.
+The installation and verification notes below describe the superseded workaround only. Do not install it
+to add generic melee or arbitrary-distance support.
 
 For verification, on a character who knows Seismic Crash, target a hostile mob and compare the `Seismic Crash` WeakAura at less than 20 yards and beyond 20 yards. The read-only in-game probe is:
 

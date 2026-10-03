@@ -1,0 +1,279 @@
+diff --git a/src/Ai/Class/Coa/CoaAiObjectContext.cpp b/src/Ai/Class/Coa/CoaAiObjectContext.cpp
+new file mode 100644
+index 00000000..0056d46f
+--- /dev/null
++++ b/src/Ai/Class/Coa/CoaAiObjectContext.cpp
+@@ -0,0 +1,119 @@
++#include "CoaAiObjectContext.h"
++
++#include "Player.h"
++#include "PlayerbotAI.h"
++#include "Playerbots.h"
++#include "SpellInfo.h"
++#include "SpellMgr.h"
++
++#include <algorithm>
++
++namespace
++{
++bool IsDamageSpell(SpellInfo const* spell)
++{
++    if (!spell || spell->IsPassive() || spell->IsPositive())
++        return false;
++
++    for (SpellEffectInfo const& effect : spell->Effects)
++        switch (effect.Effect)
++        {
++            case SPELL_EFFECT_SCHOOL_DAMAGE:
++            case SPELL_EFFECT_WEAPON_DAMAGE:
++            case SPELL_EFFECT_WEAPON_DAMAGE_NOSCHOOL:
++            case SPELL_EFFECT_NORMALIZED_WEAPON_DMG:
++            case SPELL_EFFECT_WEAPON_PERCENT_DAMAGE:
++            case SPELL_EFFECT_HEALTH_LEECH:
++            case SPELL_EFFECT_POWER_DRAIN:
++                return true;
++            default:
++                break;
++        }
++
++    return false;
++}
++
++class CoaAttackAction final : public Action
++{
++public:
++    explicit CoaAttackAction(PlayerbotAI* ai) : Action(ai, "coa attack") {}
++
++    bool Execute(Event) override
++    {
++        Unit* target = AI_VALUE(Unit*, "current target");
++        if (!target || !target->IsAlive())
++            return false;
++
++        Player* bot = botAI->GetBot();
++        std::vector<SpellInfo const*> candidates;
++        for (auto const& [spellId, playerSpell] : bot->GetSpellMap())
++        {
++            if (!playerSpell->Active || playerSpell->State == PLAYERSPELL_REMOVED)
++                continue;
++            SpellInfo const* spell = sSpellMgr->GetSpellInfo(spellId);
++            if (IsDamageSpell(spell))
++                candidates.push_back(spell);
++        }
++
++        std::sort(candidates.begin(), candidates.end(), [](SpellInfo const* left, SpellInfo const* right)
++        {
++            if (left->SpellLevel != right->SpellLevel)
++                return left->SpellLevel > right->SpellLevel;
++            return left->Id > right->Id;
++        });
++
++        for (SpellInfo const* spell : candidates)
++            if (botAI->CanCastSpell(spell->Id, target) && botAI->CastSpell(spell->Id, target))
++                return true;
++
++        return false;
++    }
++
++    bool isUseful() override { return AI_VALUE(Unit*, "current target") != nullptr; }
++    ActionThreatType getThreatType() override { return ActionThreatType::Single; }
++};
++
++class CoaCombatStrategy final : public Strategy
++{
++public:
++    explicit CoaCombatStrategy(PlayerbotAI* ai) : Strategy(ai) {}
++    std::string const getName() override { return "coa"; }
++    uint32 GetType() const override { return STRATEGY_TYPE_COMBAT | STRATEGY_TYPE_DPS; }
++    std::vector<NextAction> getDefaultActions() override
++    {
++        return {NextAction("coa attack", ACTION_NORMAL), NextAction("melee", ACTION_DEFAULT)};
++    }
++};
++
++class CoaStrategyFactory final : public NamedObjectContext<Strategy>
++{
++public:
++    CoaStrategyFactory() { creators["coa"] = [](PlayerbotAI* ai) -> Strategy* { return new CoaCombatStrategy(ai); }; }
++};
++
++class CoaActionFactory final : public NamedObjectContext<Action>
++{
++public:
++    CoaActionFactory() { creators["coa attack"] = [](PlayerbotAI* ai) -> Action* { return new CoaAttackAction(ai); }; }
++};
++}
++
++SharedNamedObjectContextList<Strategy> CoaAiObjectContext::sharedStrategyContexts;
++SharedNamedObjectContextList<Action> CoaAiObjectContext::sharedActionContexts;
++SharedNamedObjectContextList<Trigger> CoaAiObjectContext::sharedTriggerContexts;
++SharedNamedObjectContextList<UntypedValue> CoaAiObjectContext::sharedValueContexts;
++
++CoaAiObjectContext::CoaAiObjectContext(PlayerbotAI* ai)
++    : AiObjectContext(ai, sharedStrategyContexts, sharedActionContexts, sharedTriggerContexts, sharedValueContexts)
++{
++}
++
++void CoaAiObjectContext::BuildSharedContexts()
++{
++    AiObjectContext::BuildSharedStrategyContexts(sharedStrategyContexts);
++    sharedStrategyContexts.Add(new CoaStrategyFactory());
++    AiObjectContext::BuildSharedActionContexts(sharedActionContexts);
++    sharedActionContexts.Add(new CoaActionFactory());
++    AiObjectContext::BuildSharedTriggerContexts(sharedTriggerContexts);
++    AiObjectContext::BuildSharedValueContexts(sharedValueContexts);
++}
+diff --git a/src/Ai/Class/Coa/CoaAiObjectContext.h b/src/Ai/Class/Coa/CoaAiObjectContext.h
+new file mode 100644
+index 00000000..6ac22e6a
+--- /dev/null
++++ b/src/Ai/Class/Coa/CoaAiObjectContext.h
+@@ -0,0 +1,18 @@
++#ifndef PLAYERBOTS_COAAIOBJECTCONTEXT_H
++#define PLAYERBOTS_COAAIOBJECTCONTEXT_H
++
++#include "AiObjectContext.h"
++
++class CoaAiObjectContext : public AiObjectContext
++{
++public:
++    explicit CoaAiObjectContext(PlayerbotAI* botAI);
++
++    static void BuildSharedContexts();
++    static SharedNamedObjectContextList<Strategy> sharedStrategyContexts;
++    static SharedNamedObjectContextList<Action> sharedActionContexts;
++    static SharedNamedObjectContextList<Trigger> sharedTriggerContexts;
++    static SharedNamedObjectContextList<UntypedValue> sharedValueContexts;
++};
++
++#endif
+diff --git a/src/Bot/Engine/AiObjectContext.cpp b/src/Bot/Engine/AiObjectContext.cpp
+index 44eb4048..a2948025 100644
+--- a/src/Bot/Engine/AiObjectContext.cpp
++++ b/src/Bot/Engine/AiObjectContext.cpp
+@@ -10,6 +10,7 @@
+ #include "Helpers.h"
+ #include "HunterAiObjectContext.h"
+ #include "MageAiObjectContext.h"
++#include "CoaAiObjectContext.h"
+ #include "PaladinAiObjectContext.h"
+ #include "PriestAiObjectContext.h"
+ #include "RogueAiObjectContext.h"
+@@ -39,6 +40,7 @@ void AiObjectContext::BuildAllSharedContexts()
+     AiObjectContext::BuildSharedContexts();
+     PriestAiObjectContext::BuildSharedContexts();
+     MageAiObjectContext::BuildSharedContexts();
++    CoaAiObjectContext::BuildSharedContexts();
+     WarlockAiObjectContext::BuildSharedContexts();
+     WarriorAiObjectContext::BuildSharedContexts();
+     ShamanAiObjectContext::BuildSharedContexts();
+diff --git a/src/Bot/Factory/AiFactory.cpp b/src/Bot/Factory/AiFactory.cpp
+index bb1fa527..b445d6d0 100644
+--- a/src/Bot/Factory/AiFactory.cpp
++++ b/src/Bot/Factory/AiFactory.cpp
+@@ -6,6 +6,7 @@
+ 
+ #include "AiFactory.h"
+ #include "BattlegroundMgr.h"
++#include "CoaAiObjectContext.h"
+ #include "DKAiObjectContext.h"
+ #include "DruidAiObjectContext.h"
+ #include "Engine.h"
+@@ -37,6 +38,9 @@ constexpr uint32 SPELL_DRUID_THICK_HIDE = 16931;
+ 
+ AiObjectContext* AiFactory::createAiObjectContext(Player* player, PlayerbotAI* botAI)
+ {
++    if (player->getClass() >= 12)
++        return new CoaAiObjectContext(botAI);
++
+     switch (player->getClass())
+     {
+         case CLASS_PRIEST:
+@@ -292,6 +296,9 @@ void AiFactory::AddDefaultCombatStrategies(Player* player, PlayerbotAI* const fa
+ 
+     engine->addStrategy("formation", false);
+ 
++    if (player->getClass() >= 12)
++        engine->addStrategiesNoInit("coa", "dps assist", nullptr);
++
+     switch (player->getClass())
+     {
+         case CLASS_PRIEST:
+diff --git a/src/Bot/Factory/PlayerbotFactory.cpp b/src/Bot/Factory/PlayerbotFactory.cpp
+index 8ee48859..39a8f5fc 100644
+--- a/src/Bot/Factory/PlayerbotFactory.cpp
++++ b/src/Bot/Factory/PlayerbotFactory.cpp
+@@ -796,8 +796,11 @@ void PlayerbotFactory::Randomize(bool incremental)
+     LOG_DEBUG("playerbots", "Resetting player...");
+     PerfMonitorOperation* pmo = sPerfMonitor.start(PERF_MON_RNDBOT, "PlayerbotFactory_Reset");
+ 
+-    if (!sPlayerbotAIConfig.equipAndSpecPersistence ||
++    bool const coaClass = bot->getClass() >= 12;
++
++    if (!coaClass && (!sPlayerbotAIConfig.equipAndSpecPersistence ||
+         level < uint32(sPlayerbotAIConfig.equipAndSpecPersistenceLevel))
++       )
+     {
+         bot->resetTalents(true);
+     }
+@@ -805,7 +808,8 @@ void PlayerbotFactory::Randomize(bool incremental)
+     if (!incremental)
+     {
+         ClearSkills();
+-        ClearSpells();
++        if (!coaClass)
++            ClearSpells();
+         ResetQuests();
+ 
+         if (!sPlayerbotAIConfig.equipAndSpecPersistence ||
+@@ -856,15 +860,19 @@ void PlayerbotFactory::Randomize(bool incremental)
+ 
+     pmo = sPerfMonitor.start(PERF_MON_RNDBOT, "PlayerbotFactory_Spells1");
+     LOG_DEBUG("playerbots", "Initializing spells (step 1)...");
+-    InitClassSpells();
+-    InitAvailableSpells();
++    if (!coaClass)
++    {
++        InitClassSpells();
++        InitAvailableSpells();
++    }
+     if (pmo)
+         pmo->finish();
+ 
+     pmo = sPerfMonitor.start(PERF_MON_RNDBOT, "PlayerbotFactory_Talents");
+     LOG_DEBUG("playerbots", "Initializing talents...");
+-    if (!incremental || !sPlayerbotAIConfig.equipAndSpecPersistence ||
++    if (!coaClass && (!incremental || !sPlayerbotAIConfig.equipAndSpecPersistence ||
+         bot->GetLevel() < sPlayerbotAIConfig.equipAndSpecPersistenceLevel)
++       )
+     {
+         uint32 specIndex = InitTalentsTree();
+         sRandomPlayerbotMgr.SetValue(bot->GetGUID().GetCounter(), "specNo", specIndex + 1);
+@@ -880,7 +888,8 @@ void PlayerbotFactory::Randomize(bool incremental)
+ 
+     pmo = sPerfMonitor.start(PERF_MON_RNDBOT, "PlayerbotFactory_Spells2");
+     LOG_DEBUG("playerbots", "Initializing spells (step 2)...");
+-    InitAvailableSpells();
++    if (!coaClass)
++        InitAvailableSpells();
+     if (pmo)
+         pmo->finish();
+ 
+diff --git a/src/Bot/Factory/RandomPlayerbotFactory.cpp b/src/Bot/Factory/RandomPlayerbotFactory.cpp
+index c9abb812..fddb7227 100644
+--- a/src/Bot/Factory/RandomPlayerbotFactory.cpp
++++ b/src/Bot/Factory/RandomPlayerbotFactory.cpp
+@@ -712,11 +712,11 @@ void RandomPlayerbotFactory::CreateRandomBots()
+         for (uint8 cls = CLASS_WARRIOR; cls < MAX_CLASSES - count; ++cls)
+         {
+             // skip nonexistent classes
+-            if (!((1 << (cls - 1)) & CLASSMASK_ALL_PLAYABLE) || !sChrClassesStore.LookupEntry(cls))
++            if (!((uint32(1) << (cls - 1)) & CLASSMASK_ALL_PLAYABLE) || !sChrClassesStore.LookupEntry(cls))
+                 continue;
+ 
+             // skip disabled with config classes
+-            if ((1 << (cls - 1)) & sWorld->getIntConfig(CONFIG_CHARACTER_CREATING_DISABLED_CLASSMASK))
++            if ((uint32(1) << (cls - 1)) & sWorld->getIntConfig(CONFIG_CHARACTER_CREATING_DISABLED_CLASSMASK))
+                 continue;
+ 
+             Player* playerBot = factory.CreateRandomBot(session, cls, nameCache);

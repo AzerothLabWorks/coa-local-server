@@ -1,0 +1,1391 @@
+diff --git a/apps/coa-gameplay-test/README.md b/apps/coa-gameplay-test/README.md
+--- a/apps/coa-gameplay-test/README.md
++++ b/apps/coa-gameplay-test/README.md
+@@ -402,6 +402,7 @@
+ | `command` | `actor`, `command` beginning with `.`: execute with the player's normal permissions. |
+ | `whisper` | Player `actor`, `to`, `text`, optional `language` (Common by default): the client's whisper packet, sent as typed. |
+ | `learn`, `unlearn` | `actor`, `spell`: configure learned spells/passives through player APIs. `unlearn` accepts `all_specs: true` to remove the fixture grant from every specialization before testing a lower weapon rank. |
++| `ensure_bot_mount` | Player `actor`, `spell`, required boolean `accepted`: invoke the production bot mount-acquisition bridge and require its result to match. It does not force learning, select a build or mount the actor. |
+ | `money` | `actor`, `copper`: fixture purse, so a priced trainer row can be bought on a character that starts with none. |
+ | `set_aura` | `actor`, `spell`, `stacks`: fixture aura state, within its stack limit; zero removes it. Optional `pet: true` selects the actor's current pet. |
+ | `cancel_aura` | Player `actor`, `spell`: native `CMSG_CANCEL_AURA` handler; assert the resulting aura state. |
+@@ -636,6 +637,10 @@
+ client draws.
+ `has_talent` requires the talent rank's spell ID; passive talents are separate from the learned spellbook.
+ `talent_points` measures unspent points in the active specialization.
++`known_spell_count` counts the player's non-removed spell-map entries. The
++[G1 bot mount acquisition case](scenarios/g1-bot-mount-acquisition.json) uses it to check one-spell acquisition,
++idempotence and refused requests, then casts each acquired mount through the normal session handler.
++Its bot-flagged socketless fixtures do not exercise playerbot AI movement, mounting synchronization or database relog.
+ `bank_bag_slots` measures the player's unlocked standard bank bag slots (0..7).
+ `pet_entry` measures the player's current guardian pet entry, or the entry of the companion it summoned
+ (a minipet, which never occupies the guardian slot), or zero if absent; `pet_display`, `pet_scale`
+diff --git a/apps/coa-gameplay-test/check_g1_bot_mounts.py b/apps/coa-gameplay-test/check_g1_bot_mounts.py
+new file mode 100644
+--- /dev/null
++++ b/apps/coa-gameplay-test/check_g1_bot_mounts.py
+@@ -0,0 +1,70 @@
++#!/usr/bin/env python3
++CLI_DESCRIPTION = "Check bounded bot mount acquisition, idempotence, refusals and preserved build observations."
++
++import argparse
++import json
++import math
++from pathlib import Path
++
++
++def observations(directory):
++    summary = json.loads((directory / 'summary.json').read_text(encoding='utf-8'))
++    result = json.loads((directory / 'result.json').read_text(encoding='utf-8'))
++    scenario = json.loads((directory / 'scenario.json').read_text(encoding='utf-8'))
++    if summary['status'] != 'passed' or result['status'] != 'passed':
++        raise ValueError('A completed native scenario pass is required')
++    values = {}
++    acquisitions = []
++    for definition, step in zip(scenario['steps'], result['steps'], strict=True):
++        if definition['action'] == 'ensure_bot_mount':
++            actual = float(step['actual'])
++            expected = int(definition['accepted'])
++            if not math.isfinite(actual) or actual != expected:
++                raise ValueError(f"Incorrect acquisition result for {definition['actor']} spell {definition['spell']}")
++            acquisitions.append((definition['actor'], definition['spell'], actual))
++        if step['action'] != 'snapshot':
++            continue
++        label = step['label']
++        if label in values:
++            raise ValueError(f'Duplicate snapshot: {label}')
++        value = float(step['actual'])
++        if not math.isfinite(value):
++            raise ValueError(f'Non-finite snapshot: {label}')
++        values[label] = value
++    if acquisitions != [('bot', 91737, 1), ('bot', 91737, 1), ('bot', 900125, 1), ('bot', 900125, 1),
++                        ('bot', 133, 0), ('bot', 750750, 0), ('bot', 2147483647, 0), ('human', 91737, 0),
++                        ('classic', 91737, 0), ('untrained', 91737, 0)]:
++        raise ValueError('The required positive, repeated and refused acquisition controls are incomplete')
++    return values
++
++
++def check(values):
++    spell_counts = ('initial_bot_spells', 'furline_bot_spells', 'repeated_furline_bot_spells',
++                    'blossom_bot_spells', 'repeated_blossom_bot_spells', 'after_refused_bot_spells')
++    initial = values['initial_bot_spells']
++    control_counts = tuple(f'{phase}_{actor}_spells'
++                           for actor in ('human', 'classic', 'untrained') for phase in ('initial', 'after'))
++    if any(values[label] < 0 or not values[label].is_integer() for label in (*spell_counts, *control_counts)):
++        raise ValueError('Known spell counts must be nonnegative integers')
++    for label, delta in zip(spell_counts, (0, 1, 1, 2, 2, 2), strict=True):
++        if values[label] != initial + delta:
++            raise ValueError(f'{label}: spell count changed by {values[label] - initial}, expected {delta}')
++    for actor in ('human', 'classic', 'untrained'):
++        if values[f'after_{actor}_spells'] != values[f'initial_{actor}_spells']:
++            raise ValueError(f'{actor}: a refused acquisition changed the known spell count')
++    for field in ('spec', 'points', 'nonmount', 'book'):
++        if values[f'after_bot_{field}'] != values[f'initial_bot_{field}']:
++            raise ValueError(f'{field}: acquiring mounts changed an existing build or companion observation')
++    for mount in ('furline', 'blossom'):
++        if not math.isclose(values[f'{mount}_ground_speed'], 2, rel_tol=0, abs_tol=0.000001):
++            raise ValueError(f'{mount}: the mounted ground speed must be twice ordinary speed')
++        if not math.isclose(values[f'{mount}_dismount_speed'], 1, rel_tol=0, abs_tol=0.000001):
++            raise ValueError(f'{mount}: dismounting must restore ordinary speed')
++    print('Two requested mounts acquired once; all refusal controls and existing build observations preserved')
++
++
++if __name__ == '__main__':
++    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
++    parser.add_argument('result_directory', type=Path)
++    arguments = parser.parse_args()
++    check(observations(arguments.result_directory))
+diff --git a/apps/coa-gameplay-test/checks.json b/apps/coa-gameplay-test/checks.json
+--- a/apps/coa-gameplay-test/checks.json
++++ b/apps/coa-gameplay-test/checks.json
+@@ -2,6 +2,13 @@
+   "schema": 1,
+   "checks": [
+     {
++      "script": "check_g1_bot_mounts.py",
++      "scenarios": [
++        "g1-bot-mount-acquisition"
++      ],
++      "args": []
++    },
++    {
+       "script": "check_g1_utilities.py",
+       "scenarios": [
+         "g1-furline-compat"
+diff --git a/apps/coa-gameplay-test/run.py b/apps/coa-gameplay-test/run.py
+--- a/apps/coa-gameplay-test/run.py
++++ b/apps/coa-gameplay-test/run.py
+@@ -39,7 +39,8 @@
+     'view_level', 'sent_level', 'sent_max_health', 'creature_query_rank', 'quest_level', 'quest_xp',
+     'health', 'health_pct', 'max_health', 'creature_type', 'power', 'max_power', 'alive', 'combat', 'casting', 'level',
+     'aura', 'aura_stacks', 'aura_charges', 'aura_duration_ms', 'aura_amount', 'aura_positive',
+-    'knows_spell', 'spell_active', 'has_talent', 'talent_points', 'cooldown_ms', 'global_cooldown_ms', 'spell_charges',
++    'knows_spell', 'known_spell_count', 'spell_active', 'has_talent', 'talent_points', 'cooldown_ms',
++    'global_cooldown_ms', 'spell_charges',
+     'action_button', 'item_count', 'carried_item_count', 'carried_pool_item_count', 'carried_variant_item_count',
+     'pool_variant_count', 'pool_retired_item_count', 'pool_row_count', 'pool_item_present',
+     'cache_token_count', 'cache_token_stage', 'cache_token_present',
+@@ -133,6 +134,7 @@
+     'snapshot': ({'actor', 'metric', 'save_as'}, METRIC_FIELDS | {'save_as'}),
+     'assert': ({'actor', 'metric'}, METRIC_FIELDS | {'equals', 'min', 'max', 'within_ms'}),
+     'learn': ({'actor', 'spell'}, {'actor', 'spell'}),
++    'ensure_bot_mount': ({'actor', 'spell', 'accepted'}, {'actor', 'spell', 'accepted'}),
+     'set_action_button': ({'actor', 'button'}, {'actor', 'spell', 'button', 'wildcard_slot'}),
+     'grant_resource': ({'actor', 'spell'}, {'actor', 'spell', 'amount'}),
+     'unlearn': ({'actor', 'spell'}, {'actor', 'spell', 'all_specs'}),
+@@ -355,6 +357,8 @@
+             require(step['actor'] in player_ids, f'{where}: pet fixture needs a player')
+         if action in {'pvp', 'set_moving'}:
+             require(type(step['enabled']) is bool, f'{where}: enabled must be boolean')
++        if action == 'ensure_bot_mount':
++            require(type(step['accepted']) is bool, f'{where}: accepted must be boolean')
+         if 'all_specs' in step:
+             require(type(step['all_specs']) is bool, f'{where}: all_specs must be boolean')
+         for key in ('race_mask', 'class_mask'):
+@@ -620,7 +624,8 @@
+             if metric == 'server_packet_contains':
+                 require(isinstance(step.get('text'), str) and step['text'].strip(),
+                         f'{where}: metric needs the text to look for')
+-            if metric in {'knows_spell', 'has_talent', 'talent_points', 'cooldown_ms', 'spell_charges', 'action_button', 'item_count',
++            if metric in {'knows_spell', 'known_spell_count', 'has_talent', 'talent_points', 'cooldown_ms',
++                          'spell_charges', 'action_button', 'item_count',
+                           'carried_item_count', 'carried_pool_item_count', 'carried_variant_item_count',
+                           'bank_bag_slots', 'taxi_node', 'in_flight', 'taxi_destination', 'stabled_pet_count',
+                           'stable_result', 'pet_rows', 'instance_binds_listed', 'spell_active',
+diff --git a/apps/coa-gameplay-test/scenarios/g1-bot-mount-acquisition.json b/apps/coa-gameplay-test/scenarios/g1-bot-mount-acquisition.json
+new file mode 100644
+--- /dev/null
++++ b/apps/coa-gameplay-test/scenarios/g1-bot-mount-acquisition.json
+@@ -0,0 +1,159 @@
++{
++  "schema": 1,
++  "name": "G1 acquires only the requested eligible bot mount without rebuilding the character",
++  "contract": "With CoA.LearnOwnedCompanions=1 and CoA.UnlockAllVanity=1, a custom-class bot with trained riding can learn one requested catalog mount. Repeating acquisition adds no spells; humans, classic bots, untrained bots, non-mounts and unknown IDs are refused. Furline and Blossomback cast their real mounted auras without selecting talents or granting companions. This socketless case does not exercise autonomous bot travel or database relog persistence.",
++  "timeout_ms": 90000,
++  "players": [
++    { "id": "bot", "race": 1, "class": 13, "level": 13, "bot": true },
++    { "id": "human", "race": 1, "class": 13, "level": 13, "bot": false },
++    { "id": "classic", "race": 1, "class": 1, "level": 13, "bot": true },
++    { "id": "untrained", "race": 1, "class": 13, "level": 13, "bot": true }
++  ],
++  "steps": [
++    { "action": "wait", "ms": 8000, "label": "settle ordinary login and level synchronization" },
++    { "action": "set_skill", "actor": "bot", "skill": 762, "value": 300, "maximum": 300 },
++    { "action": "set_skill", "actor": "human", "skill": 762, "value": 300, "maximum": 300 },
++    { "action": "set_skill", "actor": "classic", "skill": 762, "value": 300, "maximum": 300 },
++    { "action": "set_skill", "actor": "untrained", "skill": 762, "value": 0, "maximum": 300 },
++    { "action": "unlearn", "actor": "human", "spell": 91737, "all_specs": true },
++    { "action": "assert", "actor": "human", "metric": "knows_spell", "spell": 91737, "equals": 0 },
++    { "action": "assert", "actor": "bot", "metric": "knows_spell", "spell": 91737, "equals": 0 },
++    { "action": "assert", "actor": "bot", "metric": "knows_spell", "spell": 900125, "equals": 0 },
++    { "action": "assert", "actor": "bot", "metric": "knows_spell", "spell": 133, "equals": 0 },
++    {
++      "action": "snapshot", "actor": "bot", "metric": "known_spell_count",
++      "save_as": "initial_bot_spells", "label": "initial_bot_spells"
++    },
++    {
++      "action": "snapshot", "actor": "bot", "metric": "player_setting",
++      "source": "core.ascension_active_spec", "index": 0,
++      "save_as": "initial_bot_spec", "label": "initial_bot_spec"
++    },
++    {
++      "action": "snapshot", "actor": "bot", "metric": "talent_points",
++      "save_as": "initial_bot_points", "label": "initial_bot_points"
++    },
++    {
++      "action": "snapshot", "actor": "bot", "metric": "knows_spell", "spell": 6603,
++      "save_as": "initial_bot_nonmount", "label": "initial_bot_nonmount"
++    },
++    {
++      "action": "snapshot", "actor": "bot", "metric": "knows_spell", "spell": 750750,
++      "save_as": "initial_bot_book", "label": "initial_bot_book"
++    },
++    {
++      "action": "ensure_bot_mount", "actor": "bot", "spell": 91737, "accepted": true,
++      "label": "acquire the missing speed-bearing Furline mount through the production bridge"
++    },
++    { "action": "assert", "actor": "bot", "metric": "knows_spell", "spell": 91737, "equals": 1 },
++    {
++      "action": "assert", "actor": "bot", "metric": "known_spell_count",
++      "relative_to": "initial_bot_spells", "equals": 1, "label": "Furline adds exactly one spell"
++    },
++    {
++      "action": "snapshot", "actor": "bot", "metric": "known_spell_count",
++      "save_as": "furline_bot_spells", "label": "furline_bot_spells"
++    },
++    { "action": "assert", "actor": "bot", "metric": "aura", "spell": 91737, "equals": 0 },
++    { "action": "ensure_bot_mount", "actor": "bot", "spell": 91737, "accepted": true },
++    {
++      "action": "snapshot", "actor": "bot", "metric": "known_spell_count",
++      "save_as": "repeated_furline_bot_spells", "label": "repeated_furline_bot_spells"
++    },
++    {
++      "action": "assert", "actor": "bot", "metric": "known_spell_count",
++      "relative_to": "furline_bot_spells", "equals": 0
++    },
++    { "action": "cast", "actor": "bot", "spell": 91737 },
++    {
++      "action": "assert", "actor": "bot", "metric": "aura", "spell": 91737,
++      "equals": 1, "within_ms": 5000, "label": "the acquired Furline casts its actual mounted aura"
++    },
++    { "action": "snapshot", "actor": "bot", "metric": "run_speed_rate",
++      "save_as": "furline_ground_speed", "label": "furline_ground_speed" },
++    { "action": "cancel_mount", "actor": "bot" },
++    { "action": "assert", "actor": "bot", "metric": "aura", "spell": 91737, "equals": 0 },
++    { "action": "snapshot", "actor": "bot", "metric": "run_speed_rate",
++      "save_as": "furline_dismount_speed", "label": "furline_dismount_speed" },
++    {
++      "action": "ensure_bot_mount", "actor": "bot", "spell": 900125, "accepted": true,
++      "label": "acquire only the requested Blossomback Arboon catalog mount"
++    },
++    { "action": "assert", "actor": "bot", "metric": "knows_spell", "spell": 900125, "equals": 1 },
++    {
++      "action": "assert", "actor": "bot", "metric": "known_spell_count",
++      "relative_to": "furline_bot_spells", "equals": 1, "label": "Blossomback adds exactly one spell"
++    },
++    { "action": "snapshot", "actor": "bot", "metric": "known_spell_count",
++      "save_as": "blossom_bot_spells", "label": "blossom_bot_spells" },
++    { "action": "assert", "actor": "bot", "metric": "aura", "spell": 900125, "equals": 0 },
++    { "action": "ensure_bot_mount", "actor": "bot", "spell": 900125, "accepted": true },
++    { "action": "snapshot", "actor": "bot", "metric": "known_spell_count",
++      "save_as": "repeated_blossom_bot_spells", "label": "repeated_blossom_bot_spells" },
++    {
++      "action": "assert", "actor": "bot", "metric": "known_spell_count",
++      "relative_to": "blossom_bot_spells", "equals": 0
++    },
++    { "action": "cast", "actor": "bot", "spell": 900125 },
++    {
++      "action": "assert", "actor": "bot", "metric": "aura", "spell": 900125,
++      "equals": 1, "within_ms": 5000, "label": "the acquired Blossomback casts its actual mounted aura"
++    },
++    { "action": "snapshot", "actor": "bot", "metric": "run_speed_rate",
++      "save_as": "blossom_ground_speed", "label": "blossom_ground_speed" },
++    { "action": "cancel_mount", "actor": "bot" },
++    { "action": "assert", "actor": "bot", "metric": "aura", "spell": 900125, "equals": 0 },
++    { "action": "snapshot", "actor": "bot", "metric": "run_speed_rate",
++      "save_as": "blossom_dismount_speed", "label": "blossom_dismount_speed" },
++    { "action": "ensure_bot_mount", "actor": "bot", "spell": 133, "accepted": false },
++    { "action": "ensure_bot_mount", "actor": "bot", "spell": 750750, "accepted": false,
++      "label": "the mount-only bridge refuses the Book of Artisans companion" },
++    { "action": "ensure_bot_mount", "actor": "bot", "spell": 2147483647, "accepted": false },
++    { "action": "assert", "actor": "bot", "metric": "knows_spell", "spell": 133, "equals": 0 },
++    { "action": "snapshot", "actor": "bot", "metric": "known_spell_count",
++      "save_as": "after_refused_bot_spells", "label": "after_refused_bot_spells" },
++    { "action": "snapshot", "actor": "human", "metric": "known_spell_count",
++      "save_as": "initial_human_spells", "label": "initial_human_spells" },
++    { "action": "ensure_bot_mount", "actor": "human", "spell": 91737, "accepted": false },
++    { "action": "assert", "actor": "human", "metric": "knows_spell", "spell": 91737, "equals": 0 },
++    { "action": "snapshot", "actor": "human", "metric": "known_spell_count",
++      "save_as": "after_human_spells", "label": "after_human_spells" },
++    { "action": "snapshot", "actor": "classic", "metric": "known_spell_count",
++      "save_as": "initial_classic_spells", "label": "initial_classic_spells" },
++    { "action": "ensure_bot_mount", "actor": "classic", "spell": 91737, "accepted": false },
++    { "action": "assert", "actor": "classic", "metric": "knows_spell", "spell": 91737, "equals": 0 },
++    { "action": "snapshot", "actor": "classic", "metric": "known_spell_count",
++      "save_as": "after_classic_spells", "label": "after_classic_spells" },
++    { "action": "snapshot", "actor": "untrained", "metric": "known_spell_count",
++      "save_as": "initial_untrained_spells", "label": "initial_untrained_spells" },
++    { "action": "ensure_bot_mount", "actor": "untrained", "spell": 91737, "accepted": false },
++    { "action": "assert", "actor": "untrained", "metric": "knows_spell", "spell": 91737, "equals": 0 },
++    { "action": "snapshot", "actor": "untrained", "metric": "known_spell_count",
++      "save_as": "after_untrained_spells", "label": "after_untrained_spells" },
++    { "action": "assert", "actor": "untrained", "metric": "skill_value", "skill": 762, "equals": 0 },
++    {
++      "action": "assert", "actor": "bot", "metric": "player_setting",
++      "source": "core.ascension_active_spec", "index": 0,
++      "relative_to": "initial_bot_spec", "equals": 0
++    },
++    { "action": "snapshot", "actor": "bot", "metric": "player_setting",
++      "source": "core.ascension_active_spec", "index": 0,
++      "save_as": "after_bot_spec", "label": "after_bot_spec" },
++    { "action": "assert", "actor": "bot", "metric": "talent_points",
++      "relative_to": "initial_bot_points", "equals": 0 },
++    { "action": "snapshot", "actor": "bot", "metric": "talent_points",
++      "save_as": "after_bot_points", "label": "after_bot_points" },
++    { "action": "assert", "actor": "bot", "metric": "knows_spell", "spell": 6603,
++      "relative_to": "initial_bot_nonmount", "equals": 0 },
++    { "action": "snapshot", "actor": "bot", "metric": "knows_spell", "spell": 6603,
++      "save_as": "after_bot_nonmount", "label": "after_bot_nonmount" },
++    { "action": "assert", "actor": "bot", "metric": "knows_spell", "spell": 750750,
++      "relative_to": "initial_bot_book", "equals": 0 },
++    { "action": "snapshot", "actor": "bot", "metric": "knows_spell", "spell": 750750,
++      "save_as": "after_bot_book", "label": "after_bot_book" },
++    { "action": "assert", "actor": "bot", "metric": "level", "equals": 13 },
++    { "action": "assert", "actor": "bot", "metric": "skill_value", "skill": 762, "equals": 300 },
++    { "action": "assert", "actor": "bot", "metric": "knows_spell", "spell": 6603, "equals": 1,
++      "label": "the native class starter Auto Attack remains learned" }
++  ]
++}
+diff --git a/apps/coa-gameplay-test/test_runner.py b/apps/coa-gameplay-test/test_runner.py
+--- a/apps/coa-gameplay-test/test_runner.py
++++ b/apps/coa-gameplay-test/test_runner.py
+@@ -15,6 +15,29 @@
+ 
+ 
+ class RunnerTests(unittest.TestCase):
++    def test_bot_mount_acquisition_requires_a_player_spell_and_explicit_boolean_result(self):
++        scenario = run.read_json(Path(__file__).parent / 'scenarios' / 'g1-bot-mount-acquisition.json')
++        self.assertIs(run.validate(scenario), scenario)
++        index = next(index for index, step in enumerate(scenario['steps']) if step['action'] == 'ensure_bot_mount')
++        for change in ({'accepted': 1}, {'accepted': 'true'}, {'actor': 'absent'}, {'spell': 0}):
++            candidate = copy.deepcopy(scenario)
++            candidate['steps'][index].update(change)
++            with self.subTest(change=change), self.assertRaises(ValueError):
++                run.validate(candidate)
++        candidate = copy.deepcopy(scenario)
++        del candidate['steps'][index]['accepted']
++        with self.assertRaises(ValueError):
++            run.validate(candidate)
++        candidate = copy.deepcopy(scenario)
++        candidate['creatures'] = [{'id': 'target', 'owner': 'bot', 'entry': 1501}]
++        candidate['steps'][index]['actor'] = 'target'
++        with self.assertRaises(ValueError):
++            run.validate(candidate)
++        candidate['steps'][index] = {
++            'action': 'assert', 'actor': 'target', 'metric': 'known_spell_count', 'equals': 0}
++        with self.assertRaises(ValueError):
++            run.validate(candidate)
++
+     def test_profession_fixture_validation(self):
+         scenario = run.read_json(Path(__file__).parent / 'scenarios' / 'profession-xp.json')
+         self.assertIs(run.validate(scenario), scenario)
+diff --git a/apps/coa-gameplay-test/test_verification.py b/apps/coa-gameplay-test/test_verification.py
+--- a/apps/coa-gameplay-test/test_verification.py
++++ b/apps/coa-gameplay-test/test_verification.py
+@@ -60,6 +60,8 @@
+                       'label': step.get('label', step['action'])}
+             if step['action'] == 'snapshot':
+                 record['actual'] = actual[step['save_as']] if isinstance(actual, dict) else actual
++            elif step['action'] == 'ensure_bot_mount':
++                record.update(actual=int(step['accepted']), expected_equals=int(step['accepted']))
+             elif step['action'] == 'assert':
+                 record.update(status='passed', actual=step.get('equals', step.get('min', step.get('max', 100))))
+             steps.append(record)
+@@ -117,6 +119,46 @@
+         result = self.verify()
+         self.assertEqual(result['status'], 'failed')
+         self.assertEqual(result['checks'], [])
++
++    def test_g1_bot_mount_checker_rejects_extra_grants_refusal_mutation_and_build_changes(self):
++        scenario = catalog.read_json(catalog.DIRECTORY / 'scenarios/g1-bot-mount-acquisition.json')
++        values = {'initial_bot_spells': 48, 'furline_bot_spells': 49, 'repeated_furline_bot_spells': 49,
++                  'blossom_bot_spells': 50, 'repeated_blossom_bot_spells': 50, 'after_refused_bot_spells': 50,
++                  'initial_human_spells': 2000, 'after_human_spells': 2000,
++                  'initial_classic_spells': 40, 'after_classic_spells': 40,
++                  'initial_untrained_spells': 48, 'after_untrained_spells': 48,
++                  'initial_bot_spec': 6, 'after_bot_spec': 6, 'initial_bot_points': 2, 'after_bot_points': 2,
++                  'initial_bot_nonmount': 1, 'after_bot_nonmount': 1, 'initial_bot_book': 0, 'after_bot_book': 0,
++                  'furline_ground_speed': 2, 'furline_dismount_speed': 1,
++                  'blossom_ground_speed': 2, 'blossom_dismount_speed': 1}
++        good = self.bundle('g1-bot-mount-good', values, scenario)
++        self.assertEqual(verification.verify([good])['status'], 'passed')
++        for name, changes in [('missing-mount', {'furline_bot_spells': 48}),
++                              ('all-catalog-grant', {'furline_bot_spells': 2000}),
++                              ('repeat-grant', {'repeated_blossom_bot_spells': 51}),
++                              ('nonmount-grant', {'after_refused_bot_spells': 51}),
++                              ('human-grant', {'after_human_spells': 2001}),
++                              ('classic-grant', {'after_classic_spells': 41}),
++                              ('untrained-grant', {'after_untrained_spells': 49}),
++                              ('spec-selected', {'after_bot_spec': 1}),
++                              ('points-reset', {'after_bot_points': 3}),
++                              ('combat-spell-removed', {'after_bot_nonmount': 0}),
++                              ('companion-grant', {'after_bot_book': 1}),
++                              ('slow-furline', {'furline_ground_speed': 1}),
++                              ('still-mounted', {'blossom_dismount_speed': 2})]:
++            with self.subTest(mistake=name):
++                wrong = self.bundle('g1-bot-mount-' + name, {**values, **changes}, scenario)
++                result = verification.verify([wrong])
++                self.assertEqual(result['status'], 'failed')
++                self.assertEqual(result['checks'][0]['status'], 'failed')
++        records = catalog.read_json(good / 'result.json')
++        refused = next(step for step in records['steps'] if step['action'] == 'ensure_bot_mount'
++                       and step['actual'] == 0)
++        refused['actual'] = 1
++        self.write(good / 'result.json', records)
++        result = verification.verify([good])
++        self.assertEqual(result['status'], 'failed')
++        self.assertEqual(result['checks'][0]['status'], 'failed')
+ 
+     def test_g1_furline_checker_rejects_wrong_speed_and_failed_dismount(self):
+         scenario = catalog.read_json(catalog.DIRECTORY / 'scenarios/g1-furline-compat.json')
+diff --git a/apps/coa-tests/g1_bot_mount/run.py b/apps/coa-tests/g1_bot_mount/run.py
+new file mode 100644
+--- /dev/null
++++ b/apps/coa-tests/g1_bot_mount/run.py
+@@ -0,0 +1,477 @@
++CLI_DESCRIPTION = "Compile the actual playerbot mount-copy and grounded-upgrade methods against bounded fixtures."
++
++import os
++from pathlib import Path
++import shutil
++import subprocess
++import tempfile
++
++
++ROOT = Path(__file__).resolve().parents[3]
++ACTION = ROOT / "modules/mod-playerbots/src/Ai/Base/Actions/CheckMountStateAction.cpp"
++
++
++def method(source, signature):
++    position = source.find(signature)
++    if position < 0:
++        return None
++    start = source.index("{", position)
++    depth = 1
++    end = start + 1
++    while depth and end < len(source):
++        depth += (source[end] == "{") - (source[end] == "}")
++        end += 1
++    if depth:
++        raise ValueError(f"Unterminated method: {signature}")
++    return source[position:end]
++
++
++FIXTURE = r"""
++#include <array>
++#include <cmath>
++#include <cstdint>
++#include <cstdio>
++#include <map>
++#include <limits>
++#include <set>
++#include <vector>
++using uint8 = std::uint8_t;
++using uint16 = std::uint16_t;
++using uint32 = std::uint32_t;
++constexpr uint32 SPELL_AURA_MOUNTED = 78;
++constexpr uint32 SPELL_AURA_MOD_INCREASE_MOUNTED_FLIGHT_SPEED = 207;
++constexpr uint32 SPELL_AURA_FLY = 201;
++constexpr uint32 SKILL_RIDING = 762;
++constexpr uint32 UNIT_STATE_IN_FLIGHT = 1;
++constexpr uint32 MOVEMENTFLAG_FALLING = 2;
++constexpr uint32 MOVEMENTFLAG_FALLING_FAR = 4;
++constexpr uint32 CURRENT_GENERIC_SPELL = 1;
++constexpr uint32 CURRENT_CHANNELED_SPELL = 2;
++constexpr uint32 BOT_STATE_NON_COMBAT = 0;
++constexpr uint32 BOT_STATE_COMBAT = 1;
++constexpr uint32 FORM_NONE = 0;
++constexpr uint32 FORM_TRAVEL = 1;
++constexpr uint32 FORM_FLIGHT = 2;
++constexpr uint32 FORM_FLIGHT_EPIC = 3;
++constexpr float INVALID_HEIGHT = -100000.0f;
++constexpr float VMAP_INVALID_HEIGHT_VALUE = -200000.0f;
++constexpr uint32 TRIGGERED_IGNORE_CASTER_MOUNTED_OR_ON_VEHICLE = 32;
++enum SpellCastResult { SPELL_CAST_OK, SPELL_FAILED_NOT_READY, SPELL_FAILED_NOT_HERE };
++
++struct SpellEffectInfo
++{
++    uint32 ApplyAuraName = 0;
++};
++
++struct Player;
++
++struct SpellInfo
++{
++    uint32 Id;
++    std::array<SpellEffectInfo, 3> Effects;
++    SpellCastResult CheckLocation(uint32, uint32, uint32, Player*) const;
++    bool HasAura(uint32 type) const
++    {
++        for (auto const& effect : Effects)
++            if (effect.ApplyAuraName == type)
++                return true;
++        return false;
++    }
++};
++
++struct SpellMgr
++{
++    std::map<uint32, SpellInfo> spells;
++    SpellInfo const* GetSpellInfo(uint32 id) const
++    {
++        auto found = spells.find(id);
++        return found == spells.end() ? nullptr : &found->second;
++    }
++} spellManager;
++SpellMgr* sSpellMgr = &spellManager;
++
++struct AuraEffect
++{
++    SpellInfo const* info;
++    SpellInfo const* GetSpellInfo() const { return info; }
++};
++
++struct Session
++{
++    bool bot = true;
++    bool IsBot() const { return bot; }
++};
++
++struct Player
++{
++    Session session;
++    uint8 classId = 13;
++    uint32 group = 7;
++    uint32 guid = 1;
++    uint32 mapId = 1;
++    uint16 riding = 300;
++    bool mounted = false;
++    bool flying = false;
++    bool falling = false;
++    bool inFlight = false;
++    bool combat = false;
++    bool battleground = false;
++    bool moving = false;
++    bool casting = false;
++    bool alive = true;
++    bool inWorld = true;
++    bool teleporting = false;
++    bool flightAura = false;
++    bool flyAura = false;
++    bool ownership = true;
++    bool denied = false;
++    bool cooldown = false;
++    float height = 0.0f;
++    float floor = 0.0f;
++    uint32 mountSpell = 0;
++    int stops = 0;
++    int dismounts = 0;
++    int grants = 0;
++    std::set<uint32> spells;
++    std::vector<AuraEffect const*> auras;
++    bool IsMounted() const { return mounted; }
++    bool IsFlying() const { return flying; }
++    bool HasIncreaseMountedFlightSpeedAura() const { return flightAura; }
++    bool HasFlyAura() const { return flyAura; }
++    bool HasAuraType(uint32 type) const
++    {
++        return type == SPELL_AURA_MOD_INCREASE_MOUNTED_FLIGHT_SPEED ? flightAura : flyAura;
++    }
++    bool HasAura(uint32 id) const { return mounted && mountSpell == id; }
++    bool HasSpell(uint32 id) const { return spells.count(id) != 0; }
++    bool HasSpellCooldown(uint32) const { return cooldown; }
++    std::vector<AuraEffect const*> const& GetAuraEffectsByType(uint32) const { return auras; }
++    Session* GetSession() { return &session; }
++    Session const* GetSession() const { return &session; }
++    uint8 getClass() const { return classId; }
++    uint32* GetGroup() { return reinterpret_cast<uint32*>(std::uintptr_t(group)); }
++    uint32 const* GetGroup() const { return reinterpret_cast<uint32 const*>(std::uintptr_t(group)); }
++    bool InBattleground() const { return battleground; }
++    bool IsInCombat() const { return combat; }
++    bool IsAlive() const { return alive; }
++    bool IsInWorld() const { return inWorld; }
++    bool IsBeingTeleported() const { return teleporting; }
++    bool HasUnitState(uint32) const { return inFlight; }
++    bool HasUnitMovementFlag(uint32) const { return falling; }
++    bool isMoving() const { return moving; }
++    bool IsNonMeleeSpellCast(bool) const { return casting; }
++    void* GetCurrentSpell(uint32) const { return casting ? (void*)this : nullptr; }
++    uint16 GetPureSkillValue(uint32) const { return riding; }
++    float GetPositionX() const { return 0.0f; }
++    float GetPositionY() const { return 0.0f; }
++    float GetPositionZ() const { return height; }
++    float GetMapHeight(float, float, float) const { return floor; }
++    float GetMapWaterOrGroundLevel(float, float, float) const { return floor; }
++    uint32 GetGUID() const { return guid; }
++    uint32 GetMapId() const { return mapId; }
++    uint32 GetZoneId() const { return 1; }
++    uint32 GetAreaId() const { return 1; }
++    void StopMoving() { moving = false; ++stops; }
++};
++
++SpellCastResult SpellInfo::CheckLocation(uint32, uint32, uint32, Player* player) const
++{
++    return player->denied ? SPELL_FAILED_NOT_HERE : SPELL_CAST_OK;
++}
++
++namespace AscensionBotMounts
++{
++bool LearnOwnedMount(Player* bot, uint32 id)
++{
++    ++bot->grants;
++    auto const* info = sSpellMgr->GetSpellInfo(id);
++    if (!bot->session.bot || bot->classId < 12 || bot->classId > 32 || bot->riding < 75 ||
++        !bot->ownership || !info || !info->HasAura(SPELL_AURA_MOUNTED))
++        return false;
++    bot->spells.insert(id);
++    return true;
++}
++}
++
++struct PlayerbotAI
++{
++    Player* bot;
++    bool humanMaster = true;
++    bool mountStrategy = true;
++    uint32 state = BOT_STATE_NON_COMBAT;
++    bool castSucceeds = true;
++    int casts = 0;
++    bool HasGameClientMaster() const { return humanMaster; }
++    bool HasStrategy(char const*, uint32) const { return mountStrategy; }
++    uint32 GetState() const { return state; }
++    bool CanCastSpell(uint32 id, Player*) const
++    {
++        return bot->HasSpell(id) && !bot->mounted && !bot->moving && !bot->casting &&
++            !bot->denied && !bot->cooldown && !bot->combat;
++    }
++    bool CastSpell(uint32 id, Player*)
++    {
++        ++casts;
++        if (!CanCastSpell(id, bot) || !castSucceeds)
++            return false;
++        bot->mounted = true;
++        bot->mountSpell = id;
++        bot->flightAura = sSpellMgr->GetSpellInfo(id)->HasAura(SPELL_AURA_MOD_INCREASE_MOUNTED_FLIGHT_SPEED);
++        return true;
++    }
++};
++
++struct SpellTargets
++{
++    Player* target = nullptr;
++    void SetUnitTarget(Player* player) { target = player; }
++};
++
++struct Spell
++{
++    Player* bot;
++    uint32 flags;
++    SpellTargets m_targets;
++    Spell(Player* player, SpellInfo const*, uint32 triggerFlags) : bot(player), flags(triggerFlags) {}
++    SpellCastResult CheckCast(bool) const
++    {
++        if (flags != TRIGGERED_IGNORE_CASTER_MOUNTED_OR_ON_VEHICLE || m_targets.target != bot)
++            return SPELL_FAILED_NOT_HERE;
++        if (bot->cooldown || bot->casting)
++            return SPELL_FAILED_NOT_READY;
++        return bot->denied || bot->combat || bot->moving ? SPELL_FAILED_NOT_HERE : SPELL_CAST_OK;
++    }
++};
++
++class CheckMountStateAction
++{
++public:
++    Player* bot;
++    PlayerbotAI* botAI;
++    uint32 masterInShapeshiftForm = FORM_NONE;
++    uint32 botInShapeshiftForm = FORM_NONE;
++    uint32 failedMountUpgradeSpellId = 0;
++    explicit CheckMountStateAction(PlayerbotAI* ai) : bot(ai->bot), botAI(ai) {}
++    bool TryMasterMount(Player* master) const;
++    bool TryUpgradeMasterMount(Player* master, bool noAttackers);
++    bool ShouldFollowMasterMountState(Player* master, bool noAttackers, bool shouldMount) const;
++    void Dismount()
++    {
++        ++bot->dismounts;
++        bot->mounted = false;
++        bot->mountSpell = 0;
++        bot->flightAura = false;
++        bot->flyAura = false;
++    }
++};
++
++int failures = 0;
++void Check(bool result, char const* name)
++{
++    failures += !result;
++    std::printf("%s %s\n", result ? "PASS" : "FAIL", name);
++}
++
++struct Fixture
++{
++    Player bot;
++    Player master;
++    PlayerbotAI ai{&bot};
++    CheckMountStateAction action{&ai};
++    AuraEffect aura{sSpellMgr->GetSpellInfo(900125)};
++    Fixture()
++    {
++        master.session.bot = false;
++        master.guid = 2;
++        master.mounted = true;
++        master.mountSpell = 900125;
++        master.auras = {&aura};
++    }
++};
++"""
++
++MAIN = r"""
++int main()
++{
++    spellManager.spells.emplace(900125, SpellInfo{900125, {{{78}, {32}, {207}}}});
++    spellManager.spells.emplace(900126, SpellInfo{900126, {{{78}, {32}, {207}}}});
++    spellManager.spells.emplace(91737, SpellInfo{91737, {{{78}, {32}, {0}}}});
++    spellManager.spells.emplace(501198, SpellInfo{501198, {{{0}, {0}, {0}}}});
++    {
++        Fixture f;
++        f.aura.info = sSpellMgr->GetSpellInfo(91737);
++        Check(f.action.TryMasterMount(&f.master) && f.bot.HasSpell(91737) && f.bot.mountSpell == 91737,
++            "mountless owned Furline pilot acquires one requested mount and casts normally");
++        Check(f.bot.grants == 1 && f.bot.spells.size() == 1, "request does not grant entire collection");
++    }
++    {
++        Fixture f;
++        f.bot.ownership = false;
++        Check(!f.action.TryMasterMount(&f.master) && f.bot.spells.empty() && f.ai.casts == 0,
++            "unowned collection mount is not learned or cast");
++    }
++    {
++        Fixture f;
++        f.bot.classId = 1;
++        Check(!f.action.TryMasterMount(&f.master) && f.bot.grants == 0,
++            "stock class receives no new collection acquisition");
++    }
++    {
++        Fixture f;
++        f.ai.humanMaster = false;
++        Check(!f.action.TryMasterMount(&f.master) && f.bot.grants == 0,
++            "autonomous bot receives no new collection acquisition");
++    }
++    {
++        Fixture f;
++        f.bot.group = 0;
++        Check(!f.action.TryMasterMount(&f.master) && f.bot.grants == 0,
++            "ungrouped bot receives no new collection acquisition");
++    }
++    {
++        Fixture f;
++        f.bot.spells.insert(900125);
++        f.bot.denied = true;
++        Check(!f.action.TryMasterMount(&f.master) && f.ai.casts == 0,
++            "known leader mount does not bypass native casting restriction");
++    }
++    {
++        Fixture f;
++        f.bot.spells.insert(900125);
++        f.bot.moving = true;
++        Check(f.action.TryMasterMount(&f.master) && f.bot.stops == 1 && f.bot.mountSpell == 900125,
++            "moving follower stops before the exact learned mount cast");
++    }
++    {
++        Fixture f;
++        f.aura.info = sSpellMgr->GetSpellInfo(501198);
++        Check(!f.action.TryMasterMount(&f.master) && f.bot.spells.empty() && f.ai.casts == 0,
++            "nonmount catalog requests are not acquired");
++    }
++    {
++        Fixture f;
++        Check(f.action.ShouldFollowMasterMountState(&f.master, true, true),
++            "ordinary unmounted follower remains eligible");
++        f.bot.mounted = true;
++        Check(!f.action.ShouldFollowMasterMountState(&f.master, true, true),
++            "ordinary already mounted follower is not remounted every tick");
++    }
++    {
++        Fixture f;
++        f.bot.mounted = true;
++        f.master.flying = true;
++        Check(f.action.TryUpgradeMasterMount(&f.master, true) && f.bot.mountSpell == 900125 && f.bot.flightAura,
++            "grounded follower upgrades to the authorized leader flyer after takeoff");
++        Check(f.bot.dismounts == 1 && f.ai.casts == 1,
++            "upgrade uses one grounded dismount and one normal cast");
++    }
++    for (int gate = 0; gate < 23; ++gate)
++    {
++        Fixture f;
++        f.bot.mounted = true;
++        f.master.flying = true;
++        bool noAttackers = true;
++        switch (gate)
++        {
++            case 0: f.bot.classId = 1; break;
++            case 1: f.ai.humanMaster = false; break;
++            case 2: f.bot.flying = true; break;
++            case 3: f.bot.falling = true; break;
++            case 4: f.bot.inFlight = true; break;
++            case 5: f.bot.height = 12.0f; break;
++            case 6: f.bot.combat = true; break;
++            case 7: noAttackers = false; break;
++            case 8: f.master.flying = false; break;
++            case 9: f.bot.teleporting = true; break;
++            case 10: f.bot.battleground = true; break;
++            case 11: f.bot.group = 0; break;
++            case 12: f.bot.flightAura = true; break;
++            case 13: f.ai.mountStrategy = false; break;
++            case 14: f.bot.session.bot = false; break;
++            case 15: f.master.session.bot = true; break;
++            case 16: f.master.mapId = 2; break;
++            case 17: f.bot.floor = std::numeric_limits<float>::quiet_NaN(); break;
++            case 18: f.bot.floor = INVALID_HEIGHT; break;
++            case 19: f.master.combat = true; break;
++            case 20: f.bot.alive = false; break;
++            case 21: f.bot.inWorld = false; break;
++            case 22: f.master.teleporting = true; break;
++        }
++        Check(!f.action.TryUpgradeMasterMount(&f.master, noAttackers) && f.bot.dismounts == 0,
++            "ineligible or airborne follower is never dismounted for an upgrade");
++    }
++    for (int gate = 0; gate < 4; ++gate)
++    {
++        Fixture f;
++        f.bot.mounted = true;
++        f.master.flying = true;
++        switch (gate)
++        {
++            case 0: f.bot.denied = true; break;
++            case 1: f.bot.cooldown = true; break;
++            case 2: f.bot.casting = true; break;
++            case 3: f.bot.ownership = false; break;
++        }
++        Check(!f.action.TryUpgradeMasterMount(&f.master, true) && f.bot.dismounts == 0,
++            "failed native preflight or ownership keeps the existing ground mount");
++    }
++    {
++        Fixture f;
++        f.bot.mounted = true;
++        f.master.flying = true;
++        f.ai.castSucceeds = false;
++        Check(!f.action.TryUpgradeMasterMount(&f.master, true), "failed actual mount swap reports failure");
++        Check(!f.action.TryMasterMount(&f.master) && f.ai.casts == 1,
++            "failed swap is not retried by the ordinary exact-mount fallback");
++        f.bot.mounted = true;
++        Check(!f.action.TryUpgradeMasterMount(&f.master, true) && f.bot.dismounts == 1 && f.ai.casts == 1,
++            "failed actual swap does not repeatedly dismount the same ground mount");
++        f.aura.info = sSpellMgr->GetSpellInfo(900126);
++        f.ai.castSucceeds = true;
++        Check(f.action.TryUpgradeMasterMount(&f.master, true) && f.bot.dismounts == 2 && f.ai.casts == 2,
++            "leader changing the desired flying mount permits a new attempt");
++    }
++    {
++        Fixture f;
++        f.bot.mounted = true;
++        f.master.flying = true;
++        f.ai.castSucceeds = false;
++        f.action.TryUpgradeMasterMount(&f.master, true);
++        f.bot.mounted = true;
++        f.master.mounted = false;
++        f.master.flying = false;
++        f.action.TryUpgradeMasterMount(&f.master, true);
++        f.master.mounted = true;
++        f.master.flying = true;
++        f.ai.castSucceeds = true;
++        Check(f.action.TryUpgradeMasterMount(&f.master, true) && f.bot.dismounts == 2 && f.ai.casts == 2,
++            "leader dismounting clears the previous failed-swap suppression");
++    }
++    return failures ? 1 : 0;
++}
++"""
++
++
++def main():
++    source = ACTION.read_text(encoding="utf-8")
++    copy = method(source, "bool CheckMountStateAction::TryMasterMount(Player* master) const")
++    follow = method(source, "bool CheckMountStateAction::ShouldFollowMasterMountState(")
++    if not copy or not follow:
++        raise ValueError("Existing production mount methods are missing")
++    upgrade = method(source, "bool CheckMountStateAction::TryUpgradeMasterMount(")
++    if not upgrade:
++        upgrade = "bool CheckMountStateAction::TryUpgradeMasterMount(Player*, bool) { return false; }"
++    compiler = os.environ.get("CXX") or shutil.which("c++") or shutil.which("g++") or shutil.which("clang++")
++    if not compiler:
++        raise RuntimeError("A portable C++ compiler is required")
++    with tempfile.TemporaryDirectory(prefix="coa-g1-bot-mount-") as temporary:
++        directory = Path(temporary)
++        path = directory / "fixture.cpp"
++        path.write_text(FIXTURE + copy + follow + upgrade + MAIN, encoding="utf-8")
++        executable = directory / "fixture"
++        subprocess.run([compiler, "-std=c++20", "-Wall", "-Wextra", str(path), "-o", str(executable)], check=True)
++        subprocess.run([str(executable)], check=True)
++
++
++if __name__ == "__main__":
++    main()
+diff --git a/apps/coa-tests/g1_bot_mount_policy/run.py b/apps/coa-tests/g1_bot_mount_policy/run.py
+new file mode 100644
+--- /dev/null
++++ b/apps/coa-tests/g1_bot_mount_policy/run.py
+@@ -0,0 +1,321 @@
++CLI_DESCRIPTION = "Compile the actual native bot mount ownership policy against bounded catalog and persistence fixtures."
++
++import os
++from pathlib import Path
++import shutil
++import subprocess
++import tempfile
++
++
++ROOT = Path(__file__).resolve().parents[3]
++SERVICE = ROOT / "src/server/coa/AscensionCompat.cpp"
++
++
++def method(source, signature):
++    position = source.find(signature)
++    if position < 0:
++        raise ValueError(f"Missing production method: {signature}")
++    start = source.index("{", position)
++    depth = 1
++    end = start + 1
++    while depth and end < len(source):
++        depth += (source[end] == "{") - (source[end] == "}")
++        end += 1
++    if depth:
++        raise ValueError(f"Unterminated production method: {signature}")
++    return source[position:end]
++
++
++FIXTURE = r"""
++#include <cstdint>
++#include <cstdio>
++#include <mutex>
++#include <unordered_map>
++#include <unordered_set>
++using uint8 = std::uint8_t;
++using uint16 = std::uint16_t;
++using uint32 = std::uint32_t;
++constexpr uint32 SKILL_RIDING = 762;
++constexpr uint32 SPELL_AURA_MOUNTED = 78;
++constexpr uint32 VANITY_CATEGORY_MOUNTS = 0x04000000;
++constexpr uint32 VANITY_CATEGORY_COMPANIONS = 0x08000000;
++
++int heldLocks = 0;
++struct PolicyMutex
++{
++    void lock() { ++heldLocks; }
++    void unlock() { --heldLocks; }
++};
++
++struct Session
++{
++    bool bot = true;
++    bool IsBot() const { return bot; }
++};
++
++struct Guid
++{
++    uint32 id = 7;
++    uint32 GetCounter() const { return id; }
++};
++
++struct Player
++{
++    Session session;
++    bool hasSession = true;
++    bool inWorld = true;
++    uint8 classId = 13;
++    uint16 riding = 300;
++    bool learnSucceeds = true;
++    bool learningWasUnlocked = true;
++    bool persistenceWasUnlocked = true;
++    Guid guid;
++    uint32 learnCalls = 0;
++    uint32 saveCalls = 0;
++    std::unordered_set<uint32> spells;
++    std::unordered_set<uint32> saved;
++    Session* GetSession() { return hasSession ? &session : nullptr; }
++    bool IsInWorld() const { return inWorld; }
++    uint16 GetPureSkillValue(uint32) const { return riding; }
++    Guid GetGUID() const { return guid; }
++    bool HasSpell(uint32 id) const { return spells.contains(id); }
++    void learnSpell(uint32 id, bool)
++    {
++        ++learnCalls;
++        learningWasUnlocked &= heldLocks == 0;
++        if (learnSucceeds)
++            spells.insert(id);
++    }
++    void MarkSpellForSave(uint32 id)
++    {
++        ++saveCalls;
++        persistenceWasUnlocked &= heldLocks == 0;
++        saved.insert(id);
++    }
++};
++
++bool IsAscensionCustomClass(Player const* player)
++{
++    return player && player->classId >= 12 && player->classId <= 32;
++}
++
++struct SpellInfo
++{
++    bool passive = false;
++    bool mount = true;
++    bool IsPassive() const { return passive; }
++    bool HasAura(uint32 type) const { return type == SPELL_AURA_MOUNTED && mount; }
++};
++
++struct SpellMgr
++{
++    std::unordered_map<uint32, SpellInfo> spells;
++    SpellInfo const* GetSpellInfo(uint32 id) const
++    {
++        auto found = spells.find(id);
++        return found == spells.end() ? nullptr : &found->second;
++    }
++} spellManager;
++SpellMgr* sSpellMgr = &spellManager;
++
++namespace AscensionCompatConfig
++{
++enum Key { ENABLED, LEARN_OWNED_COMPANIONS, UNLOCK_ALL_VANITY };
++}
++
++struct Config
++{
++    bool enabled = true;
++    bool learnOwned = true;
++    bool unlockAll = false;
++    template<class T> T GetConfigValue(AscensionCompatConfig::Key key) const
++    {
++        switch (key)
++        {
++            case AscensionCompatConfig::ENABLED: return T(enabled);
++            case AscensionCompatConfig::LEARN_OWNED_COMPANIONS: return T(learnOwned);
++            case AscensionCompatConfig::UNLOCK_ALL_VANITY: return T(unlockAll);
++        }
++        return T(false);
++    }
++} ascensionCompatConfig;
++
++struct VanityInfo
++{
++    uint32 CategoryMask = VANITY_CATEGORY_MOUNTS;
++    uint32 LearnedSpell = 900125;
++};
++
++class AscensionCollectionService
++{
++public:
++    bool _clientDataLoaded = true;
++    PolicyMutex _stateMutex;
++    std::unordered_map<uint32, std::unordered_set<uint32>> _botOwnedMountItems;
++    std::unordered_map<uint32, VanityInfo> _vanityItems;
++"""
++
++MAIN = r"""
++};
++
++int failures = 0;
++void Check(bool result, char const* name)
++{
++    failures += !result;
++    std::printf("%s %s\n", result ? "PASS" : "FAIL", name);
++}
++
++struct Fixture
++{
++    Player player;
++    AscensionCollectionService service;
++    Fixture()
++    {
++        ascensionCompatConfig = Config{};
++        service._vanityItems.emplace(100, VanityInfo{VANITY_CATEGORY_MOUNTS, 900125});
++        service._vanityItems.emplace(101, VanityInfo{VANITY_CATEGORY_MOUNTS, 9931327});
++        service._vanityItems.emplace(102, VanityInfo{VANITY_CATEGORY_COMPANIONS, 750750});
++        service._botOwnedMountItems[player.guid.id] = {100, 101, 102};
++    }
++};
++
++int main()
++{
++    for (uint32 id : {900125, 900126, 91737, 9931327, 750750, 501198})
++        spellManager.spells.emplace(id, SpellInfo{});
++    spellManager.spells.at(750750).mount = false;
++    spellManager.spells.at(501198).mount = false;
++    {
++        Fixture f;
++        Check(f.service.LearnOwnedBotMount(&f.player, 900125), "owned exact catalog mount is eligible");
++        Check(f.player.spells == std::unordered_set<uint32>{900125} && f.player.learnCalls == 1,
++            "policy grants only one requested mount, not pets or the complete catalog");
++        Check(f.player.saved == std::unordered_set<uint32>{900125} && f.player.saveCalls == 1,
++            "successfully learned requested mount is marked for persistence");
++        Check(f.player.learningWasUnlocked && f.player.persistenceWasUnlocked && heldLocks == 0,
++            "native learning and persistence occur outside the ownership cache lock");
++        Check(f.service.LearnOwnedBotMount(&f.player, 900125) && f.player.learnCalls == 1 && f.player.saveCalls == 1,
++            "repeat requests are idempotent without repeat learning or saving");
++    }
++    {
++        Fixture f;
++        Check(f.service.LearnOwnedBotMount(&f.player, 91737) && f.player.spells.contains(91737) &&
++            !f.player.spells.contains(9931327), "owned legacy Furline catalog entry allows only the requested native aura alias");
++    }
++    for (int gate = 0; gate < 13; ++gate)
++    {
++        Fixture f;
++        switch (gate)
++        {
++            case 0: f.player.hasSession = false; break;
++            case 1: f.player.session.bot = false; break;
++            case 2: f.player.inWorld = false; break;
++            case 3: f.player.classId = 1; break;
++            case 4: f.player.classId = 33; break;
++            case 5: f.player.riding = 74; break;
++            case 6: f.service._clientDataLoaded = false; break;
++            case 7: ascensionCompatConfig.enabled = false; break;
++            case 8: ascensionCompatConfig.learnOwned = false; break;
++            case 9: f.service._botOwnedMountItems.clear(); break;
++            case 10: f.service._botOwnedMountItems.at(f.player.guid.id).erase(100); break;
++            case 11: f.player.guid.id = 8; break;
++            case 12: f.service._vanityItems.clear(); break;
++        }
++        Check(!f.service.LearnOwnedBotMount(&f.player, 900125) && f.player.learnCalls == 0 &&
++            f.player.saveCalls == 0 && f.player.spells.empty() && heldLocks == 0,
++            "ineligible bot, disabled policy, absent catalog or missing exact bot ownership fails closed");
++    }
++    {
++        Fixture f;
++        Check(!f.service.LearnOwnedBotMount(nullptr, 900125), "null player request fails closed");
++    }
++    {
++        Fixture f;
++        f.player.spells.insert(900125);
++        f.service._botOwnedMountItems.clear();
++        Check(!f.service.LearnOwnedBotMount(&f.player, 900125) && f.player.learnCalls == 0,
++            "already known spell does not bypass catalog ownership");
++    }
++    {
++        Fixture f;
++        f.player.spells.insert(900125);
++        ascensionCompatConfig.enabled = false;
++        Check(!f.service.LearnOwnedBotMount(&f.player, 900125), "already known spell does not bypass disabled configuration");
++    }
++    {
++        Fixture f;
++        f.service._botOwnedMountItems.clear();
++        ascensionCompatConfig.unlockAll = true;
++        Check(f.service.LearnOwnedBotMount(&f.player, 900125) && f.player.spells.size() == 1,
++            "explicit unlock-all policy authorizes one catalog mount without an ownership snapshot");
++    }
++    {
++        Fixture f;
++        f.service._botOwnedMountItems.at(f.player.guid.id).erase(101);
++        Check(!f.service.LearnOwnedBotMount(&f.player, 91737) && f.player.learnCalls == 0,
++            "Furline alias still requires ownership of its catalog entry");
++    }
++    {
++        Fixture f;
++        f.service._vanityItems.at(101).LearnedSpell = 91737;
++        Check(!f.service.LearnOwnedBotMount(&f.player, 9931327), "Furline alias is not widened into a reverse alias");
++    }
++    {
++        Fixture f;
++        f.service._vanityItems.at(100).CategoryMask = VANITY_CATEGORY_COMPANIONS;
++        Check(!f.service.LearnOwnedBotMount(&f.player, 900125), "mounted-looking spell in nonmount catalog category is rejected");
++    }
++    {
++        Fixture f;
++        Check(!f.service.LearnOwnedBotMount(&f.player, 750750) && !f.service.LearnOwnedBotMount(&f.player, 501198) &&
++            f.player.learnCalls == 0, "companions and utility abilities cannot be acquired by the mount bridge");
++    }
++    {
++        Fixture f;
++        Check(!f.service.LearnOwnedBotMount(&f.player, 900126) && !f.service.LearnOwnedBotMount(&f.player, 999999),
++            "mounted spell absent from catalog and nonexistent spell are rejected");
++    }
++    {
++        Fixture f;
++        spellManager.spells.at(900125).passive = true;
++        Check(!f.service.LearnOwnedBotMount(&f.player, 900125) && f.player.learnCalls == 0,
++            "passive catalog spell is rejected");
++        spellManager.spells.at(900125).passive = false;
++    }
++    {
++        Fixture f;
++        f.player.learnSucceeds = false;
++        Check(!f.service.LearnOwnedBotMount(&f.player, 900125) && f.player.learnCalls == 1 &&
++            f.player.saveCalls == 0 && f.player.spells.empty() && f.player.saved.empty() &&
++            f.player.learningWasUnlocked && heldLocks == 0,
++            "failed native learning never reports success or creates a persistence mark");
++    }
++    {
++        Fixture f;
++        f.player.riding = 75;
++        Check(f.service.LearnOwnedBotMount(&f.player, 900125), "trained apprentice boundary remains eligible");
++    }
++    return failures ? 1 : 0;
++}
++"""
++
++
++def main():
++    source = SERVICE.read_text(encoding="utf-8")
++    policy = method(source, "bool LearnOwnedBotMount(Player* player, uint32 spellId)")
++    if "CharacterDatabase" in policy or "LoadCollectionState" in policy or "LoginState(" in policy:
++        raise ValueError("Request-time ownership policy must not perform collection SQL or login-state loading")
++    compiler = os.environ.get("CXX") or shutil.which("c++") or shutil.which("g++") or shutil.which("clang++")
++    if not compiler:
++        raise RuntimeError("A portable C++ compiler is required")
++    with tempfile.TemporaryDirectory(prefix="coa-g1-bot-mount-policy-") as temporary:
++        directory = Path(temporary)
++        path = directory / "fixture.cpp"
++        path.write_text(FIXTURE + policy + MAIN, encoding="utf-8")
++        executable = directory / "fixture"
++        subprocess.run([compiler, "-std=c++20", "-Wall", "-Wextra", str(path), "-o", str(executable)], check=True)
++        subprocess.run([str(executable)], check=True)
++
++
++if __name__ == "__main__":
++    main()
+diff --git a/src/server/coa/AscensionBotMounts.h b/src/server/coa/AscensionBotMounts.h
+new file mode 100644
+--- /dev/null
++++ b/src/server/coa/AscensionBotMounts.h
+@@ -0,0 +1,19 @@
++/*
++ * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU
++ * AGPL v3 license:
++ * https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-AGPL3
++ */
++
++#ifndef ASCENSION_BOT_MOUNTS_H
++#define ASCENSION_BOT_MOUNTS_H
++
++#include "Define.h"
++
++class Player;
++
++namespace AscensionBotMounts
++{
++    bool LearnOwnedMount(Player* player, uint32 spellId);
++}
++
++#endif
+diff --git a/src/server/coa/AscensionCompat.cpp b/src/server/coa/AscensionCompat.cpp
+--- a/src/server/coa/AscensionCompat.cpp
++++ b/src/server/coa/AscensionCompat.cpp
+@@ -53,6 +53,7 @@
+ #include "AscensionReaperScytheRush.h"
+ #include "AscensionVenomancerCatalyst.h"
+ #include "AscensionSpecialization.h"
++#include "AscensionBotMounts.h"
+ #include "AscensionSpellProgressionData.h"
+ #include "AscensionTalentReplacementData.h"
+ #include "AscensionTaughtAbilityData.h"
+@@ -3410,7 +3411,20 @@
+ 
+     if (player->GetSession()->IsBot())
+     {
+-      TakeLoginState(player);
++      std::shared_ptr<PlayerCollectionState> state = TakeLoginState(player);
++      if (IsAscensionCustomClass(player) && !state &&
++          !ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::UNLOCK_ALL_VANITY))
++          state = LoadCollectionState(player);
++      std::unordered_set<uint32> ownedMountItems;
++      if (state)
++          for (uint32 const itemId : state->OwnedVanityItems)
++              if (auto const itr = _vanityItems.find(itemId);
++                  itr != _vanityItems.end() && (itr->second.CategoryMask & VANITY_CATEGORY_MOUNTS))
++                  ownedMountItems.insert(itemId);
++      {
++          std::lock_guard lock(_stateMutex);
++          _botOwnedMountItems[player->GetGUID().GetCounter()] = std::move(ownedMountItems);
++      }
+       InitializeRiding(player);
+       return;
+     }
+@@ -3461,6 +3475,7 @@
+       std::lock_guard lock(_stateMutex);
+       _playerStates.erase(player->GetGUID().GetCounter());
+       _loginStates.erase(player->GetGUID().GetCounter());
++      _botOwnedMountItems.erase(player->GetGUID().GetCounter());
+     }
+ 
+     {
+@@ -3610,6 +3625,46 @@
+                 player->learnSpell(spellId, false);
+ 
+         player->SetSkill(SKILL_RIDING, 4, 300, 300);
++    }
++
++    bool LearnOwnedBotMount(Player* player, uint32 spellId)
++    {
++        if (!player || !player->GetSession() || !player->GetSession()->IsBot() ||
++            !player->IsInWorld() || !IsAscensionCustomClass(player) ||
++            player->GetPureSkillValue(SKILL_RIDING) < 75 || !_clientDataLoaded ||
++            !ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED) ||
++            !ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::LEARN_OWNED_COMPANIONS))
++            return false;
++
++        SpellInfo const* spell = sSpellMgr->GetSpellInfo(spellId);
++        if (!spell || spell->IsPassive() || !spell->HasAura(SPELL_AURA_MOUNTED))
++            return false;
++
++        bool const unlockAll = ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::UNLOCK_ALL_VANITY);
++        bool allowed = false;
++        {
++            std::lock_guard lock(_stateMutex);
++            auto const owned = _botOwnedMountItems.find(player->GetGUID().GetCounter());
++            for (auto const& [itemId, vanity] : _vanityItems)
++                if ((vanity.CategoryMask & VANITY_CATEGORY_MOUNTS) &&
++                    (vanity.LearnedSpell == spellId || (spellId == 91737 && vanity.LearnedSpell == 9931327)) &&
++                    (unlockAll || (owned != _botOwnedMountItems.end() && owned->second.contains(itemId))))
++                {
++                    allowed = true;
++                    break;
++                }
++        }
++        if (!allowed)
++            return false;
++
++        if (!player->HasSpell(spellId))
++        {
++            player->learnSpell(spellId, false);
++            if (!player->HasSpell(spellId))
++                return false;
++            player->MarkSpellForSave(spellId);
++        }
++        return player->HasSpell(spellId);
+     }
+ 
+     void PrepareOwnedCompanionsBeforeMap(Player* player)
+@@ -4995,6 +5050,7 @@
+       _playerStates;
+   std::unordered_map<uint32, std::shared_ptr<PlayerCollectionState>>
+       _loginStates;
++  std::unordered_map<uint32, std::unordered_set<uint32>> _botOwnedMountItems;
+ };
+ 
+ AscensionCollectionModels::Entry const* FindCollectionModel(uint32 creatureId)
+@@ -7038,6 +7094,11 @@
+             (allowUnconfirmed && !AscensionClassService::Instance().GetActiveSpecialization(player)));
+ }
+ 
++bool AscensionBotMounts::LearnOwnedMount(Player* player, uint32 spellId)
++{
++    return AscensionCollectionService::Instance().LearnOwnedBotMount(player, spellId);
++}
++
+ uint32 GetAscensionActiveSpecialization(Player const* player)
+ {
+     if (!player || !IsAscensionCustomClass(player))
+diff --git a/src/server/coa/CoAGameplayTest.cpp b/src/server/coa/CoAGameplayTest.cpp
+--- a/src/server/coa/CoAGameplayTest.cpp
++++ b/src/server/coa/CoAGameplayTest.cpp
+@@ -7,6 +7,7 @@
+ #include "AccountMgr.h"
+ #include "AscensionCoATalentState.h"
+ #include "AscensionSpecialization.h"
++#include "AscensionBotMounts.h"
+ #include "AscensionWisdomball.h"
+ #include "AscensionWildcard.h"
+ #include "AscensionWildcardStarterData.h"
+@@ -1794,6 +1795,14 @@
+             Require(sSpellMgr->GetSpellInfo(spell) != nullptr, "Unknown spell in metric");
+         if (metric == "knows_spell")
+             return player->HasSpell(spell);
++        if (metric == "known_spell_count")
++        {
++            uint32 count = 0;
++            for (auto const& [spellId, known] : player->GetSpellMap())
++                if (known->State != PLAYERSPELL_REMOVED)
++                    ++count;
++            return count;
++        }
+         if (metric == "spell_active")
+         {
+             auto known = player->GetSpellMap().find(spell);
+@@ -3585,6 +3594,14 @@
+             Require(player->addActionButton(button, barSpell, ACTION_BUTTON_SPELL) != nullptr,
+                 "Action button could not be set");
+         }
++        else if (action == "ensure_bot_mount")
++        {
++            bool const actual = AscensionBotMounts::LearnOwnedMount(player, spell);
++            bool const expected = step.get<bool>("accepted");
++            record.put("actual", uint32(actual));
++            record.put("expected_equals", uint32(expected));
++            Require(actual == expected, "Bot mount acquisition result differs from expected");
++        }
+         else if (action == "learn")
+         {
+             player->learnSpell(spell);

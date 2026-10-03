@@ -1,0 +1,137 @@
+diff --git a/conf/playerbots.conf.dist b/conf/playerbots.conf.dist
+index eaa040b7..08a01154 100644
+--- a/conf/playerbots.conf.dist
++++ b/conf/playerbots.conf.dist
+@@ -96,6 +96,11 @@ AiPlayerbot.MaxRandomBots = 500
+ # Default: 0 (automatic)
+ AiPlayerbot.RandomBotAccountCount = 0
+ 
++# Restrict characters created on new random-bot accounts to Ascension custom
++# classes (class IDs 12-32). Existing bot characters are never modified.
++# Default: 0
++AiPlayerbot.RandomBotCustomClassesOnly = 0
++
+ # Addclass accounts
+ # Number of accounts created for bots reserved for the addclass command. As with randombots, each account has
+ # 10 bots (or 9 if WotLK is disabled), one bot for each class.
+diff --git a/src/Bot/Factory/RandomPlayerbotFactory.cpp b/src/Bot/Factory/RandomPlayerbotFactory.cpp
+index 6658c729..73d9529a 100644
+--- a/src/Bot/Factory/RandomPlayerbotFactory.cpp
++++ b/src/Bot/Factory/RandomPlayerbotFactory.cpp
+@@ -709,7 +709,8 @@ void RandomPlayerbotFactory::CreateRandomBots()
+                                                 time_t(0), LOCALE_enUS, 0, false, false, 0, true);
+         sessionBots.push_back(session);
+ 
+-        for (uint8 cls = CLASS_WARRIOR; cls < MAX_CLASSES - count; ++cls)
++        std::vector<uint8> playableClasses;
++        for (uint8 cls = CLASS_WARRIOR; cls < MAX_CLASSES; ++cls)
+         {
+             // skip nonexistent classes
+             if (!((uint32(1) << (cls - 1)) & CLASSMASK_ALL_PLAYABLE) || !sChrClassesStore.LookupEntry(cls))
+@@ -720,6 +721,24 @@ void RandomPlayerbotFactory::CreateRandomBots()
+             if ((uint32(1) << (cls - 1)) & sWorld->getIntConfig(CONFIG_CHARACTER_CREATING_DISABLED_CLASSMASK))
+                 continue;
+ 
++            if (sPlayerbotAIConfig.randomBotCustomClassesOnly && cls < 12)
++                continue;
++
++            playableClasses.push_back(cls);
++        }
++
++        if (playableClasses.empty())
++        {
++            LOG_ERROR("playerbots", "No playable classes are available for random bot character creation");
++            continue;
++        }
++
++        uint32 const slotsAvailable = 10 - count;
++        uint32 const firstClass = (accountNumber * 10 + count) % playableClasses.size();
++        for (uint32 slot = 0; slot < slotsAvailable; ++slot)
++        {
++            uint8 const cls = playableClasses[(firstClass + slot) % playableClasses.size()];
++
+             Player* playerBot = factory.CreateRandomBot(session, cls, nameCache);
+             if (!playerBot)
+             {
+diff --git a/src/PlayerbotAIConfig.cpp b/src/PlayerbotAIConfig.cpp
+index e3cb3a31..47918969 100644
+--- a/src/PlayerbotAIConfig.cpp
++++ b/src/PlayerbotAIConfig.cpp
+@@ -575,6 +575,7 @@ bool PlayerbotAIConfig::Initialize()
+ 
+     randomBotAccountPrefix = sConfigMgr->GetOption<std::string>("AiPlayerbot.RandomBotAccountPrefix", "rndbot");
+     randomBotAccountCount = sConfigMgr->GetOption<int32>("AiPlayerbot.RandomBotAccountCount", 0);
++    randomBotCustomClassesOnly = sConfigMgr->GetOption<bool>("AiPlayerbot.RandomBotCustomClassesOnly", false);
+     deleteRandomBotAccounts = sConfigMgr->GetOption<bool>("AiPlayerbot.DeleteRandomBotAccounts", false);
+     randomBotGuildCount = sConfigMgr->GetOption<int32>("AiPlayerbot.RandomBotGuildCount", 20);
+     randomBotGuildSizeMax = sConfigMgr->GetOption<int32>("AiPlayerbot.RandomBotGuildSizeMax", 15);
+diff --git a/src/PlayerbotAIConfig.h b/src/PlayerbotAIConfig.h
+index 8f266f4f..c553229e 100644
+--- a/src/PlayerbotAIConfig.h
++++ b/src/PlayerbotAIConfig.h
+@@ -295,6 +295,7 @@ public:
+     std::string commandPrefix, commandSeparator;
+     std::string randomBotAccountPrefix;
+     uint32 randomBotAccountCount;
++    bool randomBotCustomClassesOnly;
+     bool randomBotRandomPassword;
+     bool deleteRandomBotAccounts;
+     uint32 randomBotGuildCount, randomBotGuildSizeMax;
+diff --git a/src/Bot/RandomPlayerbotMgr.cpp b/src/Bot/RandomPlayerbotMgr.cpp
+index 57519453..7fc2a001 100644
+--- a/src/Bot/RandomPlayerbotMgr.cpp
++++ b/src/Bot/RandomPlayerbotMgr.cpp
+@@ -536,6 +536,30 @@ void RandomPlayerbotMgr::AssignAccountTypes()
+         }
+     }
+ 
++    std::vector<uint32> rndBotAccountCandidates = allRandomBotAccounts;
++    if (sPlayerbotAIConfig.randomBotCustomClassesOnly)
++    {
++        rndBotAccountCandidates.clear();
++        for (uint32 accountId : allRandomBotAccounts)
++        {
++            QueryResult customCharacters = CharacterDatabase.Query(
++                "SELECT 1 FROM characters WHERE account = {} AND class >= 12 LIMIT 1", accountId);
++            if (customCharacters)
++            {
++                rndBotAccountCandidates.push_back(accountId);
++                continue;
++            }
++
++            if (currentAssignments[accountId] == 1)
++            {
++                PlayerbotsDatabase.Execute(
++                    "UPDATE playerbots_account_type SET account_type = 0, assignment_date = NOW() WHERE account_id = {}",
++                    accountId);
++                currentAssignments[accountId] = 0;
++            }
++        }
++    }
++
+     // Calculate needed RNDbot accounts
+     uint32 neededRndBotAccounts = 0;
+     if (sPlayerbotAIConfig.maxRandomBots > 0)
+@@ -576,9 +599,9 @@ void RandomPlayerbotMgr::AssignAccountTypes()
+         uint32 toAssign = neededRndBotAccounts - existingRndBotAccounts;
+         uint32 assigned = 0;
+ 
+-        for (uint32 i = 0; i < allRandomBotAccounts.size() && assigned < toAssign; i++)
++        for (uint32 i = 0; i < rndBotAccountCandidates.size() && assigned < toAssign; i++)
+         {
+-            uint32 accountId = allRandomBotAccounts[i];
++            uint32 accountId = rndBotAccountCandidates[i];
+             if (currentAssignments[accountId] == 0) // Unassigned
+             {
+                 PlayerbotsDatabase.Execute("UPDATE playerbots_account_type SET account_type = 1, assignment_date = NOW() WHERE account_id = {}", accountId);
+@@ -709,6 +733,10 @@ uint32 RandomPlayerbotMgr::AddRandomBots()
+                 info.rClass = fields[1].Get<uint8>();
+                 info.rRace = fields[2].Get<uint8>();
+                 info.accountId = accountId;
++
++                if (sPlayerbotAIConfig.randomBotCustomClassesOnly && info.rClass < 12)
++                    continue;
++
+                 allCharacters.push_back(info);
+             } while (result->NextRow());
+         }

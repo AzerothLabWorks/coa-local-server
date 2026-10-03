@@ -323,4 +323,25 @@ int main()
     fixture.Leader.Form = FORM_TRAVEL;
     assert(fixture.Action.isUseful());
     assert(!fixture.Action.ShouldDismountForMaster(&fixture.Leader));
+
+    // Explicit realm policy enables every class from level one, including
+    // roaming bots; it does not bypass environmental/combat/strategy gates.
+    sPlayerbotAIConfig.useGroundMountAtMinLevel = 1;
+    for (uint32 classId = 1; classId <= 32; ++classId)
+    {
+        Fixture levelOne;
+        levelOne.Bot.Class = classId;
+        levelOne.Bot.Level = 1;
+        levelOne.Bot.Riding = 300;
+        levelOne.Ai.Master = nullptr;
+        assert(levelOne.Action.isUseful());
+        levelOne.Bot.Outdoors = false;
+        assert(!levelOne.Action.isUseful());
+        levelOne.Bot.Outdoors = true;
+        levelOne.Bot.Combat = true;
+        assert(!levelOne.Action.isUseful());
+        levelOne.Bot.Combat = false;
+        levelOne.Ai.MountStrategy = false;
+        assert(!levelOne.Action.isUseful());
+    }
 }

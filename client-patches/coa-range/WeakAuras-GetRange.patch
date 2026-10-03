@@ -1,0 +1,24 @@
+diff --git a/Prototypes.lua b/Prototypes.lua
+--- a/Prototypes.lua
++++ b/Prototypes.lua
+@@ -28,20 +28,6 @@ end
+ local LibRangeCheck = LibStub("LibRangeCheck-2.0")
+ 
+ function WeakAuras.GetRange(unit, checkVisible)
+-  -- LibRangeCheck's WotLK class tables do not know Ascension's custom
+-  -- Necromancer class. Prefer the actual Lichfrost spell range when it is
+-  -- available so range triggers do not remain permanently in standby.
+-  if unit == "target" and UnitExists(unit) and UnitCanAttack("player", unit) then
+-    local inRange = SpellRange.IsSpellInRange(501969, unit)
+-    if inRange == nil then
+-      inRange = SpellRange.IsSpellInRange(801722, unit)
+-    end
+-    if inRange == 1 then
+-      return 0, 30
+-    elseif inRange == 0 then
+-      return 30, 999
+-    end
+-  end
+   return LibRangeCheck:GetRange(unit, checkVisible);
+ end
+ 

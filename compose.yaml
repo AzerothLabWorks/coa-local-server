@@ -157,17 +157,32 @@ services:
       # Module SQL is imported by playerbots-bootstrap because runtime images
       # intentionally do not contain module source trees.
       AC_PLAYERBOTS_UPDATES_ENABLE_DATABASES: 0
-      # Keep the first COA-aware test pool deliberately small while class spell
-      # selection and specialization profiles are validated in live play.
+      # Conservative installation defaults; raise the runtime target in measured
+      # stages. Level bounds control native random rolls, not a rescaling pass.
       AC_AI_PLAYERBOT_RANDOM_BOT_AUTOLOGIN: 1
       AC_AI_PLAYERBOT_MIN_RANDOM_BOTS: ${COA_MIN_RANDOM_BOTS:-12}
       AC_AI_PLAYERBOT_MAX_RANDOM_BOTS: ${COA_MAX_RANDOM_BOTS:-12}
       AC_AI_PLAYERBOT_RANDOM_BOT_ACCOUNT_COUNT: ${COA_RANDOM_BOT_ACCOUNT_COUNT:-120}
       AC_AI_PLAYERBOT_RANDOM_BOT_CUSTOM_CLASSES_ONLY: 1
+      AC_AI_PLAYERBOT_RANDOM_BOT_MIN_LEVEL: ${COA_BOT_MIN_LEVEL:-1}
+      AC_AI_PLAYERBOT_RANDOM_BOT_MAX_LEVEL: ${COA_BOT_MAX_LEVEL:-80}
+      # All four riding tiers are usable from level one on this QoL realm.
+      # Native spell, combat, indoor and flight-zone restrictions still apply.
+      AC_AI_PLAYERBOT_USE_GROUND_MOUNT_AT_MIN_LEVEL: ${COA_BOT_RIDING_MIN_LEVEL:-1}
+      AC_AI_PLAYERBOT_USE_FAST_GROUND_MOUNT_AT_MIN_LEVEL: ${COA_BOT_RIDING_MIN_LEVEL:-1}
+      AC_AI_PLAYERBOT_USE_FLY_MOUNT_AT_MIN_LEVEL: ${COA_BOT_RIDING_MIN_LEVEL:-1}
+      AC_AI_PLAYERBOT_USE_FAST_FLY_MOUNT_AT_MIN_LEVEL: ${COA_BOT_RIDING_MIN_LEVEL:-1}
+      # Prevent item/quest chatter from initiating unsolicited trade windows.
+      # Explicit bot trade commands remain available.
+      AC_AI_PLAYERBOT_ENABLE_AUTO_TRADE_ON_ITEM_MENTION: ${COA_BOT_AUTO_TRADE_ON_ITEM_MENTION:-0}
+      AC_AI_PLAYERBOT_RANDOM_BOTS_PER_INTERVAL: ${COA_BOTS_PER_INTERVAL:-60}
+      AC_AI_PLAYERBOT_RANDOM_BOT_PRINT_STATS_INTERVAL: ${COA_BOT_STATS_INTERVAL:-300}
+      AC_RECORD_UPDATE_TIME_DIFF_INTERVAL: ${COA_WORLD_STATS_INTERVAL_MS:-300000}
+      AC_MIN_RECORD_UPDATE_TIME_DIFF: ${COA_WORLD_SLOW_TICK_MS:-100}
       # Exact bot name for the opt-in Witch Doctor Brewing healer pilot.
       COA_BREWING_PILOT_NAME: ${COA_BREWING_PILOT_NAME:-}
       # Explicit allowlist for GM-controlled low-level test companions. Empty
-      # by default; does not change the autonomous random-bot population.
+      # by default; protects their unassigned accounts from automatic pool assignment.
       COA_TEST_PILOT_NAMES: ${COA_TEST_PILOT_NAMES:-}
       AC_DYNAMIC_XP_REMINDER_INTERVAL: ${COA_XP_REMINDER_INTERVAL:-40}
       AC_DYNAMIC_XP_PRESET: ${COA_XP_RATE:-3}

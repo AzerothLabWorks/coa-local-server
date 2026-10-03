@@ -1,0 +1,39 @@
+diff --git a/src/Bot/Factory/PlayerbotFactory.cpp b/src/Bot/Factory/PlayerbotFactory.cpp
+index 1b1d657..f8927da 100644
+--- a/src/Bot/Factory/PlayerbotFactory.cpp
++++ b/src/Bot/Factory/PlayerbotFactory.cpp
+@@ -3292,10 +3292,24 @@ void PlayerbotFactory::UpdateTradeSkills()
+ 
+ void PlayerbotFactory::InitSkills()
+ {
++    // COA progression and riding are initialized by the compatibility module.
++    // Keep refresh, level-up and trainer maintenance from replacing that state
++    // with stock class skills (SetSkill(..., 0) also removes riding spells).
++    if (bot->getClass() >= 12 && bot->getClass() <= 32)
++        return;
++
+     //uint32 maxValue = level * 5; //not used, line marked for removal.
+     bot->UpdateSkillsForLevel();
+ 
+-    bot->SetSkill(SKILL_RIDING, 0, 0, 0);
++    bool const levelOneRiding = sPlayerbotAIConfig.useGroundMountAtMinLevel == 1 &&
++        sPlayerbotAIConfig.useFastGroundMountAtMinLevel == 1 &&
++        sPlayerbotAIConfig.useFlyMountAtMinLevel == 1 &&
++        sPlayerbotAIConfig.useFastFlyMountAtMinLevel == 1;
++    // With all ranks available from level 1 there is nothing to downgrade.
++    // Removing the skill would also remove Cold Weather Flying and other
++    // riding-line spells during every refresh or level-up maintenance pass.
++    if (!levelOneRiding)
++        bot->SetSkill(SKILL_RIDING, 0, 0, 0);
+     if (bot->GetLevel() >= sPlayerbotAIConfig.useGroundMountAtMinLevel)
+         bot->learnSpell(33388);
+     if (bot->GetLevel() >= sPlayerbotAIConfig.useFastGroundMountAtMinLevel)
+@@ -3304,6 +3318,8 @@ void PlayerbotFactory::InitSkills()
+         bot->learnSpell(34090);
+     if (bot->GetLevel() >= sPlayerbotAIConfig.useFastFlyMountAtMinLevel)
+         bot->learnSpell(34091);
++    if (levelOneRiding && bot->GetLevel() >= 1 && !bot->HasSpell(54197))
++        bot->learnSpell(54197);
+ 
+     uint32 skillLevel = bot->GetLevel() < 40 ? 0 : 1;
+     uint32 dualWieldLevel = bot->GetLevel() < 20 ? 0 : 1;

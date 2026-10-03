@@ -5,8 +5,9 @@ quality-of-life improvements, and experimental COA Playerbots.
 
 We build on the public [`jealous-sound/azerothcore-wotlk-coa`](https://github.com/jealous-sound/azerothcore-wotlk-coa)
 source. This repository contains the installer, configuration, source patches, and our small compatibility
-modules. The upstream server is cloned separately. Clients, client patches, extracted game data, database
-packages, and repack binaries are not included.
+modules. The upstream server is cloned separately. Client executables, archives, extracted game data, database
+packages, and repack binaries are not included. Reviewed client-library source repairs are kept separately
+from those binary assets.
 
 ## What players get
 
@@ -48,9 +49,80 @@ profession training and tool delivery, Furline, mount/pet action-bar persistence
 application checks, and the worldserver build passed; the latest deployment introduced no new startup errors.
 These are local test results, not coverage of every class, spell, item, or dungeon.
 
+The subsequent local rollout and G1 candidate use 50 online bots across levels 1–80. New-install defaults
+remain 12; the planned 1,500 concurrent bots require staged functional and load testing, not a default increase.
+
 COA bot combat is still experimental. Group invitations, summoning, attacking, and mount/dismount following
 have been exercised in game. Complete tank/healer/DPS rotations and reliable dungeon parties are the next stage;
 see the [Playerbots roadmap](docs/playerbots-roadmap.md) for observed results and remaining tests.
+
+Our [gameplay improvements roadmap](docs/gameplay-roadmap.md) tracks upstream fix validation, profession/service
+modules, class and pet mechanics, and quest/dungeon completion. The [source and module audit](docs/upstream-gameplay-audit.md)
+compares our pinned build with a reviewed upstream snapshot and records the data/configuration changes needed
+for an upgrade. A restore-tested **current-build** staging baseline has passed player testing;
+the upstream upgrade itself remains pending. The isolated candidate's source/build/unit/talent checks and
+fresh-clone migration preservation checks passed. Two migration regressions were caught and guarded:
+a dependency on a disabled shop module, and removal of existing Book of Artisans recipes. Failed trials
+remain stopped and preserved; the successful trial retained character, talent, Book and bot data.
+All six focused native runtime cases passed on the repaired binary: Furline, Book of Artisans
+summon/training/tool delivery and four talent protocol/state cases. The earlier Furline failure remains
+recorded. Fresh retry3 has now passed original-checkpoint restoration and all 578 planned migrations,
+including the new narrow script-binding migration, with exact ledger and protected-data preservation.
+The final six-case runtime check also passed against migrated retry3, including both numerical utility
+checkers, with verified cleanup of its disposable test databases, users and executor.
+An independent empty-database core installation also passed, including repair of previously absent Furline
+bindings. A separate original-image recovery drill restored the checkpoint and passed login/game-server
+startup and clean shutdown without player-accessible ports. Native Playerbots initialization and a single
+worldserver startup/shutdown were independently qualified after shutdown; the original console-observer
+failure remains preserved. One MSVC-only loot harness is unavailable; broader actual-client rendering/logout
+coverage, grouped bots, installer reproduction, live endpoint failover and remaining player acceptance
+are still pending. The live server was
+stopped cleanly at the player's request on 2026-10-02; its source/data and the accepted staging build have
+not been replaced. The separate candidate's bounded startup and actual Windows/WSL loopback endpoint
+checks now pass, with 50 online random bots observed. It is ready for initial Phase C player testing,
+not live promotion or a declaration that G1 is complete. Reviewed startup warnings remain documented.
+See the [G1 phases and test checklist](docs/gameplay-roadmap.md#g1-phases-and-player-testing).
+
+Initial client testing caught a missing world-packet compatibility setting after login. The candidate
+now preserves that explicit client mode; source, rebuild, unit and 43 focused client-compatibility
+checks passed. Those automated checks alone do not establish actual-client talent/logout acceptance.
+Book of Artisans profession/recipe filtering remains a G2 follow-up, not a G1 fix claim.
+The table above describes the current gameplay improvements, not untested upstream candidates.
+
+The initial staging client preparation adapted its two legacy talent-loader members for native
+candidate packets: four old includes were removed, while 1,402 unrelated ordinary archive members
+remained byte-identical. The production client is unchanged and a private legacy-archive rollback is
+retained. This prepares native talent testing; it does not establish talent rendering or relog acceptance.
+
+The [staging launcher](scripts/Start-CoAStaging.ps1) keeps the baseline endpoint `127.0.0.1:33725`
+and `COA G1 STAGING` as its default. Explicit `-Candidate` selects only `127.0.0.1:33726` and
+`COA G1 CANDIDATE` (world port `38087`) using `C:\Games\Ascension-WOW-Staging`; 73 synthetic launcher
+checks passed without launching a client. Use **COA - G1 Candidate** for this test. The old baseline
+shortcut requires restoring the preserved legacy staging archive first. Neither staging progress nor
+these client changes are promoted to production.
+
+Two candidate-specific boundaries remain. Retiring the old compatibility component removed its
+`.localbotprepare brewing` command and `COA_BREWING_PILOT_NAME` name-based spec assignment; the native
+API is not a combined replacement. Existing saved Brewing selections and AI strategies are retained.
+The player confirmed Amaryla's Brewing strategies, healing during a rare-spawn fight with guards, drinking
+and post-combat following in staging on 2026-10-03. After the bounded native mount repair, player testing
+accepted Furline mounting, Blossomback Arboon flight following, synchronized landing/dismounting and
+another combat/drink/remount cycle. Earlier failures remain documented; this is acceptance of Amaryla's
+tested travel sequence, not every bot or rotation. Adventurer Caches obtained from quests also delivered
+rewards in candidate playtesting, unlike the player's production observation; the exact upstream fix
+and full reward-table coverage have not been established. Bounded level preparation and automatic named-pilot spec
+selection remain G1 preservation work before live promotion. The old preparation commands below
+describe the accepted pinned build, not the new candidate.
+
+Production promotion now also requires a focused companion-readiness batch: improve the Brewing healer,
+qualify a Mountain King tank and one damage profile, then test a small mixed party before declaring those
+roles ready. Keep 50 bots during this work. The new
+[bot reference review and readiness gate](docs/playerbots-roadmap.md#companion-readiness-before-production)
+uses pinned Zyth COA source and the v1.7 repack as references, not as an untested replacement or SQL import.
+
+The candidate trial preserves base Kill/Quest/Explore/Pet XP rates at 1, but native global XP `0.9295`,
+profession XP `0.4` with skill/difficulty coefficients, and expansion/elite multipliers are newly active
+candidate policy. Total XP behavior is not unchanged or player-accepted; review it before promotion.
 
 New installations **without `--with-playerbots` are currently unsupported**: the older non-Playerbots vanity
 patch needs rebasing onto upstream `main`. Use the pinned Playerbots path below while that work remains open.
@@ -105,10 +177,12 @@ refuses to overwrite an existing runtime directory. `--dry-run` validates inputs
 
 ### Optional client tools
 
-For a new installation, add `--client-dir` to include the optional
-[COA WeakAuras range helper](client-addons/COAWeakAurasRange/README.md). Also add `--playerbots-package-dir`
-to copy UnBot from your repack. Close the client first and use WSL paths for Windows directories. Existing
-copies of these addons receive timestamped backups. For example, use this instead of the installation command above:
+For a new installation, add `--client-dir` and `--playerbots-package-dir` to copy UnBot from your repack.
+Close the client first and use WSL paths for Windows directories. Existing UnBot copies receive timestamped
+backups. The spell-specific WeakAuras helper is retired and is no longer installed; the generic
+[COA range-library repair](client-patches/coa-range/README.md) was installed only in the separate staging
+client and accepted in player testing on 2026-10-03, including existing melee auras and logout/login
+retention. Production promotion remains pending. For example, use this instead of the installation command above:
 
 ```bash
 ./scripts/install-coa.sh \
@@ -121,7 +195,7 @@ copies of these addons receive timestamped backups. For example, use this instea
 
 ## Playerbots: working foundation, ongoing AI development
 
-The local compatibility patch also contains an initial COA AI adapter reconstructed from the data and behavior in
+On the accepted old-core build, the local compatibility patch contains an initial COA AI adapter reconstructed from the data and behavior in
 the repack package. It permits random characters using custom class IDs, preserves their COA spellbooks during bot
 randomization, and selects usable offensive abilities dynamically from their learned spells. A first, experimental
 Witch Doctor Brewing healing profile can be enabled for one named bot with `COA_BREWING_PILOT_NAME` in `.env`.
@@ -130,7 +204,7 @@ the repack's compiled COA layer:
 tanking, broad spec rotations, dispels, interrupts, and `.playerbots coa tank|heal|dps` are still being developed.
 See [the Playerbots roadmap](docs/playerbots-roadmap.md) for the staged test sequence and source-of-truth boundaries.
 
-The current test slice adds opt-in, level-matched Brewing companions through `COA_TEST_PILOT_NAMES` and the
+The accepted old-core test slice adds opt-in, level-matched Brewing companions through `COA_TEST_PILOT_NAMES` and the
 administrator-only `.localbotprepare brewing` command. It preserves existing equipment/talents and refuses to
 downlevel bots or replace another specialization. Shared role checks and base-rank healing support are included;
 local tests confirmed level preparation, ranged attacks, healing the leader, and post-combat follow/recovery.
@@ -138,13 +212,29 @@ Full healing-priority and dungeon acceptance remain pending. Setup and safeguard
 
 Bots already support built-in chat templates and General-channel replies. On the local realm these are enabled;
 `/join World` also exposes eligible cross-zone ambient announcements. World replies are not implemented by the
-pinned module. Population and chat frequency remain unchanged while combat behavior is tested.
+pinned module. Chat-frequency settings remain unchanged during the population ramp.
 
 New Playerbots installations reserve 120 bot accounts and restrict newly generated characters to COA class IDs. This
 leaves any pre-existing classic bot characters intact while ensuring the expanded pool contains testable COA bots.
 The default online population is 12; override it cautiously with `COA_MIN_RANDOM_BOTS`, `COA_MAX_RANDOM_BOTS`, and
 `COA_RANDOM_BOT_ACCOUNT_COUNT` in `.env`. UnBot remains available for the standard Playerbots controls; its bot
 management bar is a client-side command interface and does not implement the server AI itself.
+
+The next population milestone targets 1,500 simultaneously online COA bots across levels 1–80 through staged
+load testing, not an immediate increase of the installation default. Level bounds, login/update batch size,
+and statistics intervals are configurable. See the [population rollout and safeguards](docs/playerbots-roadmap.md#population-milestone-1500-concurrent-coa-bots)
+before expanding a realm; stock automatic level redistribution is not enabled for this rollout.
+The first local stage was deployed on 2026-09-27 and reached 50 online COA bots. Initial server checks passed;
+extended gameplay/load testing remains pending before the next increase. Installation defaults remain at 12.
+
+Bot item mentions no longer open unsolicited trade windows during group questing. The realm sets
+`COA_BOT_AUTO_TRADE_ON_ITEM_MENTION=0`; explicit trade commands still work. Bot quest acceptance follows the
+quest's level and prerequisite rules, so a bot may decline a quest the player can take.
+
+The level-one riding follow-up preserves COA riding skills through bot refresh and level-up maintenance.
+`COA_BOT_RIDING_MIN_LEVEL=1` allows every bot riding tier from level 1 alongside the existing maximum-riding
+login grant; Cold Weather Flying is retained. This does not globally unlock flying in Azeroth. Deployment
+and gameplay acceptance are tracked in the [roadmap](docs/playerbots-roadmap.md#level-one-riding-follow-up).
 
 When grouped, bots now pause rather than acquire a persistent `stay` command while the leader is dead; the patch
 allows following to resume after resurrection. The Follow command clears any prior Stay state, and mount selection
@@ -211,11 +301,19 @@ Prepared server data stays in the `--data-dir` directory and is mounted read-onl
 
 ## Development
 
-Run the fast checks from Linux or WSL:
+Run the fast checks from Linux or WSL with Python 3.11 or newer and Lua 5.1 available. The staging
+helpers use `hashlib.file_digest`. The client-library
+regressions require that exact Lua version; set `LUA51=/absolute/path/to/lua` if it is not on `PATH`.
+The suite does not install packages or skip those checks when the runtime is missing:
 
 ```bash
 ./tests/run.sh
 ```
+
+The default range suite skips the optional installed-WeakAuras integration. To include its three checks,
+pass the actual staging client's `Prototypes.lua` to `tests/test-coa-range.py --weak-auras-prototype`.
+Native candidate patches have a separate [ordered recipe](source-patches/README.md); the legacy
+installer validation below does not qualify a native-core upgrade.
 
 For a Playerbots build, also verify that every patch applies to the pinned source revisions:
 
@@ -238,6 +336,10 @@ pathfinding, client rendering, or dungeon play.
 Keep this README aligned with verified behavior. Record experimental bot results and remaining work in the
 [Playerbots roadmap](docs/playerbots-roadmap.md); do not describe a new behavior as confirmed until it passes an
 in-game test. Local `.env` files, client data, and credentials stay outside Git.
+
+Maintain the [gameplay roadmap](docs/gameplay-roadmap.md) and [upstream audit](docs/upstream-gameplay-audit.md)
+as fixes are reviewed and integrated. Record the included upstream commit, dependencies, local acceptance,
+and any superseded local patch so community reports can be tied to the actual build.
 
 Community test reports are welcome. Include the repository revision, character class and level, steps to
 reproduce, expected and actual behavior, and relevant client/server logs with credentials removed. Bot reports

@@ -1,0 +1,1263 @@
+diff --git a/apps/coa-gameplay-test/check_g1_utilities.py b/apps/coa-gameplay-test/check_g1_utilities.py
+new file mode 100644
+index 0000000..70fe5bc
+--- /dev/null
++++ b/apps/coa-gameplay-test/check_g1_utilities.py
+@@ -0,0 +1,70 @@
++#!/usr/bin/env python3
++CLI_DESCRIPTION = """Check preserved Furline speed ratios and profession-book starter tool additions."""
++
++import argparse
++import json
++import math
++from pathlib import Path
++
++
++def observations(directory):
++    summary = json.loads((directory / 'summary.json').read_text(encoding='utf-8'))
++    result = json.loads((directory / 'result.json').read_text(encoding='utf-8'))
++    if summary['status'] != 'passed' or result['status'] != 'passed':
++        raise ValueError('A completed native scenario pass is required')
++    values = {}
++    for step in result['steps']:
++        if step['action'] != 'snapshot':
++            continue
++        label = step['label']
++        if label in values:
++            raise ValueError(f'Duplicate snapshot: {label}')
++        value = float(step['actual'])
++        if not math.isfinite(value):
++            raise ValueError(f'Non-finite snapshot: {label}')
++        values[label] = value
++    return values
++
++
++def check_furline(values):
++    baseline = values['initial_ground_speed']
++    if baseline <= 0:
++        raise ValueError('Unmounted ground speed must be positive')
++    for label in ('vanity_mount_ground_speed', 'direct_mount_ground_speed'):
++        ratio = values[label] / baseline
++        if not math.isclose(ratio, 2, rel_tol=0, abs_tol=0.000001):
++            raise ValueError(f'{label}: measured speed ratio {ratio}, expected 2')
++        print(f'{label}: 100% ground speed bonus')
++    for label in ('vanity_dismount_ground_speed', 'direct_dismount_ground_speed', 'recovered_ground_speed'):
++        if not math.isclose(values[label], baseline, rel_tol=0, abs_tol=0.000001):
++            raise ValueError(f'{label}: measured speed {values[label]}, expected unmounted {baseline}')
++        print(f'{label}: restored unmounted speed {baseline}')
++
++
++def check_artisans(values):
++    for tool in ('fishing_poles', 'skinning_knives'):
++        counts = [values[f'{phase}_{tool}'] for phase in ('initial', 'trained', 'repeated')]
++        if any(count < 0 or not count.is_integer() for count in counts):
++            raise ValueError(f'{tool}: observations must be nonnegative item counts')
++        initial, trained, repeated = map(int, counts)
++        if trained - initial != 1:
++            raise ValueError(f'{tool}: training added {trained - initial}, expected exactly one')
++        if repeated != trained:
++            raise ValueError(f'{tool}: repeated training/login changed the count from {trained} to {repeated}')
++        print(f'{tool}: one starter tool added and no duplicate after repeated training/login hooks')
++
++
++def check(directory, mode):
++    values = observations(directory)
++    if mode == 'furline':
++        check_furline(values)
++    else:
++        check_artisans(values)
++
++
++if __name__ == '__main__':
++    parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
++    parser.add_argument('result_directory', type=Path)
++    parser.add_argument('mode', choices=('furline', 'artisans'))
++    args = parser.parse_args()
++    check(args.result_directory, args.mode)
+diff --git a/apps/coa-gameplay-test/checks.json b/apps/coa-gameplay-test/checks.json
+index 2528e61..8d8de2a 100644
+--- a/apps/coa-gameplay-test/checks.json
++++ b/apps/coa-gameplay-test/checks.json
+@@ -1,6 +1,24 @@
+ {
+   "schema": 1,
+   "checks": [
++    {
++      "script": "check_g1_utilities.py",
++      "scenarios": [
++        "g1-furline-compat"
++      ],
++      "args": [
++        "furline"
++      ]
++    },
++    {
++      "script": "check_g1_utilities.py",
++      "scenarios": [
++        "g1-artisans-summon"
++      ],
++      "args": [
++        "artisans"
++      ]
++    },
+     {
+       "script": "check_primalist_bash.py",
+       "scenarios": [
+diff --git a/apps/coa-gameplay-test/scenarios/g1-artisans-summon.json b/apps/coa-gameplay-test/scenarios/g1-artisans-summon.json
+new file mode 100644
+index 0000000..813b11c
+--- /dev/null
++++ b/apps/coa-gameplay-test/scenarios/g1-artisans-summon.json
+@@ -0,0 +1,128 @@
++{
++  "schema": 1,
++  "name": "G1 summons the profession book and supplies starter gathering tools",
++  "contract": "With the book catalog module disabled, 750750 opens its owned trainer and local tools are deduplicated.",
++  "timeout_ms": 60000,
++  "players": [
++    { "id": "artisan", "race": 1, "class": 1, "level": 60, "bot": false }
++  ],
++  "steps": [
++    { "action": "learn", "actor": "artisan", "spell": 750750, "label": "prepare the existing book summon spell" },
++    { "action": "money", "actor": "artisan", "copper": 100000, "label": "provide money for ordinary trainer fees" },
++    {
++      "action": "assert", "actor": "artisan", "metric": "skill_value", "skill": 356, "equals": 0,
++      "label": "Fishing is not already learned on this fresh character"
++    },
++    {
++      "action": "assert", "actor": "artisan", "metric": "skill_value", "skill": 393, "equals": 0,
++      "label": "Skinning is not already learned on this fresh character"
++    },
++    {
++      "action": "assert", "actor": "artisan", "metric": "item_count", "item": 6256, "equals": 0,
++      "label": "there is no starter Fishing Pole before training"
++    },
++    {
++      "action": "assert", "actor": "artisan", "metric": "item_count", "item": 7005, "equals": 0,
++      "label": "there is no starter Skinning Knife before training"
++    },
++    {
++      "action": "snapshot", "actor": "artisan", "metric": "item_count", "item": 6256,
++      "save_as": "initial_fishing_poles", "label": "initial_fishing_poles"
++    },
++    {
++      "action": "snapshot", "actor": "artisan", "metric": "item_count", "item": 7005,
++      "save_as": "initial_skinning_knives", "label": "initial_skinning_knives"
++    },
++    {
++      "action": "snapshot", "actor": "artisan", "metric": "trainer_list_packets", "save_as": "before_book",
++      "label": "record trainer windows before the actual summon"
++    },
++    { "action": "cast", "actor": "artisan", "spell": 750750, "label": "cast the actual Book of Artisans summon" },
++    {
++      "action": "assert", "actor": "artisan", "metric": "pet_entry", "equals": 57500,
++      "within_ms": 3000, "label": "the summon creates the player's real book companion"
++    },
++    {
++      "action": "assert", "actor": "artisan", "metric": "owned_creature_count", "entry": 57500,
++      "equals": 1, "label": "exactly one living book belongs to this character"
++    },
++    {
++      "action": "assert", "actor": "artisan", "metric": "owned_creature_visible", "entry": 57500,
++      "equals": 1, "label": "the summoned book is visible"
++    },
++    {
++      "action": "assert", "actor": "artisan", "metric": "trainer_list_packets", "relative_to": "before_book",
++      "equals": 1, "within_ms": 3000, "label": "the queued utility helper opens the summoned book's trainer"
++    },
++    {
++      "action": "assert", "actor": "artisan", "metric": "trainer_window_state", "spell": 7733, "equals": 0,
++      "label": "Apprentice Fishing is available in the preserved trainer"
++    },
++    {
++      "action": "assert", "actor": "artisan", "metric": "trainer_window_state", "spell": 8615, "equals": 0,
++      "label": "Apprentice Skinning is available in the preserved trainer"
++    },
++    {
++      "action": "trainer_buy", "actor": "artisan", "spell": 7733,
++      "label": "buy Fishing from the real summoned companion, not a placed fixture"
++    },
++    {
++      "action": "assert", "actor": "artisan", "metric": "knows_spell", "spell": 7620,
++      "equals": 1, "within_ms": 1000, "label": "the trainer taught the Fishing skill spell"
++    },
++    {
++      "action": "assert", "actor": "artisan", "metric": "skill_value", "skill": 356, "min": 1,
++      "label": "the Fishing profession is usable"
++    },
++    {
++      "action": "assert", "actor": "artisan", "metric": "item_count", "item": 6256,
++      "equals": 1, "within_ms": 1000, "label": "the local profession-tools module supplies one Fishing Pole"
++    },
++    {
++      "action": "snapshot", "actor": "artisan", "metric": "item_count", "item": 6256,
++      "save_as": "trained_fishing_poles", "label": "trained_fishing_poles"
++    },
++    {
++      "action": "trainer_buy", "actor": "artisan", "spell": 8615,
++      "label": "buy Skinning through the preserved apprentice trainer row"
++    },
++    {
++      "action": "assert", "actor": "artisan", "metric": "knows_spell", "spell": 8613,
++      "equals": 1, "within_ms": 1000, "label": "the trainer taught the Skinning skill spell"
++    },
++    {
++      "action": "assert", "actor": "artisan", "metric": "skill_value", "skill": 393, "min": 1,
++      "label": "the Skinning profession is usable"
++    },
++    {
++      "action": "assert", "actor": "artisan", "metric": "item_count", "item": 7005,
++      "equals": 1, "within_ms": 1000, "label": "the local profession-tools module supplies one Skinning Knife"
++    },
++    {
++      "action": "snapshot", "actor": "artisan", "metric": "item_count", "item": 7005,
++      "save_as": "trained_skinning_knives", "label": "trained_skinning_knives"
++    },
++    { "action": "trainer_buy", "actor": "artisan", "spell": 7733, "label": "ask for already learned Fishing" },
++    { "action": "trainer_buy", "actor": "artisan", "spell": 8615, "label": "ask for already learned Skinning" },
++    {
++      "action": "login_hooks", "actor": "artisan",
++      "label": "replay the tool-supply login hook without claiming a database reload"
++    },
++    {
++      "action": "assert", "actor": "artisan", "metric": "item_count", "item": 6256, "equals": 1,
++      "label": "repeat training and login synchronization do not duplicate the Fishing Pole"
++    },
++    {
++      "action": "assert", "actor": "artisan", "metric": "item_count", "item": 7005, "equals": 1,
++      "label": "repeat training and login synchronization do not duplicate the Skinning Knife"
++    },
++    {
++      "action": "snapshot", "actor": "artisan", "metric": "item_count", "item": 6256,
++      "save_as": "repeated_fishing_poles", "label": "repeated_fishing_poles"
++    },
++    {
++      "action": "snapshot", "actor": "artisan", "metric": "item_count", "item": 7005,
++      "save_as": "repeated_skinning_knives", "label": "repeated_skinning_knives"
++    }
++  ]
++}
+diff --git a/apps/coa-gameplay-test/scenarios/g1-furline-compat.json b/apps/coa-gameplay-test/scenarios/g1-furline-compat.json
+new file mode 100644
+index 0000000..6d162c5
+--- /dev/null
++++ b/apps/coa-gameplay-test/scenarios/g1-furline-compat.json
+@@ -0,0 +1,112 @@
++{
++  "schema": 1,
++  "name": "G1 preserves Furline ownership, ground speed and dismounting",
++  "contract": "Vanity unlock and companion learning grant Furline 91737, with 100% ground speed and safe dismounting.",
++  "timeout_ms": 60000,
++  "players": [
++    { "id": "rider", "race": 1, "class": 1, "level": 60, "bot": false }
++  ],
++  "steps": [
++    {
++      "action": "assert", "actor": "rider", "metric": "knows_spell", "spell": 9931327,
++      "equals": 1, "within_ms": 5000, "label": "the owned vanity summon is learned before testing"
++    },
++    {
++      "action": "assert", "actor": "rider", "metric": "knows_spell", "spell": 91737,
++      "equals": 1, "within_ms": 5000, "label": "Furline ownership also grants its speed-bearing mount spell"
++    },
++    {
++      "action": "set_skill", "actor": "rider", "skill": 762, "value": 300, "maximum": 300,
++      "label": "hold riding skill constant for both summon paths"
++    },
++    {
++      "action": "assert", "actor": "rider", "metric": "run_speed_rate", "equals": 1,
++      "label": "the unmounted human has ordinary ground speed"
++    },
++    {
++      "action": "snapshot", "actor": "rider", "metric": "run_speed_rate", "save_as": "initial_ground_speed",
++      "label": "initial_ground_speed"
++    },
++    {
++      "action": "cast", "actor": "rider", "spell": 9931327,
++      "label": "summon from the original Furline vanity entry"
++    },
++    {
++      "action": "assert", "actor": "rider", "metric": "aura", "spell": 91737,
++      "equals": 1, "within_ms": 3000, "label": "the legacy vanity cast reaches the speed-bearing mount aura"
++    },
++    {
++      "action": "assert", "actor": "rider", "metric": "aura", "spell": 9931327, "equals": 0,
++      "label": "the slow legacy aura is replaced, not stacked with the mount aura"
++    },
++    {
++      "action": "assert", "actor": "rider", "metric": "run_speed_rate", "equals": 2,
++      "label": "the original DBC mount-speed aura doubles ground speed"
++    },
++    {
++      "action": "snapshot", "actor": "rider", "metric": "run_speed_rate", "save_as": "vanity_mount_ground_speed",
++      "label": "vanity_mount_ground_speed"
++    },
++    { "action": "cancel_mount", "actor": "rider", "label": "dismount through the normal client handler" },
++    { "action": "wait", "ms": 1000, "label": "allow delayed utility work to run after dismounting" },
++    {
++      "action": "assert", "actor": "rider", "metric": "aura", "spell": 91737, "equals": 0,
++      "label": "delayed work does not reapply the mount aura"
++    },
++    {
++      "action": "assert", "actor": "rider", "metric": "run_speed_rate", "equals": 1,
++      "label": "dismounting restores ordinary ground speed"
++    },
++    {
++      "action": "snapshot", "actor": "rider", "metric": "run_speed_rate", "save_as": "vanity_dismount_ground_speed",
++      "label": "vanity_dismount_ground_speed"
++    },
++    { "action": "cast", "actor": "rider", "spell": 91737, "label": "summon the learned mount directly" },
++    {
++      "action": "assert", "actor": "rider", "metric": "aura", "spell": 91737,
++      "equals": 1, "within_ms": 3000, "label": "the directly learned mount also produces its aura"
++    },
++    {
++      "action": "assert", "actor": "rider", "metric": "run_speed_rate", "equals": 2,
++      "label": "the direct mount path has the same ground speed"
++    },
++    {
++      "action": "snapshot", "actor": "rider", "metric": "run_speed_rate", "save_as": "direct_mount_ground_speed",
++      "label": "direct_mount_ground_speed"
++    },
++    { "action": "cancel_mount", "actor": "rider", "label": "finish the direct mount test unmounted" },
++    { "action": "wait", "ms": 1000, "label": "settle the direct dismount before ownership recovery" },
++    {
++      "action": "snapshot", "actor": "rider", "metric": "run_speed_rate", "save_as": "direct_dismount_ground_speed",
++      "label": "direct_dismount_ground_speed"
++    },
++    {
++      "action": "unlearn", "actor": "rider", "spell": 91737, "all_specs": true,
++      "label": "remove only the supplemental mount spell from the test character"
++    },
++    {
++      "action": "assert", "actor": "rider", "metric": "knows_spell", "spell": 91737, "equals": 0,
++      "label": "the ownership recovery starts with a genuinely missing mount spell"
++    },
++    {
++      "action": "login_hooks", "actor": "rider",
++      "label": "replay login synchronization without claiming a database reload"
++    },
++    {
++      "action": "assert", "actor": "rider", "metric": "knows_spell", "spell": 91737,
++      "equals": 1, "within_ms": 8000, "label": "owned companion synchronization repairs the missing speed spell"
++    },
++    {
++      "action": "assert", "actor": "rider", "metric": "aura", "spell": 91737, "equals": 0,
++      "label": "learning an owned mount never mounts the character automatically"
++    },
++    {
++      "action": "assert", "actor": "rider", "metric": "run_speed_rate", "equals": 1,
++      "label": "ownership recovery leaves the character at ordinary unmounted speed"
++    },
++    {
++      "action": "snapshot", "actor": "rider", "metric": "run_speed_rate", "save_as": "recovered_ground_speed",
++      "label": "recovered_ground_speed"
++    }
++  ]
++}
+diff --git a/apps/coa-gameplay-test/test_verification.py b/apps/coa-gameplay-test/test_verification.py
+index a235ce1..327a4f9 100644
+--- a/apps/coa-gameplay-test/test_verification.py
++++ b/apps/coa-gameplay-test/test_verification.py
+@@ -118,6 +118,41 @@ class VerificationTests(unittest.TestCase):
+         self.assertEqual(result['status'], 'failed')
+         self.assertEqual(result['checks'], [])
+ 
++    def test_g1_furline_checker_rejects_wrong_speed_and_failed_dismount(self):
++        scenario = catalog.read_json(catalog.DIRECTORY / 'scenarios/g1-furline-compat.json')
++        values = {'initial_ground_speed': 1, 'vanity_mount_ground_speed': 2, 'vanity_dismount_ground_speed': 1,
++                  'direct_mount_ground_speed': 2, 'direct_dismount_ground_speed': 1, 'recovered_ground_speed': 1}
++        good = self.bundle('g1-furline-good', values, scenario)
++        self.assertEqual(verification.verify([good])['status'], 'passed')
++        for name, changes in [('slow-vanity', {'vanity_mount_ground_speed': 1}),
++                              ('slow-direct', {'direct_mount_ground_speed': 1}),
++                              ('remounted', {'vanity_dismount_ground_speed': 2}),
++                              ('direct-remounted', {'direct_dismount_ground_speed': 2}),
++                              ('recovery-mounted', {'recovered_ground_speed': 2})]:
++            with self.subTest(mistake=name):
++                wrong = self.bundle('g1-furline-' + name, {**values, **changes}, scenario)
++                result = verification.verify([wrong])
++                self.assertEqual(result['status'], 'failed')
++                self.assertEqual(result['checks'][0]['status'], 'failed')
++
++    def test_g1_artisans_checker_rejects_missing_tools_and_duplicates(self):
++        scenario = catalog.read_json(catalog.DIRECTORY / 'scenarios/g1-artisans-summon.json')
++        values = {'initial_fishing_poles': 0, 'initial_skinning_knives': 0, 'trained_fishing_poles': 1,
++                  'trained_skinning_knives': 1, 'repeated_fishing_poles': 1, 'repeated_skinning_knives': 1,
++                  'before_book': 0}
++        good = self.bundle('g1-artisans-good', values, scenario)
++        self.assertEqual(verification.verify([good])['status'], 'passed')
++        for name, changes in [('missing-pole', {'trained_fishing_poles': 0}),
++                              ('missing-knife', {'trained_skinning_knives': 0}),
++                              ('duplicate-pole', {'repeated_fishing_poles': 2}),
++                              ('duplicate-knife', {'repeated_skinning_knives': 2}),
++                              ('lost-pole', {'repeated_fishing_poles': 0})]:
++            with self.subTest(mistake=name):
++                wrong = self.bundle('g1-artisans-' + name, {**values, **changes}, scenario)
++                result = verification.verify([wrong])
++                self.assertEqual(result['status'], 'failed')
++                self.assertEqual(result['checks'][0]['status'], 'failed')
++
+     def test_missing_companion_cannot_pass(self):
+         other = copy.deepcopy(self.scenario)
+         other['name'] = 'Companion'
+diff --git a/apps/coa-tests/talent_state/run.py b/apps/coa-tests/talent_state/run.py
+index badfd7b..eeaa456 100644
+--- a/apps/coa-tests/talent_state/run.py
++++ b/apps/coa-tests/talent_state/run.py
+@@ -26,6 +26,7 @@ MAIN = r"""
+ #include "DBCStores.h"
+ #include <algorithm>
+ #include <cstdio>
++#include <map>
+ #include <set>
+ 
+ using namespace AscensionCompatData;
+@@ -134,6 +135,74 @@ int main(int, char** argv)
+         Check(ParseKnownEntriesUpload(empty, 4, parsed) && parsed.empty(), "count zero is an empty set");
+         Check(!ParseKnownEntriesUpload(empty, 3, parsed), "less than a count is refused");
+         Check(KnownEntriesPayload({}).size() == 4, "an empty set is a bare zero count");
++
++        std::map<std::uint32_t, std::uint32_t> selections = { { three->EntryId, 1 } };
++        RecordedRank recordedRank = [&selections](std::uint32_t id)
++        {
++            auto const found = selections.find(id);
++            return found == selections.end() ? 0 : found->second;
++        };
++        std::vector<KnownEntry> explicitKnown = KnownEntries(three->ClassId, hasSpell, recordedRank);
++        Check(explicitKnown.size() == 1 && explicitKnown[0].EntryId == three->EntryId && explicitKnown[0].Rank == 1,
++              "explicit paid choice overrides a higher learned rank and ignores other learned paid spells");
++        Check(Spent(explicitKnown).AE == three->AECost && Spent(explicitKnown).TE == 0,
++              "only recorded paid choices spend points");
++        selections.clear();
++        Check(KnownEntries(three->ClassId, hasSpell, recordedRank).empty(),
++              "an absent allocation ledger does not infer choices from learned spells");
++        selections[three->EntryId] = three->SpellCount + 1;
++        Check(ChosenRank(*three, recordedRank) == 0,
++              "an out-of-catalog recorded rank is not presented as a paid choice");
++        selections[three->EntryId] = 2;
++        Check(ChosenRank(*three, recordedRank) == 2,
++              "a valid saved explicit choice remains authoritative without rebuilding from the spellbook");
++        std::vector<std::uint8_t> explicitBody = KnownEntriesPayload(
++            KnownEntries(three->ClassId, hasSpell, recordedRank));
++        Check(ParseKnownEntriesUpload(explicitBody.data(), explicitBody.size(), parsed) && parsed.size() == 1 &&
++                  parsed[0].EntryId == three->EntryId && parsed[0].Rank == 2,
++              "native packets round-trip the explicit allocation instead of learned paid spells");
++
++        CoATalentEntry const* automaticEntry = nullptr;
++        CoATalentEntry const* selectableEntry = nullptr;
++        for (CoATalentEntry const& entry : CoATalentEntries)
++        {
++            if (!automaticEntry && entry.ClassId == three->ClassId && !IsExplicitChoice(entry))
++                automaticEntry = &entry;
++            if (!selectableEntry && !entry.AECost && !entry.TECost && IsExplicitChoice(entry))
++                selectableEntry = &entry;
++        }
++        Check(automaticEntry != nullptr, "the selected class has an automatic progression entry");
++        if (automaticEntry)
++        {
++            std::set<std::uint32_t> automaticSpellbook = { automaticEntry->SpellIds[0], three->SpellIds[0] };
++            selections.clear();
++            std::vector<KnownEntry> const automaticKnown = KnownEntries(three->ClassId,
++                [&automaticSpellbook](std::uint32_t id) { return automaticSpellbook.count(id) != 0; }, recordedRank);
++            Check(std::any_of(automaticKnown.begin(), automaticKnown.end(),
++                      [automaticEntry](KnownEntry const& item) { return item.EntryId == automaticEntry->EntryId; }) &&
++                      Spent(automaticKnown).AE == 0 && Spent(automaticKnown).TE == 0,
++                  "automatic progression stays spellbook-derived without inferring paid selections");
++        }
++        Check(selectableEntry != nullptr, "the catalog has a selectable-free entry");
++        if (selectableEntry)
++        {
++            selections.clear();
++            HasSpell selectableSpellbook = [selectableEntry](std::uint32_t id)
++            {
++                return id == selectableEntry->SpellIds[0];
++            };
++            std::vector<KnownEntry> const unselectedKnown =
++                KnownEntries(selectableEntry->ClassId, selectableSpellbook, recordedRank);
++            Check(std::none_of(unselectedKnown.begin(), unselectedKnown.end(),
++                      [selectableEntry](KnownEntry const& item) { return item.EntryId == selectableEntry->EntryId; }),
++                  "learned free-choice alternatives are not inferred as selected");
++            selections[selectableEntry->EntryId] = 1;
++            std::vector<KnownEntry> const selectableKnown =
++                KnownEntries(selectableEntry->ClassId, selectableSpellbook, recordedRank);
++            Check(std::any_of(selectableKnown.begin(), selectableKnown.end(),
++                      [selectableEntry](KnownEntry const& item) { return item.EntryId == selectableEntry->EntryId; }),
++                  "a recorded selectable-free choice is included in native state");
++        }
+     }
+ 
+     std::set<std::uint8_t> specializedClasses;
+diff --git a/data/sql/updates/pending_db_world/rev_20260926_00_local_artisans_model_fallback.sql b/data/sql/updates/pending_db_world/rev_20260926_00_local_artisans_model_fallback.sql
+new file mode 100644
+index 0000000..2ce8299
+--- /dev/null
++++ b/data/sql/updates/pending_db_world/rev_20260926_00_local_artisans_model_fallback.sql
+@@ -0,0 +1,12 @@
++-- The earlier local repair selected display 48503 for Book of Artisans.
++-- This COA server DBC does not contain that display, so creature 57500 cannot
++-- be summoned. Reuse the valid Flying Book display used by Book of Ascension.
++-- Keep this as a new migration; the earlier applied migration must not change.
++INSERT INTO `creature_template_model`
++    (`CreatureID`, `Idx`, `CreatureDisplayID`, `DisplayScale`, `Probability`, `VerifiedBuild`)
++VALUES
++    (57500, 0, 48501, 1, 1, NULL)
++ON DUPLICATE KEY UPDATE
++    `CreatureDisplayID` = VALUES(`CreatureDisplayID`),
++    `DisplayScale` = VALUES(`DisplayScale`),
++    `Probability` = VALUES(`Probability`);
+diff --git a/data/sql/updates/pending_db_world/rev_20260926_41_profession_upgrade_kit_recipes.sql b/data/sql/updates/pending_db_world/rev_20260926_41_profession_upgrade_kit_recipes.sql
+index 0e60cbf..fc161b7 100644
+--- a/data/sql/updates/pending_db_world/rev_20260926_41_profession_upgrade_kit_recipes.sql
++++ b/data/sql/updates/pending_db_world/rev_20260926_41_profession_upgrade_kit_recipes.sql
+@@ -5,7 +5,8 @@ DELETE FROM `trainer_spell` WHERE `SpellId` IN (
+   94128, 94129, 94200, 94215, 94219, 94231, 94352, 94354, 94360, 94381,
+   94387, 94389, 94411, 94449, 94513, 94517, 94521, 94525, 94559, 94581,
+   94590, 94596, 94643, 94645, 94647, 94649, 94671, 94713, 94715, 94717,
+-  94719, 94721, 94725, 94802, 424401, 424402);
++  94719, 94721, 94725, 94802, 424401, 424402)
++AND `TrainerId` NOT IN (SELECT `TrainerId` FROM `creature_default_trainer` WHERE `CreatureId` IN (57500, 57524));
+ INSERT INTO `trainer_spell` (`TrainerId`, `SpellId`, `MoneyCost`, `ReqSkillLine`, `ReqSkillRank`, `ReqLevel`) VALUES
+   (58, 93800, 0, 164, 1, 0),
+   (58, 93867, 0, 164, 105, 0),
+diff --git a/data/sql/updates/pending_db_world/rev_20260926_81_retreat_and_defense_scrolls.sql b/data/sql/updates/pending_db_world/rev_20260926_81_retreat_and_defense_scrolls.sql
+index a08c92e..3def985 100644
+--- a/data/sql/updates/pending_db_world/rev_20260926_81_retreat_and_defense_scrolls.sql
++++ b/data/sql/updates/pending_db_world/rev_20260926_81_retreat_and_defense_scrolls.sql
+@@ -43,6 +43,12 @@ REPLACE INTO `item_template` (`entry`, `class`, `subclass`, `SoundOverrideSubcla
+ (101257,15,0,-1,'Scroll of Defense: Ashenvale',295,6,64,0,1,0,0,0,-1,-1,1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.0,0.0,0,0.0,0.0,0,0,0,0,0,0,0,0,0,0,0.0,55884,0,-1,0.0,0,0,-1,83126,6,-1,0.0,86400000,0,-1,0,0,0,0.0,-1,0,-1,0,0,0,0.0,-1,0,-1,0,0,0,0.0,-1,0,-1,1,'Returns you to Ashenvale.',0,0,0,0,0,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0.0,0,0,0,'',0,0,0,0,0,12340),
+ (101258,15,0,-1,'Scroll of Defense: Hillsbrad Foothills',295,6,64,0,1,0,0,0,-1,-1,1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.0,0.0,0,0.0,0.0,0,0,0,0,0,0,0,0,0,0,0.0,55884,0,-1,0.0,0,0,-1,83128,6,-1,0.0,86400000,0,-1,0,0,0,0.0,-1,0,-1,0,0,0,0.0,-1,0,-1,0,0,0,0.0,-1,0,-1,1,'Returns you to Hillsbrad Foothills.',0,0,0,0,0,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0.0,0,0,0,'',0,0,0,0,0,12340);
+ 
+-REPLACE INTO `ethereal_bazaar_pool` (`item`, `extended_cost`, `price`, `band`) VALUES
+-(101257, 3015, 350, 0),
+-(101258, 3015, 350, 0);
++SELECT IF(
++    EXISTS (SELECT 1 FROM `information_schema`.`TABLES`
++        WHERE `TABLE_SCHEMA` = DATABASE() AND `TABLE_NAME` = 'ethereal_bazaar_pool'),
++    CONCAT('REPLACE INTO `ethereal_bazaar_pool` (`item`, `extended_cost`, `price`, `band`) ',
++        'VALUES (101257, 3015, 350, 0), (101258, 3015, 350, 0)'),
++    'DO 0') INTO @coa_defense_scroll_bazaar_pool;
++PREPARE `coa_defense_scroll_bazaar_pool` FROM @coa_defense_scroll_bazaar_pool;
++EXECUTE `coa_defense_scroll_bazaar_pool`;
++DEALLOCATE PREPARE `coa_defense_scroll_bazaar_pool`;
+diff --git a/data/sql/updates/pending_db_world/rev_20261002_00_local_furline_compat.sql b/data/sql/updates/pending_db_world/rev_20261002_00_local_furline_compat.sql
+new file mode 100644
+index 0000000..6b24366
+--- /dev/null
++++ b/data/sql/updates/pending_db_world/rev_20261002_00_local_furline_compat.sql
+@@ -0,0 +1,5 @@
++DELETE FROM `spell_script_names` WHERE `spell_id` IN (91737, 9931327)
++AND `ScriptName` = 'spell_ascension_sunwarmed_furline';
++INSERT INTO `spell_script_names` (`spell_id`, `ScriptName`) VALUES
++(91737, 'spell_ascension_sunwarmed_furline'),
++(9931327, 'spell_ascension_sunwarmed_furline');
+diff --git a/src/server/coa/AscensionCoATalentState.cpp b/src/server/coa/AscensionCoATalentState.cpp
+index 8e4c307..78bcd9b 100644
+--- a/src/server/coa/AscensionCoATalentState.cpp
++++ b/src/server/coa/AscensionCoATalentState.cpp
+@@ -69,6 +69,32 @@ std::vector<KnownEntry> KnownEntries(std::uint8_t classId, HasSpell const& hasSp
+     return known;
+ }
+ 
++bool IsExplicitChoice(AscensionCompatData::CoATalentEntry const& entry)
++{
++    return entry.AECost || entry.TECost || IsSelectableFree(entry.EntryId);
++}
++
++std::uint32_t ChosenRank(AscensionCompatData::CoATalentEntry const& entry, RecordedRank const& recordedRank)
++{
++    std::uint32_t const rank = recordedRank(entry.EntryId);
++    return rank <= entry.SpellCount ? rank : 0;
++}
++
++std::vector<KnownEntry> KnownEntries(std::uint8_t classId, HasSpell const& hasSpell,
++                                   RecordedRank const& recordedRank)
++{
++    std::vector<KnownEntry> known;
++    for (AscensionCompatData::CoATalentEntry const& entry : AscensionCompatData::CoATalentEntries)
++    {
++        if (entry.ClassId != classId)
++            continue;
++        std::uint32_t const rank = IsExplicitChoice(entry) ? ChosenRank(entry, recordedRank) : KnownRank(entry, hasSpell);
++        if (rank)
++            known.push_back({ entry.EntryId, rank });
++    }
++    return known;
++}
++
+ SpentPoints Spent(std::vector<KnownEntry> const& known)
+ {
+     SpentPoints spent;
+diff --git a/src/server/coa/AscensionCoATalentState.h b/src/server/coa/AscensionCoATalentState.h
+index d58549e..615caad 100644
+--- a/src/server/coa/AscensionCoATalentState.h
++++ b/src/server/coa/AscensionCoATalentState.h
+@@ -10,6 +10,7 @@
+ namespace AscensionCoATalentState
+ {
+ using HasSpell = std::function<bool(std::uint32_t)>;
++using RecordedRank = std::function<std::uint32_t(std::uint32_t)>;
+ 
+ struct KnownEntry
+ {
+@@ -24,6 +25,13 @@ std::uint32_t KnownRank(AscensionCompatData::CoATalentEntry const& entry, HasSpe
+ 
+ std::vector<KnownEntry> KnownEntries(std::uint8_t classId, HasSpell const& hasSpell);
+ 
++bool IsExplicitChoice(AscensionCompatData::CoATalentEntry const& entry);
++
++std::uint32_t ChosenRank(AscensionCompatData::CoATalentEntry const& entry, RecordedRank const& recordedRank);
++
++std::vector<KnownEntry> KnownEntries(std::uint8_t classId, HasSpell const& hasSpell,
++                                   RecordedRank const& recordedRank);
++
+ struct SpentPoints
+ {
+     std::uint32_t AE = 0;
+diff --git a/src/server/coa/AscensionCompat.cpp b/src/server/coa/AscensionCompat.cpp
+index c485305..bec01d5 100644
+--- a/src/server/coa/AscensionCompat.cpp
++++ b/src/server/coa/AscensionCompat.cpp
+@@ -319,6 +319,8 @@ constexpr uint32 SPELL_REAPER_SCYTHE_RUSH_MARKER = 500377;
+ constexpr uint32 SPELL_REAPER_HARVEST_TIME = 803995;
+ constexpr char ASCENSION_ACTIVE_SPEC_SETTING[] = "core.ascension_active_spec";
+ constexpr char ASCENSION_TALENT_BUILD_SETTING_PREFIX[] = "core.ascension_build.";
++constexpr char ASCENSION_TALENT_SELECTION_SETTING_PREFIX[] = "core.coa_talent.";
++constexpr char ASCENSION_TALENT_RECORDS_SETTING[] = "core.coa_talent_records";
+ 
+ enum CompanionLoot : uint32
+ {
+@@ -472,6 +474,8 @@ struct PlayerCollectionState {
+   uint32 CompanionSpellTimer = 0;
+   uint32 CompanionLootTimer = 0;
+   uint32 CompanionSkinningTimer = 0;
++  uint32 PendingUtilitySpell = 0;
++  uint32 UtilityActionTimer = 0;
+   uint32 CosmeticTimer = 0;
+   std::unordered_set<uint32> AppliedCosmeticSpells;
+   bool CanSeeItemAppearances = true;
+@@ -1377,10 +1381,62 @@ public:
+     return [player](uint32 spellId) { return player->HasSpell(spellId); };
+   }
+ 
++  static bool UsesRecordedTalents(Player const* player)
++  {
++    return IsAscensionCustomClass(player) && !player->GetSession()->IsBot();
++  }
++
++  static uint32 RecordedTalentRank(Player const* player, uint32 entryId)
++  {
++    PlayerSettingVector const* values = player->FindPlayerSettings(
++        std::string(ASCENSION_TALENT_SELECTION_SETTING_PREFIX) + std::to_string(entryId));
++    return values && !values->empty() ? (*values)[0].value : 0;
++  }
++
++  static uint32 TalentRank(Player const* player, AscensionCompatData::CoATalentEntry const& entry)
++  {
++    if (!UsesRecordedTalents(player) || !AscensionCoATalentState::IsExplicitChoice(entry))
++      return AscensionCoATalentState::KnownRank(entry, SpellbookOf(player));
++    return AscensionCoATalentState::ChosenRank(entry,
++        [player](uint32 entryId) { return RecordedTalentRank(player, entryId); });
++  }
++
++  static void RecordTalentSelection(Player* player, AscensionCompatData::CoATalentEntry const& entry, uint32 rank)
++  {
++    if (!UsesRecordedTalents(player) || entry.ClassId != player->getClass() || rank > entry.SpellCount ||
++        !AscensionCoATalentState::IsExplicitChoice(entry))
++      return;
++
++    uint32 const group = rank ? GetSelectableFreeGroup(entry.EntryId) : 0;
++    if (group)
++      for (auto const& other : AscensionCompatData::CoATalentEntries)
++        if (other.ClassId == entry.ClassId && other.SpecId == entry.SpecId && other.EntryId != entry.EntryId &&
++            GetSelectableFreeGroup(other.EntryId) == group)
++          player->UpdatePlayerSetting(
++              std::string(ASCENSION_TALENT_SELECTION_SETTING_PREFIX) + std::to_string(other.EntryId), 0, 0);
++
++    player->UpdatePlayerSetting(
++        std::string(ASCENSION_TALENT_SELECTION_SETTING_PREFIX) + std::to_string(entry.EntryId), 0, rank);
++    player->UpdatePlayerSetting(ASCENSION_TALENT_RECORDS_SETTING, entry.SpecId ? 1 : 0, entry.SpecId ? entry.SpecId : 1);
++  }
++
++  static void ClearRecordedTalentSelections(Player* player, uint32 specializationId)
++  {
++    for (auto const& entry : AscensionCompatData::CoATalentEntries)
++      if (entry.ClassId == player->getClass() && AscensionCoATalentState::IsExplicitChoice(entry))
++        player->UpdatePlayerSetting(
++            std::string(ASCENSION_TALENT_SELECTION_SETTING_PREFIX) + std::to_string(entry.EntryId), 0, 0);
++    player->UpdatePlayerSetting(ASCENSION_TALENT_RECORDS_SETTING, 0, 1);
++    player->UpdatePlayerSetting(ASCENSION_TALENT_RECORDS_SETTING, 1, specializationId);
++  }
++
+   static std::vector<AscensionCoATalentState::KnownEntry> KnownTalentEntries(Player const* player)
+   {
+     if (AscensionWildcard::IsWildcardHero(player))
+       return AscensionWildcard::KnownEntries(player);
++    if (UsesRecordedTalents(player))
++      return AscensionCoATalentState::KnownEntries(player->getClass(), SpellbookOf(player),
++          [player](uint32 entryId) { return RecordedTalentRank(player, entryId); });
+     return AscensionCoATalentState::KnownEntries(player->getClass(), SpellbookOf(player));
+   }
+ 
+@@ -1518,13 +1574,16 @@ public:
+     }
+ 
+     uint32 const selectedSpellId = rank > 0 ? entry.SpellIds[rank - 1] : 0;
+-    if (rank > 0 && (!selectedSpellId || !sSpellMgr->GetSpellInfo(selectedSpellId)))
++    SpellInfo const* selectedSpell = rank > 0 ? sSpellMgr->GetSpellInfo(selectedSpellId) : nullptr;
++    if (rank > 0 && (!selectedSpellId || !selectedSpell || (UsesRecordedTalents(player) &&
++        (selectedSpell->IsDeprecatedForPlayers || !SpellMgr::IsSpellValid(selectedSpell) ||
++            selectedSpell->HasEffect(SPELL_EFFECT_LEARN_SPELL)))))
+     {
+-      error = Acore::StringFormat("Talent entry {} rank {} references a missing server spell.", entryId, rank);
++      error = Acore::StringFormat("Talent entry {} rank {} cannot be learned by the server.", entryId, rank);
+       return false;
+     }
+ 
+-    uint32 const currentRank = AscensionCoATalentState::KnownRank(entry, SpellbookOf(player));
++    uint32 const currentRank = TalentRank(player, entry);
+     if (checkBudget && rank > currentRank && (entry.AECost || entry.TECost))
+     {
+       uint32 classBudget = 0;
+@@ -1548,23 +1607,59 @@ public:
+       }
+     }
+ 
++    std::vector<AscensionCompatData::CoATalentEntry const*> affectedEntries{&entry};
++    if (rank > 0 && freeChoiceGroup)
++      for (auto const& other : AscensionCompatData::CoATalentEntries)
++        if (other.ClassId == player->getClass() && other.SpecId == entry.SpecId && other.EntryId != entryId &&
++            GetSelectableFreeGroup(other.EntryId) == freeChoiceGroup)
++          affectedEntries.push_back(&other);
++
++    std::unordered_set<uint32> previousSpells;
++    for (auto const* affected : affectedEntries)
++      for (uint32 spellId : affected->SpellIds)
++        if (spellId && player->HasSpell(spellId))
++          for (uint32 knownRank = spellId; knownRank; knownRank = sSpellMgr->GetNextSpellInChain(knownRank))
++            if (player->HasSpell(knownRank))
++              previousSpells.insert(knownRank);
++
++    if (rank > 0 && !player->HasSpell(selectedSpellId))
++      player->learnSpell(selectedSpellId, false);
++    if (rank > 0 && !player->HasSpell(selectedSpellId))
++    {
++      error = Acore::StringFormat("Talent entry {} could not be learned; your previous choice was retained.", entryId);
++      return false;
++    }
++
+     if (rank > 0 && freeChoiceGroup)
+     {
+       for (auto const& other : AscensionCompatData::CoATalentEntries)
+         if (other.ClassId == player->getClass() && other.SpecId == entry.SpecId && other.EntryId != entryId &&
+             GetSelectableFreeGroup(other.EntryId) == freeChoiceGroup)
+           for (uint32 spellId : other.SpellIds)
+-            if (spellId && player->HasSpell(spellId))
++            if (spellId && spellId != selectedSpellId && player->HasSpell(spellId))
+               player->removeSpell(spellId, SPEC_MASK_ALL, false);
+     }
+ 
+     for (uint32 spellId : entry.SpellIds)
+-      if (spellId && player->HasSpell(spellId))
++      if (spellId && spellId != selectedSpellId && player->HasSpell(spellId))
+         player->removeSpell(spellId, SPEC_MASK_ALL, false);
+ 
+-    if (rank > 0)
++    if (rank > 0 && !player->HasActiveSpell(selectedSpellId))
++    {
++      if (player->HasSpell(selectedSpellId))
++        player->removeSpell(selectedSpellId, SPEC_MASK_ALL, false);
+       player->learnSpell(selectedSpellId, false);
++    }
++    if (rank > 0 && !player->HasSpell(selectedSpellId))
++    {
++      for (uint32 spellId : previousSpells)
++        if (!player->HasSpell(spellId))
++          player->learnSpell(spellId, false);
++      error = Acore::StringFormat("Talent entry {} replacement failed; previous choices were retained.", entryId);
++      return false;
++    }
+ 
++    RecordTalentSelection(player, entry, rank);
+     SynchronizeProgression(player);
+ 
+     LOG_INFO("coa", "Set local CoA talent entry {} to rank {} for {} (class {})", entryId, rank,
+@@ -1577,7 +1672,7 @@ public:
+     uint32 removed = 0;
+     for (AscensionCompatData::CoATalentEntry const& entry : AscensionCompatData::CoATalentEntries)
+     {
+-      if (entry.ClassId != player->getClass() || (!entry.AECost && !entry.TECost))
++      if (entry.ClassId != player->getClass() || (!entry.AECost && !entry.TECost) || !TalentRank(player, entry))
+         continue;
+       for (uint32 spellId : entry.SpellIds)
+         if (spellId && player->HasSpell(spellId))
+@@ -1585,6 +1680,7 @@ public:
+           player->removeSpell(spellId, SPEC_MASK_ALL, false);
+           ++removed;
+         }
++      RecordTalentSelection(player, entry, 0);
+     }
+ 
+     SynchronizeProgression(player);
+@@ -1673,7 +1769,9 @@ public:
+                                           uint32(entry->RequiredLevel)) };
+           return false;
+         }
+-        if (!sSpellMgr->GetSpellInfo(entry->SpellIds[item.Rank - 1]))
++        SpellInfo const* selectedSpell = sSpellMgr->GetSpellInfo(entry->SpellIds[item.Rank - 1]);
++        if (!selectedSpell || (UsesRecordedTalents(player) && (selectedSpell->IsDeprecatedForPlayers ||
++            !SpellMgr::IsSpellValid(selectedSpell) || selectedSpell->HasEffect(SPELL_EFFECT_LEARN_SPELL))))
+         {
+           refusal = { "CA_UPDATE_ENTRIES_BAD_ENTRY", "CA_LEARN_BAD_ABILITY", entry->EntryId, item.Rank,
+                       Acore::StringFormat("Talent entry {} rank {} references a missing server spell.",
+@@ -1690,7 +1788,8 @@ public:
+       if (entry.ClassId != player->getClass() || (!entry.AECost && !entry.TECost))
+         continue;
+       auto itr = wanted.find(entry.EntryId);
+-      uint32 const rank = std::max(itr == wanted.end() ? 0 : itr->second, PersistentRank(player, entry));
++      uint32 const rank = std::max(itr == wanted.end() ? 0 : itr->second,
++          UsesRecordedTalents(player) ? 0 : PersistentRank(player, entry));
+       if (rank)
+         priced.push_back({ entry.EntryId, rank });
+     }
+@@ -1727,7 +1826,7 @@ public:
+         continue;
+       auto itr = wanted.find(entry.EntryId);
+       uint32 const rank = itr == wanted.end() ? 0 : itr->second;
+-      if (rank != AscensionCoATalentState::KnownRank(entry, SpellbookOf(player)))
++      if (rank != TalentRank(player, entry))
+         changes.emplace_back(&entry, rank);
+     }
+     if (changes.empty())
+@@ -1839,7 +1938,7 @@ public:
+       if (entry.ClassId != player->getClass() || entry.SpecId != specializationId ||
+           (!entry.AECost && !entry.TECost && !GetSelectableFreeGroup(entry.EntryId)))
+         continue;
+-      if (uint32 const rank = AscensionCoATalentState::KnownRank(entry, SpellbookOf(player)))
++      if (uint32 const rank = TalentRank(player, entry))
+         picks.push_back(entry.EntryId * 10 + rank);
+     }
+     return picks;
+@@ -1955,7 +2054,7 @@ public:
+         if (!entry || entry->ClassId != player->getClass() || entry->SpecId != tree || !rank ||
+             rank > entry->SpellCount)
+           continue;
+-        if (AscensionCoATalentState::KnownRank(*entry, SpellbookOf(player)) >= rank)
++        if (TalentRank(player, *entry) >= rank)
+           continue;
+ 
+         std::string error;
+@@ -2011,6 +2110,8 @@ public:
+     }
+ 
+     StoreBuilds(player, previousSpecialization);
++    if (UsesRecordedTalents(player))
++      ClearRecordedTalentSelections(player, specializationId);
+ 
+     if (Pet* pet = player->GetPet())
+       player->RemovePet(pet, PET_SAVE_NOT_IN_SLOT);
+@@ -3405,6 +3506,7 @@ public:
+     ProcessPendingCompanionSpells(player, diff);
+     ProcessCompanionLoot(player, diff);
+     ProcessCompanionLoot(player, diff, true);
++    ProcessPendingUtilityAction(player, diff);
+     if (auto state = GetState(player))
+     {
+         if (state->CosmeticTimer <= diff)
+@@ -3417,6 +3519,41 @@ public:
+     }
+   }
+ 
++    void QueueUtilityAction(Player* player, uint32 spellId)
++    {
++        auto state = GetState(player);
++        if (!state)
++            return;
++
++        state->PendingUtilitySpell = spellId;
++        state->UtilityActionTimer = 100;
++    }
++
++    void ProcessPendingUtilityAction(Player* player, uint32 diff)
++    {
++        auto state = GetState(player);
++        if (!state || !state->PendingUtilitySpell)
++            return;
++        if (state->UtilityActionTimer > diff)
++        {
++            state->UtilityActionTimer -= diff;
++            return;
++        }
++
++        uint32 const spellId = state->PendingUtilitySpell;
++        state->PendingUtilitySpell = 0;
++        state->UtilityActionTimer = 0;
++        if (spellId == 750750)
++        {
++            Creature* book = player->GetMap()->GetCreature(player->GetCritterGUID());
++            if (!book || !book->IsAlive() || book->GetEntry() != 57500 || book->GetOwnerGUID() != player->GetGUID())
++                return;
++            book->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
++            book->SetNpcFlag(UNIT_NPC_FLAG_TRAINER);
++            player->GetSession()->SendTrainerList(book);
++        }
++    }
++
+     void ProcessCompanionLoot(Player* player, uint32 diff, bool skin = false)
+     {
+         constexpr uint32 CREATURE_LOOTBOT_3000 = 44022;
+@@ -3606,6 +3743,15 @@ public:
+             spells.push_back(vanity.LearnedSpell);
+         }
+ 
++        bool const ownsFurline = std::any_of(_vanityItems.begin(), _vanityItems.end(),
++            [&](auto const& entry)
++            {
++                return entry.second.LearnedSpell == 9931327 &&
++                    (unlockAll || state.OwnedVanityItems.contains(entry.first));
++            });
++        if (ownsFurline && !player->HasSpell(91737) && sSpellMgr->GetSpellInfo(91737))
++            spells.push_back(91737);
++
+         std::sort(spells.begin(), spells.end());
+         spells.erase(std::unique(spells.begin(), spells.end()), spells.end());
+         return spells;
+@@ -5684,7 +5830,16 @@ public:
+       return false;
+ 
+     PlaceStartingActionButtons(player);
+-    return AscensionClassService::Instance().InitializeLiveStarterKit(player);
++    if (!AscensionClassService::Instance().InitializeLiveStarterKit(player))
++      return false;
++
++    constexpr uint32 localStarterBag = 1004037;
++    for (uint8 bag = INVENTORY_SLOT_BAG_START; bag < INVENTORY_SLOT_BAG_END; ++bag)
++      if (!player->GetItemByPos(INVENTORY_SLOT_BAG_0, bag) &&
++          !player->StoreNewItemInBestSlots(localStarterBag, 1))
++        return false;
++
++    return true;
+   }
+ 
+   static void PlaceStartingActionButtons(Player* player)
+@@ -5959,14 +6114,17 @@ public:
+             AscensionResourceService::Instance().CanPrepare(spell);
+     }
+ 
+-    void OnSpellCast(Spell* spell, Unit*,
+-        SpellInfo const*, bool) override
++    void OnSpellCast(Spell* spell, Unit* caster,
++        SpellInfo const* spellInfo, bool) override
+     {
+         if (ascensionCompatConfig.GetConfigValue<bool>(
+                 AscensionCompatConfig::ENABLED))
+         {
+             AscensionResourceService::Instance().OnSpellCast(spell);
+             HandleAscensionClassMechanicsCast(spell);
++            if (Player* player = caster ? caster->ToPlayer() : nullptr)
++                if (spellInfo && spellInfo->Id == 750750)
++                    AscensionCollectionService::Instance().QueueUtilityAction(player, spellInfo->Id);
+         }
+     }
+ 
+@@ -6742,6 +6900,51 @@ class spell_ascension_wildcard_mount : public SpellScript
+     }
+ };
+ 
++class spell_ascension_sunwarmed_furline : public SpellScript
++{
++    PrepareSpellScript(spell_ascension_sunwarmed_furline);
++
++    static constexpr uint32 DisplayId = 99008;
++    static constexpr uint32 CreatureEntry = 80403;
++
++    bool Load() override
++    {
++        return ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED) && GetCaster()->IsPlayer();
++    }
++
++    void ReplaceLegacyMount(SpellEffIndex effIndex)
++    {
++        if (GetSpellInfo()->Id != 9931327)
++            return;
++
++        Player* player = GetHitPlayer();
++        if (!player)
++            return;
++
++        PreventHitDefaultEffect(effIndex);
++        PreventHitAura();
++        player->CastSpell(player, 91737, true);
++    }
++
++    void EnsureMountDisplay()
++    {
++        Player* player = GetCaster()->ToPlayer();
++        if (!player)
++            return;
++
++        if (GetSpellInfo()->Id == 91737 && player->HasAura(91737) &&
++            player->GetUInt32Value(UNIT_FIELD_MOUNTDISPLAYID) != DisplayId)
++            player->Mount(DisplayId, 0, CreatureEntry);
++    }
++
++    void Register() override
++    {
++        OnEffectHitTarget += SpellEffectFn(spell_ascension_sunwarmed_furline::ReplaceLegacyMount,
++            EFFECT_0, SPELL_EFFECT_APPLY_AURA);
++        AfterCast += SpellCastFn(spell_ascension_sunwarmed_furline::EnsureMountDisplay);
++    }
++};
++
+ class npc_ascension_training_book : public CreatureScript
+ {
+ public:
+@@ -7048,6 +7251,7 @@ void AddAscensionCompatScripts() {
+   RegisterSpellScript(spell_ascension_personal_bank);
+   RegisterSpellScript(spell_ascension_experience_potion);
+   RegisterSpellScript(spell_ascension_local_mount);
++  RegisterSpellScript(spell_ascension_sunwarmed_furline);
+   RegisterSpellScript(spell_ascension_jailers_bargain);
+   RegisterSpellScript(spell_ascension_reaper_extinction);
+   RegisterSpellScript(spell_ascension_reaper_extinction_buff);
+diff --git a/src/test/CMakeLists.txt b/src/test/CMakeLists.txt
+index 8ad9d8e..62b5f82 100644
+--- a/src/test/CMakeLists.txt
++++ b/src/test/CMakeLists.txt
+@@ -26,7 +26,6 @@ add_executable(
+ target_link_libraries(
+         unit_tests
+         acore-core-interface
+-        game
+         gtest_main
+         gmock_main
+         coa-interface
+@@ -52,6 +51,8 @@ if(TARGET modules)
+     target_link_libraries(unit_tests modules)
+ endif()
+ 
++target_link_libraries(unit_tests coa game)
++
+ add_test(
+         NAME
+         unit
+diff --git a/apps/coa-tests/client_compat/harness.cpp b/apps/coa-tests/client_compat/harness.cpp
+index 79186a4..505de65 100644
+--- a/apps/coa-tests/client_compat/harness.cpp
++++ b/apps/coa-tests/client_compat/harness.cpp
+@@ -145,16 +145,31 @@ struct Config
+ {
+     bool Enabled = false;
+     bool AllowRemote = false;
++    bool PlaintextHeaders = false;
+     template<class T> T GetOption(char const* name, T fallback, bool = true) const
+     {
+         if (std::strcmp(name, "CoA.Enable") == 0)
+             return T(Enabled);
+         if (std::strcmp(name, "CoA.AllowRemoteClients") == 0)
+             return T(AllowRemote);
++        if (std::strcmp(name, "CoA.PlaintextWorldHeaders") == 0)
++            return T(PlaintextHeaders);
+         return fallback;
+     }
+ } config;
+ Config* sConfigMgr = &config;
++struct Sidecar
++{
++    bool Cluster = false;
++    bool ClusterModeEnabled() const { return Cluster; }
++} sidecar;
++Sidecar* sToCloud9Sidecar = &sidecar;
++struct AuthCrypt
++{
++    uint32 Initializations = 0;
++    bool IsInitialized() const { return Initializations != 0; }
++    void Init(uint32) { ++Initializations; }
++};
+ struct WorldSession
+ {
+     bool GM = false;
+@@ -185,7 +200,13 @@ struct WorldSocket : Socket
+ {
+     explicit WorldSocket(IoContextTcpSocket&& socket);
+     bool HandlePing(WorldPacket& packet);
++    void InitializeHeaderCrypt()
++    {
++        struct { uint32 SessionKey = 7; } account;
++        // ACTUAL_AUTH_CRYPT_STATE
++    }
+     std::array<uint8, 4> _authSeed{};
++    AuthCrypt _authCrypt;
+     // ACTUAL_PING_STATE
+     std::mutex _worldSessionLock;
+     WorldSession* _worldSession;
+@@ -255,6 +276,64 @@ void TestFlood(bool loopback = true)
+     Check(!Ping(unauthenticated, 0ms), "unauthenticated pings remain rejected");
+ }
+ 
++void TestHeaderCrypt()
++{
++    struct Case
++    {
++        bool Enabled;
++        bool Loopback;
++        bool AllowRemote;
++        bool Plaintext;
++        bool Cluster;
++        bool Encrypted;
++        char const* Name;
++    };
++    Case const cases[] =
++    {
++        {true, true, false, true, false, false, "explicit loopback plaintext mode preserves client world headers"},
++        {true, false, true, true, false, false, "explicit allowed-remote plaintext mode preserves world headers"},
++        {true, true, false, false, false, true, "default loopback header mode keeps stock encryption"},
++        {true, false, true, false, false, true, "allowed remote clients retain encryption with plaintext mode off"},
++        {false, true, false, true, false, true, "disabled compatibility keeps loopback headers encrypted"},
++        {false, false, true, true, false, true, "disabled compatibility keeps allowed remote headers encrypted"},
++        {true, false, false, true, false, true, "disallowed remote clients keep stock header encryption"},
++        {false, false, false, false, false, true, "ordinary unconfigured clients keep stock header encryption"},
++        {true, true, false, false, true, false, "existing cluster mode does not initialize header encryption"},
++        {true, false, true, true, true, false, "cluster mode remains independent of plaintext compatibility"}
++    };
++    for (Case const& test : cases)
++    {
++        config.Enabled = test.Enabled;
++        config.AllowRemote = test.AllowRemote;
++        config.PlaintextHeaders = test.Plaintext;
++        sidecar.Cluster = test.Cluster;
++        WorldSocket socket(IoContextTcpSocket{test.Loopback});
++        socket.InitializeHeaderCrypt();
++        Check(socket._authCrypt.IsInitialized() == test.Encrypted &&
++            socket._authCrypt.Initializations == uint32(test.Encrypted), test.Name);
++    }
++
++    sidecar.Cluster = false;
++    config.Enabled = true;
++    config.AllowRemote = true;
++    config.PlaintextHeaders = true;
++    WorldSocket plaintext(IoContextTcpSocket{false});
++    config.Enabled = false;
++    config.AllowRemote = false;
++    config.PlaintextHeaders = false;
++    plaintext.InitializeHeaderCrypt();
++    Check(!plaintext._authCrypt.IsInitialized(), "plaintext header mode is cached per connection");
++
++    WorldSocket encrypted(IoContextTcpSocket{true});
++    config.Enabled = true;
++    config.AllowRemote = true;
++    config.PlaintextHeaders = true;
++    encrypted.InitializeHeaderCrypt();
++    Check(encrypted._authCrypt.IsInitialized() && encrypted._authCrypt.Initializations == 1,
++        "stock encrypted header mode is cached per connection");
++    config.PlaintextHeaders = false;
++}
++
+ int main(int argc, char** argv)
+ {
+     assert(argc >= 2);
+@@ -269,6 +348,7 @@ int main(int argc, char** argv)
+     TestPing(false, true, true, true);
+     TestFlood();
+     TestFlood(false);
++    TestHeaderCrypt();
+     std::cout << checks - failures << '/' << checks << " checks passed\n";
+     return failures ? 1 : 0;
+ }
+diff --git a/apps/coa-tests/client_compat/run.py b/apps/coa-tests/client_compat/run.py
+index 47b8024..5e761d6 100644
+--- a/apps/coa-tests/client_compat/run.py
++++ b/apps/coa-tests/client_compat/run.py
+@@ -1,7 +1,8 @@
+-CLI_DESCRIPTION = """Run native DBC loading and ping regressions without a server or database.
++CLI_DESCRIPTION = """Run native DBC loading, ping and world-header regressions without a server or database.
+ 
+-Uses the real DBC storage/loader and Player regeneration/WorldSocket ping methods.
+-Only database overlays, sessions, configuration and the clock are isolated.
++Uses the real DBC storage/loader, Player regeneration, WorldSocket constructor and ping methods,
++and the production auth-callback header-encryption decision. Database overlays, sessions,
++configuration, encryption initialization and the clock are isolated.
+ Pass --dbc-dir to additionally verify the installed regeneration tables.
+ """
+ 
+@@ -31,6 +32,18 @@ def method(source, signature):
+     return source[start:end]
+ 
+ 
++def auth_crypt_state(source):
++    callback = method(source, 'void WorldSocket::HandleAuthSessionCallback(')
++    initialization = '_authCrypt.Init(account.SessionKey);'
++    assert callback.count(initialization) == 1, 'Expected one production header-encryption initialization.'
++    end = callback.index(initialization) + len(initialization)
++    start = callback.rfind('\n    if (', 0, end)
++    assert start >= 0, 'Production header-encryption initialization must have an explicit guard.'
++    block = callback[start + 1:end]
++    assert '{' not in block and '}' not in block, 'Expected the production single-statement encryption guard.'
++    return block
++
++
+ def main():
+     parser = argparse.ArgumentParser(description=CLI_DESCRIPTION)
+     parser.add_argument('--dbc-dir', type=Path)
+@@ -50,6 +63,7 @@ def main():
+         ('PING_STATE', socket_header[socket_header.index('    TimePoint _LastPingTime;'):
+                                      socket_header.index('    std::mutex _worldSessionLock;')]),
+         ('SOCKET_CONSTRUCTOR', method(socket, 'WorldSocket::WorldSocket(')),
++        ('AUTH_CRYPT_STATE', auth_crypt_state(socket)),
+         ('PING', method(socket, 'bool WorldSocket::HandlePing(')),
+         ('HP_REGEN', method(player, 'float Player::OCTRegenHPPerSpirit(')),
+         ('MP_REGEN', method(player, 'float Player::OCTRegenMPPerSpirit(')),
+diff --git a/src/server/coa/conf/coa.conf.dist b/src/server/coa/conf/coa.conf.dist
+index dca82e6..dfeac36 100644
+--- a/src/server/coa/conf/coa.conf.dist
++++ b/src/server/coa/conf/coa.conf.dist
+@@ -13,6 +13,8 @@ CoA.Enable = 1
+ # Authentication proofs and packet size checks remain required. Restart to apply.
+ CoA.AllowRemoteClients = 0
+ 
++CoA.PlaintextWorldHeaders = 0
++
+ # Ascension's classless character creator submits class ID 10 (Hero).
+ # 1 - Create a stock warrior shell instead.
+ # 0 - Create a Hero. Use this on a realm with CoA.ClassModel = "hero".
+diff --git a/src/server/game/Server/WorldSocket.cpp b/src/server/game/Server/WorldSocket.cpp
+index eeb237e..2680f6a 100644
+--- a/src/server/game/Server/WorldSocket.cpp
++++ b/src/server/game/Server/WorldSocket.cpp
+@@ -129,6 +129,8 @@ WorldSocket::WorldSocket(IoContextTcpSocket&& socket)
+         sConfigMgr->GetOption<bool>("CoA.AllowRemoteClients", false, false);
+     _ascensionCompatEnabled = allowAscensionClient &&
+         sConfigMgr->GetOption<bool>("CoA.Enable", false, false);
++    _usePlaintextWorldHeaders = _ascensionCompatEnabled &&
++        sConfigMgr->GetOption<bool>("CoA.PlaintextWorldHeaders", false, false);
+ 
+     // Extensions.dll changes the Ascension client's ping period to five seconds.
+     // Allow one second of jitter while retaining the ordinary overspeed strike limit.
+@@ -643,10 +645,14 @@ void WorldSocket::HandleAuthSessionCallback(std::shared_ptr<ClientAuthSession> a
+     LoginDatabase.Execute(stmt);
+     // This also allows to check for possible "hack" attempts on account
+ 
+-    if (!sToCloud9Sidecar->ClusterModeEnabled())
++    if (!sToCloud9Sidecar->ClusterModeEnabled() && !_usePlaintextWorldHeaders)
+         // even if auth credentials are bad, try using the session key we have - client cannot read auth response error without it
+         _authCrypt.Init(account.SessionKey);
+ 
++    if (_ascensionCompatEnabled)
++        LOG_INFO("coa", "World packet header mode: plaintext={}, encrypted={}",
++            _usePlaintextWorldHeaders, _authCrypt.IsInitialized());
++
+     // First reject the connection if packet contains invalid data or realm state doesn't allow logging in
+     if (sWorld->IsClosed())
+     {
+diff --git a/src/server/game/Server/WorldSocket.h b/src/server/game/Server/WorldSocket.h
+index f28cb9f..157b92e 100644
+--- a/src/server/game/Server/WorldSocket.h
++++ b/src/server/game/Server/WorldSocket.h
+@@ -126,6 +126,7 @@ private:
+     uint32 _OverSpeedPings;
+     std::chrono::seconds _minimumPingInterval{27};
+     bool _ascensionCompatEnabled = false;
++    bool _usePlaintextWorldHeaders = false;
+     uint32 _firstAscensionExtensionOpcode = 0;
+     uint32 _lastAscensionExtensionOpcode = 0;
+ 

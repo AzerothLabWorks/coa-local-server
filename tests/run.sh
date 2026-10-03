@@ -6,9 +6,18 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 bash -n "$ROOT/scripts/install-coa.sh"
 bash -n "$ROOT/scripts/coa-server.sh"
 bash -n "$ROOT/scripts/prepare-coa-data.sh"
+bash -n "$ROOT/scripts/verify-coa-candidate.sh"
 bash -n "$ROOT/docker/bootstrap-world.sh"
 bash -n "$ROOT/docker/bootstrap-playerbots.sh"
 bash -n "$ROOT/tests/validate-coa-ai.sh"
+python3 "$ROOT/tests/test-staging.py"
+python3 "$ROOT/tests/test-staging-restore-proof.py"
+python3 "$ROOT/tests/test-candidate-verification.py"
+python3 -B "$ROOT/tests/test-coa-range.py"
+
+for patch in "$ROOT"/source-patches/*.patch; do
+  git apply --numstat "$patch" >/dev/null
+done
 
 grep -q 'ac-client-data-init' "$ROOT/compose.yaml" && {
   echo "ERROR: stock client-data downloader must not be present" >&2
@@ -48,20 +57,28 @@ grep -q 'playerbots-core.patch' "$ROOT/scripts/install-coa.sh"
 grep -q 'playerbots-coa.patch' "$ROOT/scripts/install-coa.sh"
 grep -q 'coa-progression-validation.patch' "$ROOT/scripts/install-coa.sh"
 grep -q 'COA_RANDOM_BOT_ACCOUNT_COUNT=120' "$ROOT/scripts/install-coa.sh"
-for patch in playerbots-coa-roles playerbots-coa-heal-ranks playerbots-coa-pilot-recruit coa-bot-pilot-prepare playerbots-coa-combat-travel coa-talent-state; do
+for patch in playerbots-coa-roles playerbots-coa-heal-ranks playerbots-coa-pilot-recruit playerbots-coa-pilot-reservation coa-bot-pilot-prepare playerbots-coa-combat-travel playerbots-coa-riding-preservation coa-talent-state; do
   test -s "$ROOT/source-patches/$patch.patch"
   grep -q "$patch.patch" "$ROOT/scripts/install-coa.sh"
   grep -q "$patch.patch" "$ROOT/tests/validate-playerbots-patches.sh"
 done
 grep -q 'COA_TEST_PILOT_NAMES' "$ROOT/compose.yaml"
 grep -q 'COA_TEST_PILOT_NAMES=' "$ROOT/scripts/install-coa.sh"
+for setting in COA_BOT_MIN_LEVEL COA_BOT_MAX_LEVEL COA_BOT_RIDING_MIN_LEVEL COA_BOT_AUTO_TRADE_ON_ITEM_MENTION COA_BOTS_PER_INTERVAL COA_BOT_STATS_INTERVAL COA_WORLD_STATS_INTERVAL_MS COA_WORLD_SLOW_TICK_MS; do
+  grep -q "$setting" "$ROOT/compose.yaml"
+  grep -q "$setting=" "$ROOT/scripts/install-coa.sh"
+done
+for tier in GROUND FAST_GROUND FLY FAST_FLY; do
+  grep -Fq "AC_AI_PLAYERBOT_USE_${tier}_MOUNT_AT_MIN_LEVEL: \${COA_BOT_RIDING_MIN_LEVEL:-1}" "$ROOT/compose.yaml"
+done
 grep -q 'player->getClass() >= 12' "$ROOT/source-patches/playerbots-coa.patch"
 grep -q 'randomBotCustomClassesOnly' "$ROOT/source-patches/playerbots-coa.patch"
-test -f "$ROOT/client-addons/COAWeakAurasRange/COAWeakAurasRange.toc"
-test -f "$ROOT/client-addons/COAWeakAurasRange/COAWeakAurasRange.lua"
-grep -q 'Dependencies: WeakAuras' "$ROOT/client-addons/COAWeakAurasRange/COAWeakAurasRange.toc"
-grep -q 'wa.IsSpellInRange(probe\[1\], unit) == 1' "$ROOT/client-addons/COAWeakAurasRange/COAWeakAurasRange.lua"
-grep -q 'backup_client_addon COAWeakAurasRange' "$ROOT/scripts/install-coa.sh"
+test -s "$ROOT/client-patches/coa-range/LibRangeCheck-2.0.lua"
+test -s "$ROOT/client-patches/coa-range/WeakAuras-GetRange.patch"
+if grep -q 'cp .*client-addons/COAWeakAurasRange' "$ROOT/scripts/install-coa.sh"; then
+  echo "ERROR: the retired spell-specific range helper must not be installed" >&2
+  exit 1
+fi
 
 help_output="$(bash "$ROOT/scripts/install-coa.sh" --help)"
 grep -q -- '--dry-run' <<< "$help_output"

@@ -31,7 +31,7 @@ Options:
   --dir DIR           Runtime directory (default: ~/wow-server-coa-dev)
   --upstream-ref REF  Upstream branch, tag, or commit (default: main)
   --with-playerbots    Build the pinned open-source Playerbots core and module
-  --client-dir DIR     Optionally install COA WeakAuras range support into this client
+  --client-dir DIR     Client destination for optional UnBot installation
   --playerbots-package-dir DIR
                        Also install UnBot from this repack CoA-Bots directory
   --no-start          Prepare and build images, but do not start services
@@ -106,7 +106,6 @@ validate_inputs() {
 
   if [[ -n "$CLIENT_DIR" ]]; then
     [[ -d "$CLIENT_DIR/Interface/AddOns" ]] || die "Client AddOns directory not found: $CLIENT_DIR/Interface/AddOns"
-    [[ -d "$REPO_ROOT/client-addons/COAWeakAurasRange" ]] || die "COAWeakAurasRange addon is missing from this installer."
   fi
   if [[ -n "$PLAYERBOTS_PACKAGE_DIR" ]]; then
     [[ "$WITH_PLAYERBOTS" == true ]] || die "UnBot installation requires --with-playerbots."
@@ -167,7 +166,11 @@ prepare_runtime() {
     git -C "$INSTALL_DIR/source/modules/mod-playerbots" apply \
       "$REPO_ROOT/source-patches/playerbots-coa-pilot-recruit.patch"
     git -C "$INSTALL_DIR/source/modules/mod-playerbots" apply \
+      "$REPO_ROOT/source-patches/playerbots-coa-pilot-reservation.patch"
+    git -C "$INSTALL_DIR/source/modules/mod-playerbots" apply \
       "$REPO_ROOT/source-patches/playerbots-coa-combat-travel.patch"
+    git -C "$INSTALL_DIR/source/modules/mod-playerbots" apply \
+      "$REPO_ROOT/source-patches/playerbots-coa-riding-preservation.patch"
     git -C "$INSTALL_DIR/source" apply "$REPO_ROOT/source-patches/coa-local-qol-playerbots.patch"
     git -C "$INSTALL_DIR/source" apply "$REPO_ROOT/source-patches/coa-progression-validation.patch"
     git -C "$INSTALL_DIR/source" apply "$REPO_ROOT/source-patches/coa-bot-pilot-prepare.patch"
@@ -188,8 +191,6 @@ prepare_runtime() {
   cp "$REPO_ROOT/docker/bootstrap-playerbots.sh" "$INSTALL_DIR/orchestration/bootstrap-playerbots.sh"
 
   if [[ -n "$CLIENT_DIR" ]]; then
-    backup_client_addon COAWeakAurasRange
-    cp -a "$REPO_ROOT/client-addons/COAWeakAurasRange" "$CLIENT_DIR/Interface/AddOns/COAWeakAurasRange"
     if [[ -n "$PLAYERBOTS_PACKAGE_DIR" ]]; then
       backup_client_addon UnBot
       cp -a "$PLAYERBOTS_PACKAGE_DIR/Client/Interface/AddOns/UnBot" "$CLIENT_DIR/Interface/AddOns/UnBot"
@@ -227,6 +228,14 @@ COA_PLAYERBOTS_ENABLED=$([[ "$WITH_PLAYERBOTS" == true ]] && printf 1 || printf 
 COA_MIN_RANDOM_BOTS=12
 COA_MAX_RANDOM_BOTS=12
 COA_RANDOM_BOT_ACCOUNT_COUNT=120
+COA_BOT_MIN_LEVEL=1
+COA_BOT_MAX_LEVEL=80
+COA_BOT_RIDING_MIN_LEVEL=1
+COA_BOT_AUTO_TRADE_ON_ITEM_MENTION=0
+COA_BOTS_PER_INTERVAL=60
+COA_BOT_STATS_INTERVAL=300
+COA_WORLD_STATS_INTERVAL_MS=300000
+COA_WORLD_SLOW_TICK_MS=100
 COA_BREWING_PILOT_NAME=
 COA_TEST_PILOT_NAMES=
 EOF

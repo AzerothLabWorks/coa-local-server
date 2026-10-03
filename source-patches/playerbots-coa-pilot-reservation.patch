@@ -1,0 +1,77 @@
+diff --git a/src/Bot/RandomPlayerbotMgr.cpp b/src/Bot/RandomPlayerbotMgr.cpp
+index 1643168..b4c9630 100644
+--- a/src/Bot/RandomPlayerbotMgr.cpp
++++ b/src/Bot/RandomPlayerbotMgr.cpp
+@@ -11,6 +11,8 @@
+ #include "Cell.h"
+ #include "CellImpl.h"
+ #include "ChannelMgr.h"
++#include "CharacterCache.h"
++#include "CoaTestPilotAccess.h"
+ #include "DBCStores.h"
+ #include "DBCStructure.h"
+ #include "DatabaseEnv.h"
+@@ -56,6 +58,27 @@ struct GuidClassRaceInfo
+     uint32 rRace;
+ };
+ 
++namespace
++{
++std::set<uint32> GetReservedCoaTestPilotAccounts(std::vector<std::string> const& names,
++    std::vector<uint32> const& randomAccounts, std::map<uint32, uint8> const& assignments)
++{
++    std::set<uint32> reservedAccounts;
++    for (std::string const& name : names)
++    {
++        CharacterCacheEntry const* candidate = sCharacterCache->GetCharacterCacheByName(name);
++        if (!candidate || candidate->Class < 12 || candidate->Class > 32 ||
++            std::find(randomAccounts.begin(), randomAccounts.end(), candidate->AccountId) == randomAccounts.end())
++            continue;
++
++        auto const assignment = assignments.find(candidate->AccountId);
++        if (assignment != assignments.end() && assignment->second == 0)
++            reservedAccounts.insert(candidate->AccountId);
++    }
++    return reservedAccounts;
++}
++}
++
+ void PrintStatsThread() { sRandomPlayerbotMgr.PrintStats(); }
+ 
+ void activatePrintStatsThread()
+@@ -539,6 +562,17 @@ void RandomPlayerbotMgr::AssignAccountTypes()
+         }
+     }
+ 
++    // Reserve the whole generated account: automatic pools operate on accounts,
++    // whereas explicit GM recruitment requires the named pilot to remain type 0.
++    // Never demote an existing random/AddClass assignment on an allowlist change.
++    static std::vector<std::string> const pilotNames = []
++    {
++        char const* configured = std::getenv("COA_TEST_PILOT_NAMES");
++        return ParseCoaTestPilotNames(configured ? configured : "");
++    }();
++    std::set<uint32> const reservedPilotAccounts =
++        GetReservedCoaTestPilotAccounts(pilotNames, allRandomBotAccounts, currentAssignments);
++
+     std::vector<uint32> rndBotAccountCandidates = allRandomBotAccounts;
+     if (sPlayerbotAIConfig.randomBotCustomClassesOnly)
+     {
+@@ -599,7 +633,7 @@ void RandomPlayerbotMgr::AssignAccountTypes()
+         for (uint32 i = 0; i < rndBotAccountCandidates.size() && assigned < toAssign; i++)
+         {
+             uint32 accountId = rndBotAccountCandidates[i];
+-            if (currentAssignments[accountId] == 0) // Unassigned
++            if (currentAssignments[accountId] == 0 && !reservedPilotAccounts.count(accountId))
+             {
+                 PlayerbotsDatabase.Execute("UPDATE playerbots_account_type SET account_type = 1, assignment_date = NOW() WHERE account_id = {}", accountId);
+                 currentAssignments[accountId] = 1;
+@@ -624,7 +658,7 @@ void RandomPlayerbotMgr::AssignAccountTypes()
+         for (size_t idx = allRandomBotAccounts.size(); idx-- > 0 && assigned < toAssign;)
+         {
+             uint32 accountId = allRandomBotAccounts[idx];
+-            if (currentAssignments[accountId] == 0) // Unassigned
++            if (currentAssignments[accountId] == 0 && !reservedPilotAccounts.count(accountId))
+             {
+                 PlayerbotsDatabase.Execute("UPDATE playerbots_account_type SET account_type = 2, assignment_date = NOW() WHERE account_id = {}", accountId);
+                 currentAssignments[accountId] = 2;
