@@ -1,0 +1,96 @@
+{
+  "schema": 1,
+  "release_id": "g1-20261029",
+  "qualified_utc": "2026-10-30T00:31:49.571766+00:00",
+  "source_manifest_sha256": "93ef56b68a4ce70b138d04dcc40b7d6fd25cc02ed7640639378565832aabed1c",
+  "public_tooling": {
+    "scripts/g1.py": "9645232c4c94e44504b443d3061d7024280dc18e1c61f9e5c1538482cac6a389",
+    "docker/g1-container.py": "4c393760eef1a7c49870925f669282e9159f7f71e165d54a3f94db291741b670"
+  },
+  "native_verification": {
+    "source": {
+      "status": "passed",
+      "checks": 15
+    },
+    "build": "passed_clean_build",
+    "unit": {
+      "status": "passed",
+      "ctest_entries": 1
+    },
+    "harness": "skipped",
+    "gameplay": "skipped"
+  },
+  "fresh_database": {
+    "status": "passed",
+    "reused_separately_qualified_build": true,
+    "one_uninterrupted_final_install_run": false,
+    "player_snapshot_imported": false,
+    "bootstrap_replayed": false,
+    "world_baseline_tables_verified": 318,
+    "counts": {
+      "accounts": 201,
+      "character_tables": 164,
+      "characters": 2010,
+      "online_characters": 0,
+      "playerbots_tables": 30,
+      "rotation_names": 71,
+      "rotation_rules": 2520
+    },
+    "services": {
+      "authserver": {
+        "internal_listener_ready": true,
+        "oom_killed": false,
+        "restart_count": 0,
+        "running": true
+      },
+      "worldserver": {
+        "internal_listener_ready": true,
+        "oom_killed": false,
+        "restart_count": 0,
+        "running": true
+      }
+    },
+    "runtime_updaters_disabled": true,
+    "narrow_truncate_permissions_tested": true
+  },
+  "qualified_binary_sha256": {
+    "src/server/apps/authserver": "cff7e6302f2dce38f9bcee5d4559c71dee394c9fc43f2aa411e6ccdfc0cd6bf6",
+    "src/server/apps/worldserver": "94f97820a0e36d0d07ccd8d09d998570d02fdad183745080f9e73703bbbe5663",
+    "src/tools/dbimport": "8ed09f186ab4026d787c1dd3fb7f571aef0e0147d24390ef5875be89dcaf3301"
+  },
+  "repository_fast_checks": {
+    "passed": 119,
+    "skipped": 1,
+    "skipped_reason": "optional external WeakAuras fixture unavailable",
+    "installer_tests": 41
+  },
+  "native_client_patch_tests": {
+    "synthetic_tests_passed": 24,
+    "retained_archive_variants_prepared": 5,
+    "installed_to_live_client": false
+  },
+  "graphics": {
+    "status": "passed_fresh_source_build",
+    "tests": [
+      "vfog_harness",
+      "comments"
+    ],
+    "installed_to_live_client": false
+  },
+  "existing_playable_realm_changed": false,
+  "remaining": [
+    "Community client login, character creation and full dungeon acceptance",
+    "Rendered GM confirmation UI acceptance",
+    "Backup restore rehearsal",
+    "Portable matching terrain extraction recipe",
+    "Automatic existing-server upgrade workflow"
+  ],
+  "backup": {
+    "status": "passed",
+    "game_services_stopped": true,
+    "gzip_integrity": "passed",
+    "receipt_hash_matches": true,
+    "completion_footer_present": true,
+    "restore_tested": false
+  }
+}

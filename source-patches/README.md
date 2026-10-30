@@ -1,5 +1,10 @@
 # COA source patch recipes
 
+> Historical checkpoint. The current public G1 source release is
+> [g1-20261029](../releases/g1-20261029/manifest.json), installed with
+> [scripts/g1.py](../scripts/g1.py). Do not combine the historical patch sequences below
+> with that release. See [legacy builds](../docs/legacy-builds.md).
+
 This checkpoint contains two different integration paths. The existing installer uses the accepted
 old-core build. The G1 native candidate is staging-only and has separate exports. Committing these
 files does not upgrade a running realm or make the installer a qualified production-upgrade tool.

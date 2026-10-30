@@ -1,0 +1,1661 @@
+{
+  "schema_version": 1,
+  "release_id": "g1-20261029",
+  "core": {
+    "repository": "https://github.com/jealous-sound/azerothcore-wotlk-coa.git",
+    "revision": "bfe93aa95a25c4e60c82995df0d93e083f3bba94"
+  },
+  "playerbots": {
+    "repository": "https://github.com/mod-playerbots/mod-playerbots.git",
+    "revision": "619a06fc795a7220fd5c27d5a5aa4a2fbe383b72"
+  },
+  "patches": [
+    {
+      "target": "core",
+      "path": "releases/g1-20261029/core.patch",
+      "sha256": "47ebaa1beb1306c077cdad716b7695c1be673717942ea863e92682d8356099e7",
+      "files": {
+        "apps/coa-gameplay-test/README.md": {
+          "sha256": "2c38aeffcf24019655477a65aa68fa38b4255e41b06528c0a366d95e2c1e3de1",
+          "executable": false
+        },
+        "apps/coa-gameplay-test/batch.py": {
+          "sha256": "279e35ec2371f37152727e32b188171c7d2db9cd51cdc1848637cf3094ac7c8f",
+          "executable": false
+        },
+        "apps/coa-gameplay-test/check_g1_bot_mounts.py": {
+          "sha256": "9321e4ebe71d5eb4913bc766901e8c2ddfe5752116ba161ccd43a2ec37e7c469",
+          "executable": false
+        },
+        "apps/coa-gameplay-test/check_g1_utilities.py": {
+          "sha256": "c58264f629d55c257cde18afd1ecd525c6a11b2abf2be1d5ea36bc30c3752de9",
+          "executable": false
+        },
+        "apps/coa-gameplay-test/checks.json": {
+          "sha256": "5d81183fc1148bc84b83d62d8ed3397d8e934134fddd48af65dd9aa19fdd3e90",
+          "executable": false
+        },
+        "apps/coa-gameplay-test/run.py": {
+          "sha256": "89b93e69496d83e168e6bf04083fe6c28495a9febb27911aa00ec1cf3fd07c54",
+          "executable": false
+        },
+        "apps/coa-gameplay-test/scenarios/character-advancement-specialization-slot-large-build.json": {
+          "sha256": "d9e984c6b0b6d8a6d0e088f6654795abd80736110f21a80cebcf32692ce270ca",
+          "executable": false
+        },
+        "apps/coa-gameplay-test/scenarios/dungeon-targorr-loot-7743.json": {
+          "sha256": "4b803a19bebd0e6f02daea5bccc01fcb194fd709471c2723b0d3b365a365edaa",
+          "executable": false
+        },
+        "apps/coa-gameplay-test/scenarios/g1-artisans-filtering.json": {
+          "sha256": "a525e9bfd9d38703b24fc3783d4125814f4805ff212937955d402971bca12551",
+          "executable": false
+        },
+        "apps/coa-gameplay-test/scenarios/g1-artisans-primary-upgrades.json": {
+          "sha256": "16051a7abbf153acae7e6f62754cc7506629140f2f4e2a0bf729251538583885",
+          "executable": false
+        },
+        "apps/coa-gameplay-test/scenarios/g1-artisans-profession-limit.json": {
+          "sha256": "d28df4562e46927d7bd955a64d920951810c28308eee0b7458615884537de10b",
+          "executable": false
+        },
+        "apps/coa-gameplay-test/scenarios/g1-artisans-secondary-upgrades.json": {
+          "sha256": "41624b3a13868ed35b1847e944248ee84f014617cba34b5b6c68c76b87b44f6f",
+          "executable": false
+        },
+        "apps/coa-gameplay-test/scenarios/g1-artisans-summon.json": {
+          "sha256": "ee7e45b90d9e7bafd8f818a111d5b9e8c86dbe57348ecff0470681a25effa581",
+          "executable": false
+        },
+        "apps/coa-gameplay-test/scenarios/g1-azeroth-mount-flight.json": {
+          "sha256": "66b375c4f6f95dc18c52a9a68dc5e0477281d749127068caccb47ee2f8ade630",
+          "executable": false
+        },
+        "apps/coa-gameplay-test/scenarios/g1-bot-mount-acquisition.json": {
+          "sha256": "8d9a42acefc46c7eedf87a6f4e31f052d6c766b21f22b3fcbd80a6528bcc6bf3",
+          "executable": false
+        },
+        "apps/coa-gameplay-test/scenarios/g1-bot-preparation.json": {
+          "sha256": "bbd643095cb35221242d15d68d8e9f4efa046c595bb24db7f96d619fef3b5347",
+          "executable": false
+        },
+        "apps/coa-gameplay-test/scenarios/g1-defiance-first-upload.json": {
+          "sha256": "ca5f4ab4bc8b4dd55c49444defd7f33013b4a2b6390fa256757cc195ab235c20",
+          "executable": false
+        },
+        "apps/coa-gameplay-test/scenarios/g1-defiance-upload-validation.json": {
+          "sha256": "fbf59de6ee093747acd2ec24ddc19dd39f3839e04e841b18e3c7410d4a8faa77",
+          "executable": false
+        },
+        "apps/coa-gameplay-test/scenarios/g1-furline-compat.json": {
+          "sha256": "065075adbb3ac7399326a28c3cb286cb3f9032645e750487e6552e463cf1046f",
+          "executable": false
+        },
+        "apps/coa-gameplay-test/scenarios/g1-gathering-live-nodes.json": {
+          "sha256": "e63b02e5d2d73eade6f090dacd5fbe08e10da60a0a8722b9c053b239d8f87131",
+          "executable": false
+        },
+        "apps/coa-gameplay-test/scenarios/g1-lfg-bc-entry-level-68.json": {
+          "sha256": "23ed2b8fc64752eb14851619d0c823f57322b274698c1ad667f81fc35fcbe7b3",
+          "executable": false
+        },
+        "apps/coa-gameplay-test/scenarios/g1-lfg-bc-entry-overlevel-71.json": {
+          "sha256": "37797afbef9e923381f14bc125982d1cf86e323b5c1a5a640df839ba280f501b",
+          "executable": false
+        },
+        "apps/coa-gameplay-test/scenarios/g1-lfg-bc-entry-underlevel-64.json": {
+          "sha256": "338e99d4df03095f28bb9aff76687e25221f873f2c9a47cdc54b204a3fe5c098",
+          "executable": false
+        },
+        "apps/coa-gameplay-test/scenarios/g1-lfg-bc-normal-repeat-reward-64.json": {
+          "sha256": "0ae9607e572c8c401b4d540ef4a0d70c476d9d3351ebdbfc7251a6d1264efe66",
+          "executable": false
+        },
+        "apps/coa-gameplay-test/scenarios/g1-lfg-bc-normal-reward-64.json": {
+          "sha256": "73956b37b77fd666630734cb9c37818ff73607c5af7b2320028243e092aa9ac2",
+          "executable": false
+        },
+        "apps/coa-gameplay-test/scenarios/g1-lfg-bc-normal-reward-65.json": {
+          "sha256": "5a23aee12d221dcdbceff6cb2409cc270511740121717ed2fcba1011610babd6",
+          "executable": false
+        },
+        "apps/coa-gameplay-test/scenarios/g1-lfg-status-specific-auchenai.json": {
+          "sha256": "96fe9a775c71337c8238fe76674ac8f4cc37b542b4c5e0e9f21510194ffac307",
+          "executable": false
+        },
+        "apps/coa-gameplay-test/scenarios/g1-lfg-wrath-normal-reward-71.json": {
+          "sha256": "81f45152e1d6a2054b9c91ad2476666cf79df98179ebc38207698b64d70b6060",
+          "executable": false
+        },
+        "apps/coa-gameplay-test/scenarios/g1-upstream-bot-preparation.json": {
+          "sha256": "d7fc268e43b59ad445e9725b374cf0c266f49c7c1fb3ef862b4bfafb6c3f3395",
+          "executable": false
+        },
+        "apps/coa-gameplay-test/scenarios/lfg-level-60-reward.json": {
+          "sha256": "0764a389209d6606abe7a6ac1efb57660f07d0ff723a473f1d4755c2322b016c",
+          "executable": false
+        },
+        "apps/coa-gameplay-test/scenarios/profession-cast-time-cap-disabled.json": {
+          "sha256": "d65f311325931a3d60e173eb903749f7f56a6eaf82f15a480be1cede753626e5",
+          "executable": false
+        },
+        "apps/coa-gameplay-test/scenarios/profession-cast-time-cap.json": {
+          "sha256": "861c64d211e8c856afbb91373e0269df850f7c391d0ce122a1eb4cdf65ad3eb2",
+          "executable": false
+        },
+        "apps/coa-gameplay-test/scenarios/quest-log-extension-initialized-resync.json": {
+          "sha256": "602e448c8a501f7fa0f1ddadbb21b0a3f37fdb53f372532ac67d9e69a6f1caa5",
+          "executable": false
+        },
+        "apps/coa-gameplay-test/scenarios/tinker-class-rocket-bombardment-next-attack.json": {
+          "sha256": "e7d7b140e6b7e794f5ef1d997fd1d893f495a5f383d4db02041d6ca10d1ea2ed",
+          "executable": false
+        },
+        "apps/coa-gameplay-test/scenarios/tinker-pet-health-regeneration-6830.json": {
+          "sha256": "08f0d170f0502c1b91b92c5b5b5dddf1c6f5b908b79cf44c973fecb8865b18b8",
+          "executable": false
+        },
+        "apps/coa-gameplay-test/scenarios/tinker-pet-passive-stance-7475.json": {
+          "sha256": "4f4a3a1030b3822078aa7acf91152f31d6a932702d2c0b4ec8fc6189d9cf49b6",
+          "executable": false
+        },
+        "apps/coa-gameplay-test/test_batch.py": {
+          "sha256": "e1ec515dc363d06d80e3a70c737becad9c8bb643e93e4d0b76c7d15caf5947fd",
+          "executable": false
+        },
+        "apps/coa-gameplay-test/test_runner.py": {
+          "sha256": "ad5f799f201095f392c116cc8eae59b814292e84ceb8df75cd2715b0fa203c9c",
+          "executable": false
+        },
+        "apps/coa-gameplay-test/test_verification.py": {
+          "sha256": "72c99d9d7f48e0e317a97d443c1d5137741ddb330d4773b14ad02c2ea8e6b6de",
+          "executable": false
+        },
+        "apps/coa-tests/client_compat/harness.cpp": {
+          "sha256": "cfabcfaff3723b4ee61d1e371c0f2a7b599f4343e63311520f03795545bfb1ab",
+          "executable": false
+        },
+        "apps/coa-tests/client_compat/run.py": {
+          "sha256": "e01a6f1debc959378b3e6536e3d1706e6c9312a98e4472590276313a8ce9e97e",
+          "executable": false
+        },
+        "apps/coa-tests/equipped_gear_loot/cases.cpp": {
+          "sha256": "50fa27fbdd9a9b4e23ada6bc728b482af41875fcae9468fc8db747c3bb171fb2",
+          "executable": false
+        },
+        "apps/coa-tests/equipped_gear_loot/harness.cpp": {
+          "sha256": "223ae35c2e9b7166672064086ec17f09c053c4413b3e24056ed419330b68afa8",
+          "executable": false
+        },
+        "apps/coa-tests/equipped_gear_loot/run.py": {
+          "sha256": "0f10dc9f99da2f35a7a4e0b8dddbf3247afe578af9f805efffc1b7c089992692",
+          "executable": false
+        },
+        "apps/coa-tests/extension_packets/harness.cpp": {
+          "sha256": "aaf130b1a6b01cbf752ebb47b1ede4930fe0e3f72f318bef1c66e467907d3c57",
+          "executable": false
+        },
+        "apps/coa-tests/extension_packets/run.py": {
+          "sha256": "974aaa9275137272861b27039495a9260e5c42851c84ccd9e6efde5f8a343362",
+          "executable": false
+        },
+        "apps/coa-tests/g1_artisans_catalog/run.py": {
+          "sha256": "df2927819df0f308d07d990e7a957631b57d2e55ced13edc6460baaf44cc2516",
+          "executable": false
+        },
+        "apps/coa-tests/g1_bot_mount/run.py": {
+          "sha256": "5d41c26bd124b3aab141ccef11ba99345c17820545c3cf0f0d9bf389ab9f485c",
+          "executable": false
+        },
+        "apps/coa-tests/g1_bot_mount_policy/run.py": {
+          "sha256": "61b2fb0201b07450ff2d2968d3fc678964fd51054525b273cfabf962a3eb3f92",
+          "executable": false
+        },
+        "apps/coa-tests/g1_bot_preparation/run.py": {
+          "sha256": "ad3c3340bf57d3447a2f51a8fc82b7899ea8b3e187e6bf2510c75d937df02157",
+          "executable": false
+        },
+        "apps/coa-tests/g1_brewing_recovery/fixture.cpp": {
+          "sha256": "16f1b9f110bfe1319bfe84b5bf435e7e1069e259cda5dbc5e13e65a2f740bd40",
+          "executable": false
+        },
+        "apps/coa-tests/g1_brewing_recovery/run.py": {
+          "sha256": "f642e3766758088e6710bfe0e4fee9e6c1879117c2cf0354f1850aad34394a6f",
+          "executable": false
+        },
+        "apps/coa-tests/g1_gathering_addon/cases.lua": {
+          "sha256": "b347438fec743e8168a5f54a9a7d7bd17baa173e5e29d6422126fee2db4fad9c",
+          "executable": false
+        },
+        "apps/coa-tests/g1_gathering_addon/run.py": {
+          "sha256": "14046820380ed6150c6d096bf3e01cfd83b4655e7d7c0e4908fe67b356b1bf60",
+          "executable": false
+        },
+        "apps/coa-tests/g1_gathering_server/fixture.cpp": {
+          "sha256": "bc6434858cc634d810f2f445351e0c5d11b8c8cee2bb5b3c2ff81766c95361b0",
+          "executable": false
+        },
+        "apps/coa-tests/g1_gathering_server/run.py": {
+          "sha256": "c5557a20a105a45dfeffb9819ad0c623097791348aff61bdce313d79b0e8b0a8",
+          "executable": false
+        },
+        "apps/coa-tests/g1_incremental_refresh_sql/run.py": {
+          "sha256": "aca80be82bb66c827d386dc21e64b7c8df95213c5d74b37a6c5e56418c328173",
+          "executable": false
+        },
+        "apps/coa-tests/g1_lfg_rewards/run.py": {
+          "sha256": "b59f1079a4f05a0a83a257a0941d5255d4c857b13be79e5d6e756dbd4162435c",
+          "executable": false
+        },
+        "apps/coa-tests/g1_lfg_status/cases.cpp": {
+          "sha256": "a2f6f4b72009b003c892f186c79a89c9e54ca35aae51d02ae279545527fabfa5",
+          "executable": false
+        },
+        "apps/coa-tests/g1_lfg_status/run.py": {
+          "sha256": "51e4668677acd755d0229167c10d07cacaae12a8649c1234ed3496744186bdc3",
+          "executable": false
+        },
+        "apps/coa-tests/g1_lfg_tracker/run.py": {
+          "sha256": "6f7706a6f99a91d7000f7d99433dbff28d09988b224e862cd3873faf455b2685",
+          "executable": false
+        },
+        "apps/coa-tests/g1_mount_flight/cases.cpp": {
+          "sha256": "6b433cd883e111729198e3af85bc25076fc7051cce0124095408aab90efea8cc",
+          "executable": false
+        },
+        "apps/coa-tests/g1_mount_flight/fixture.h": {
+          "sha256": "9781716b6f2f796cbfd8dc907efae8a96d23d4e78ebb2b5850d2d542f2b210c0",
+          "executable": false
+        },
+        "apps/coa-tests/g1_mount_flight/run.py": {
+          "sha256": "85fb111299b2c5e8186c316aee02f3c46d401f4ce032a7052485ad17c98bb0ce",
+          "executable": false
+        },
+        "apps/coa-tests/g1_optional_module_sql/run.py": {
+          "sha256": "eddeca4883ace1f6e10b0b47b51704a492fbb7bb472eacca67b390832d5a1f32",
+          "executable": false
+        },
+        "apps/coa-tests/g1_party_social/fixture.cpp": {
+          "sha256": "a239dcbcaf286c38efd4c3b8453751d60f483edbb939e5b2ada0c188a132f034",
+          "executable": false
+        },
+        "apps/coa-tests/g1_party_social/fixture.h": {
+          "sha256": "a0cfc69fa205f0f8209a4a4e9be7afe3b907653e0fc03791d06cddfe63bfd443",
+          "executable": false
+        },
+        "apps/coa-tests/g1_party_social/run.py": {
+          "sha256": "6815e57f30bf5ab9d56a4e5965cae6c760e33cf8008935dcf7707d114d25301c",
+          "executable": false
+        },
+        "apps/coa-tests/g1_rotation_import/generate.py": {
+          "sha256": "f58d9a23e59cb563340def5c0590d12d0ae3cbb1e923416e38f4529f39636549",
+          "executable": false
+        },
+        "apps/coa-tests/g1_rotation_import/loader_fixture.cpp": {
+          "sha256": "cf8c6d35b27cdfa4b7df09969b084c0de0d52092b5a09fbd90818db9f847ead6",
+          "executable": false
+        },
+        "apps/coa-tests/g1_rotation_import/run.py": {
+          "sha256": "c5212ed1a440e8a5322671acd8c538cdf9e06f998db996d337d10065808f1b1d",
+          "executable": false
+        },
+        "apps/coa-tests/g1_social_adapter/fixture.cpp": {
+          "sha256": "05a3cdc2636ad377918ff667b50b53b23858d567007f89f1c103f211d2c25df8",
+          "executable": false
+        },
+        "apps/coa-tests/g1_social_adapter/fixture.h": {
+          "sha256": "482df5343ffb5e5733f843b9a44a1e8bdbc21ba728be589d856f61699189a744",
+          "executable": false
+        },
+        "apps/coa-tests/g1_social_adapter/run.py": {
+          "sha256": "45cd32f2a998212123c251ec7e4f5329b6ed632e4366b30b41ba5ab8213f1252",
+          "executable": false
+        },
+        "apps/coa-tests/g1_social_pacing/fixture.cpp": {
+          "sha256": "907a6f2658c88ba34fe83c644c5c9c8b59d85e47c229f2af90cc0b7be3cb55ae",
+          "executable": false
+        },
+        "apps/coa-tests/g1_social_pacing/run.py": {
+          "sha256": "0abd27490e9cfa7d7247258fdc824184c4f3f3ff4b108e0e7aab15fbed84b8ba",
+          "executable": false
+        },
+        "apps/coa-tests/g1_social_replies/cases.cpp": {
+          "sha256": "54956e0395e9d2f476f244c1baab26e5f161a2e1dea5adc4bfe071ae99231835",
+          "executable": false
+        },
+        "apps/coa-tests/g1_social_replies/run.py": {
+          "sha256": "345142c335fceed2b8bd51c16b9b474d84fe2cd37c279544f2f9e32d80f7f051",
+          "executable": false
+        },
+        "apps/coa-tests/g1_terrain_alignment/harness.cpp": {
+          "sha256": "b733c5590d5c1f3d25f85388f414608b74c81ea54ac4bace64d2bb754dcfd6b4",
+          "executable": false
+        },
+        "apps/coa-tests/g1_terrain_alignment/run.py": {
+          "sha256": "468a825f16dd88ee88acc6e3a6093168fc43a733ab63e98bafe528d24238d2dc",
+          "executable": false
+        },
+        "apps/coa-tests/g1_upstream_profiles/oracle.json": {
+          "sha256": "942842a825470bd4e42ece27870057b2702b32d9d824b6aef44749ecc423a3ba",
+          "executable": false
+        },
+        "apps/coa-tests/g1_upstream_profiles/run.py": {
+          "sha256": "ea659f0609316cb2913441d2e048429e7b4061a2be35999ad86e37beee678b30",
+          "executable": false
+        },
+        "apps/coa-tests/gameplay_relog_clock/fixture.cpp": {
+          "sha256": "41438b843e1dbbd9a42dddd1ae6b1b36ec70573f876f3cb53e15a9dc65612085",
+          "executable": false
+        },
+        "apps/coa-tests/gameplay_relog_clock/run.py": {
+          "sha256": "9a526fc63e7936038f5e85e7f00d6c3d83f832c37b4efe2b1aeff423fee6e171",
+          "executable": false
+        },
+        "apps/coa-tests/mount_wrappers/run.py": {
+          "sha256": "e88ed25b60ab9fb12869e609046844667202dcfeff3cf17dd96a3450a8ac05e3",
+          "executable": false
+        },
+        "apps/coa-tests/outfit_persistence/harness.cpp": {
+          "sha256": "9e131fa0b2a688e567abd2c61f573fde7c781f87ecb3dad89c6eb79efeba100e",
+          "executable": false
+        },
+        "apps/coa-tests/profession_cast_time/fixture.cpp": {
+          "sha256": "866c24d258f7f6dc488a6e6d92b973e9b19684fe480451fbd0d289ae5af18bf4",
+          "executable": false
+        },
+        "apps/coa-tests/profession_cast_time/run.py": {
+          "sha256": "ef976f75d63ade9d653941a2063993cdab23926fa6a7639c69dfad9cbcef5c74",
+          "executable": false
+        },
+        "apps/coa-tests/talent_state/run.py": {
+          "sha256": "a6bf11aaf8161a639e2e02b436db8910e881f1ad9184f49648d7f44208c245a2",
+          "executable": false
+        },
+        "data/sql/updates/pending_db_playerbots/rev_20261004_00_coa_metadata.sql": {
+          "sha256": "642ad22ff6503f22c7fef25174cb0f35b99117fec3fb2274048b780979cfeedd",
+          "executable": false
+        },
+        "data/sql/updates/pending_db_playerbots/rev_20261004_00_coa_rotations.sql": {
+          "sha256": "59735d6c07adb39a13cf60cbed6e16423f7fc98a61cc70af7aea400990d0575f",
+          "executable": false
+        },
+        "data/sql/updates/pending_db_world/rev_1792365477029742178.sql": {
+          "sha256": "e7abae6b298469284a9640d8d8b4a107d3f1fb41749800c644e17b4a3fcdb012",
+          "executable": false
+        },
+        "data/sql/updates/pending_db_world/rev_1792866104643742047.sql": {
+          "sha256": "1120fca4f214a724954d8f00d13df7893ad74f917c51db052dd3275df7777dbc",
+          "executable": false
+        },
+        "data/sql/updates/pending_db_world/rev_20260916_00_stone_of_retreat_destinations.sql": {
+          "sha256": "f47d569fddb615d11b2cb2d4350d0191bdb885bfc19f4b4990d0c585995e0556",
+          "executable": false
+        },
+        "data/sql/updates/pending_db_world/rev_20260925_00_local_optional_table_bootstrap.sql": {
+          "sha256": "0c58d4b71977909f140ca4400a5a80c256e15b41e262ef97a41a2efe3c81aeb3",
+          "executable": false
+        },
+        "data/sql/updates/pending_db_world/rev_20260926_00_local_artisans_model_fallback.sql": {
+          "sha256": "8a8f162130d3cff3efadbc910ff0b040956d0c6a724818ad5b6bada7790bbc20",
+          "executable": false
+        },
+        "data/sql/updates/pending_db_world/rev_20260926_41_profession_upgrade_kit_recipes.sql": {
+          "sha256": "775420c08c7dc04aeec7e37a570fb4fed2684a2febdcf07aebc67195343651c1",
+          "executable": false
+        },
+        "data/sql/updates/pending_db_world/rev_20260926_81_retreat_and_defense_scrolls.sql": {
+          "sha256": "00ec594e220c49592016d6d1166bfd518b477bcdee3a5b515111be78ec3e6837",
+          "executable": false
+        },
+        "data/sql/updates/pending_db_world/rev_20260930_99_ASC_northshire_revamp.sql": {
+          "sha256": "f59e43442b5d0712b2639ddca9b7638606e7b67b2e5378367efb817fee0a90e1",
+          "executable": false
+        },
+        "data/sql/updates/pending_db_world/rev_20261001_10_book_of_artisans_recipes.sql": {
+          "sha256": "7631b52ca7d0e8c64d1f2ae2497c3318d46bf8d62eab616043a2c0d44e675ad8",
+          "executable": false
+        },
+        "data/sql/updates/pending_db_world/rev_20261002_00_local_furline_compat.sql": {
+          "sha256": "577715c6e88e66de9e82562ff8c4efc188675906b49ab294913cedc34bb4cb76",
+          "executable": false
+        },
+        "data/sql/updates/pending_db_world/rev_20261009_85_sunwarmed_furline_mount_wrapper.sql": {
+          "sha256": "68831a2dce44f594ca4d40493ee69b1f9bec22c58c805bff26d6f4126ad84f14",
+          "executable": false
+        },
+        "data/sql/updates/pending_db_world/rev_20261012_00_local_ethereal_set_cache_bootstrap.sql": {
+          "sha256": "d56a965806f247d38d02999cb3a0d472e8241b1cd2cd75d790336f2f5a5149ec",
+          "executable": false
+        },
+        "data/sql/updates/pending_db_world/rev_20261012_00_local_worldforged_upgrade_bootstrap.sql": {
+          "sha256": "05e57922f0b2498d85d30cce254bedba7a0a5d36342489a1b29450d291ff87fd",
+          "executable": false
+        },
+        "data/sql/updates/pending_db_world/rev_20261013_90_local_northshire_incremental_guards.sql": {
+          "sha256": "932a516d38520c0d565c8ac662b7c2e5fbe82fb537f5bf62f79eab75a34e4559",
+          "executable": false
+        },
+        "data/sql/updates/pending_db_world/zz_manastorm_treasure_keeper_attackable.sql": {
+          "sha256": "661a7821b6d14f7cfa3058c5e7fc7c974860dc809d0259442b75fac7401ea9fe",
+          "executable": false
+        },
+        "data/sql/updates/pending_db_world/zz_manastorm_tuning_curve.sql": {
+          "sha256": "b0b7c54ea3a0a0b4b6a95dc174a14a0d7a5b834b8ab376be0fe54b9418ba6e3e",
+          "executable": false
+        },
+        "src/server/coa/AscensionBotMounts.h": {
+          "sha256": "5b7244298f1cbd266fd06fc085c857366e8f969ecd43974711c1df51b0bba1ab",
+          "executable": false
+        },
+        "src/server/coa/AscensionCoATalentState.cpp": {
+          "sha256": "87588ccefcc3cf891d6e77ae2013e4f0130ed88d15c57ee54aafd3f80f6ec304",
+          "executable": false
+        },
+        "src/server/coa/AscensionCoATalentState.h": {
+          "sha256": "92d7d822e56a79bc7da8c4cd8675ea02f94ac08e0b70860721f66cc553af49a3",
+          "executable": false
+        },
+        "src/server/coa/AscensionCompat.cpp": {
+          "sha256": "5dece65738f74437beba20bd176c9c061f789b906e9a9b89bd3e0b86aecb0966",
+          "executable": false
+        },
+        "src/server/coa/AscensionLfgObjective.cpp": {
+          "sha256": "b851283ba190bb40677c2b469eff7cf642166283a1de9c0c8aec9b6201e68ad2",
+          "executable": false
+        },
+        "src/server/coa/AscensionMountSpeed.cpp": {
+          "sha256": "169b321739c238ce8dcd7cb615d7734200351ec32551fc3f7d361bed49cc8574",
+          "executable": false
+        },
+        "src/server/coa/AscensionProfessionCastTime.cpp": {
+          "sha256": "26f55fbe71fa1191d246aa39d1add58916a968dd234ce362856e211de51cd0d6",
+          "executable": false
+        },
+        "src/server/coa/AscensionProfessionCastTime.h": {
+          "sha256": "702a7fd1065df9df1f1df307e0b52547c92f17f667dfed10ab252caf1817da61",
+          "executable": false
+        },
+        "src/server/coa/AscensionSpecialization.h": {
+          "sha256": "6d84f89247c597487dac4330d829c293c839aaf5bdb1e6190211a04958528056",
+          "executable": false
+        },
+        "src/server/coa/CoAGameplayTest.cpp": {
+          "sha256": "a279f89f0a0e192faff80adfa0fa9a8823d59afb3ccfb4753848b25ab88b6593",
+          "executable": false
+        },
+        "src/server/coa/CoAScriptLoader.cpp": {
+          "sha256": "c4cc060a7bd750cd7afc3763f16ad995b46131c02238d93031e6f0fb1c47ca78",
+          "executable": false
+        },
+        "src/server/coa/conf/coa.conf.dist": {
+          "sha256": "d9840cac74b958c44c5b50f878bc29fb739a5ece17242da3a577c4fda201f883",
+          "executable": false
+        },
+        "src/server/database/Database/DatabaseLoader.h": {
+          "sha256": "e8b641ca2fb22b2b003051b733fbc883fe78961549fa72aaf3b7b5d850743dd5",
+          "executable": false
+        },
+        "src/server/game/Chat/Channels/Channel.h": {
+          "sha256": "1dc5a4944c074ae6f50b2e902743ce4107717fac5518375c7039bc8e57091fb0",
+          "executable": false
+        },
+        "src/server/game/DungeonFinding/LFGMgr.cpp": {
+          "sha256": "828a1803ef7b3073d6f64ddeb4f1f265868753516bf46d28515fb7d5235316a4",
+          "executable": false
+        },
+        "src/server/game/Entities/Creature/Trainer.cpp": {
+          "sha256": "c47ccd21b4f7ed4f245902ec21a78a9fb9bf48fb861608aeeb345a09989a375a",
+          "executable": false
+        },
+        "src/server/game/Handlers/NPCHandler.cpp": {
+          "sha256": "940c57f6bb51ba82d8b5f278265c063fc0a0aeecc6e05b581e0e0cfc8cec37c8",
+          "executable": false
+        },
+        "src/server/game/Server/WorldSocket.cpp": {
+          "sha256": "4ffd9872a3d17bdd460845b965147e5e8474f25456688c26ef0201cbfcf0c0e8",
+          "executable": false
+        },
+        "src/server/game/Server/WorldSocket.h": {
+          "sha256": "701fdae2621b5d7eba312a645e6e0c87ac67a57f7ebe68c93b0cea76a07e3fdf",
+          "executable": false
+        },
+        "src/server/game/Spells/SpellInfo.cpp": {
+          "sha256": "3aaad03554776f89af0c6b680d733bcc1974301d7cb1319d2521952c80c58f1a",
+          "executable": false
+        }
+      }
+    },
+    {
+      "target": "playerbots",
+      "path": "releases/g1-20261029/playerbots.patch",
+      "sha256": "b27c7742ef8d6de5f2daf128ed7117aef1bd8882713ba3a7a355d3efa00eaed0",
+      "files": {
+        "GUIDE-BOTS-COA-EN.md": {
+          "sha256": "c88df749e97caac61d512fcdbfcb6c23a9d81b9a2a3a4cb2cf1b3fd91f4faf96",
+          "executable": false
+        },
+        "GUIDE-BOTS-COA-FR.md": {
+          "sha256": "e3cbad225932b9447916a444b294d84a841d83bcab6287099ff70e225c01d868",
+          "executable": false
+        },
+        "README.md": {
+          "sha256": "08b8591e6b615c275fc69c1d04f068393b3b0c8b9beed30d6703bb2bef24447e",
+          "executable": false
+        },
+        "README_COA.md": {
+          "sha256": "53da1a54db2cd64da2469534494cfb84f5aa77de00a1f5ea1b9ad8fb56598615",
+          "executable": false
+        },
+        "conf/playerbots.conf.dist": {
+          "sha256": "9acf63f66d6ceaf0a0cdc74d3eb0c4f8ae9dfac3aed016530093a2f8af011dae",
+          "executable": false
+        },
+        "data/sql/playerbots/custom/playerbots_coa_rotations.sql": {
+          "sha256": "7dbfab473f2b810f9e29ce6290ace289a087b14a8997a450053514e458124bf2",
+          "executable": false
+        },
+        "data/sql/playerbots/custom/zz_coa_rotation_corrections.sql": {
+          "sha256": "737c1da35e69414e5159f53e4b4fd77b282bb4f613b0edd836ff1a0194696fc2",
+          "executable": false
+        },
+        "data/sql/playerbots/custom/zz_coa_rotation_corrections_1_7.sql": {
+          "sha256": "2f26d0a9a158658384204347a70d6188b5d973bbdd8e764afc95b000140a1c21",
+          "executable": false
+        },
+        "src/Ai/Base/ActionContext.h": {
+          "sha256": "c476e36fde5a17e37c9596dddc4e48c63ff0bf7a4b36909d345b07eb4f9720eb",
+          "executable": false
+        },
+        "src/Ai/Base/Actions/AcceptInvitationAction.cpp": {
+          "sha256": "35fc27b2546f7973c2a6b47277225a973f71f30d258135d48197c4e98cb2bdda",
+          "executable": false
+        },
+        "src/Ai/Base/Actions/AcceptQuestAction.cpp": {
+          "sha256": "fb1ce66d07fec18b7b43da8774e33c99293dce2ef0547c10abb477b4bc23e85d",
+          "executable": false
+        },
+        "src/Ai/Base/Actions/AcceptQuestAction.h": {
+          "sha256": "d32b685f06a09784e732fa80393bf98f109939c94659e64ed41b5cfd7ed7352c",
+          "executable": false
+        },
+        "src/Ai/Base/Actions/AreaTriggerAction.cpp": {
+          "sha256": "69b8dc349d7960e8dff4068afd8025f30313360ef39e80d38a3ff2dc421bdb0e",
+          "executable": false
+        },
+        "src/Ai/Base/Actions/AutoMaintenanceOnLevelupAction.cpp": {
+          "sha256": "46fa071e857ee7d36013b659a976bf7c0922077006c9a4b09606f0bcb26f0976",
+          "executable": false
+        },
+        "src/Ai/Base/Actions/BattleGroundJoinAction.cpp": {
+          "sha256": "566438553004fc0f78174f1bf1a6edcfa328aea6760e831a4ccd5b38ac9f1f1a",
+          "executable": false
+        },
+        "src/Ai/Base/Actions/BattleGroundJoinAction.h": {
+          "sha256": "f233ebc9dfd3e19a8f2c5cbe230e3564b3e61f01c4bc84ae12eb310a29dba566",
+          "executable": false
+        },
+        "src/Ai/Base/Actions/ChangeTalentsAction.cpp": {
+          "sha256": "b3b5951dea673125d51885d686aad06ceb989df187b491ca428c458c38385237",
+          "executable": false
+        },
+        "src/Ai/Base/Actions/ChangeTalentsAction.h": {
+          "sha256": "62ffee909df1d533ac44384061ec52c156e8ed1b5fd25ca1e6bb6e34119b7511",
+          "executable": false
+        },
+        "src/Ai/Base/Actions/ChatShortcutActions.cpp": {
+          "sha256": "3b6ebc77180590fdd3a346d4e14addd5e7c98eeb434320efc570dade706f12bc",
+          "executable": false
+        },
+        "src/Ai/Base/Actions/CheckMountStateAction.cpp": {
+          "sha256": "e491982bceed3d4f537e9fd3b023a8ddf8dadc82c51ffb0c32bcc811c21a8685",
+          "executable": false
+        },
+        "src/Ai/Base/Actions/CheckMountStateAction.h": {
+          "sha256": "c8522c1a56e5f1a844218f6d27d5e1e5f1ded9d443c230f037194ebad2172884",
+          "executable": false
+        },
+        "src/Ai/Base/Actions/DropQuestAction.cpp": {
+          "sha256": "0b35cf1deed0dc51feb8e8d11e58b790f83a06739185395ea42b74bdbe831a1d",
+          "executable": false
+        },
+        "src/Ai/Base/Actions/EmoteAction.cpp": {
+          "sha256": "c5288b3060f7ecb2466617b0c808879821faca2486b1f0130f324bb560e132c6",
+          "executable": false
+        },
+        "src/Ai/Base/Actions/FollowActions.cpp": {
+          "sha256": "92d8d0c8ec90f9538cc5ad51129090c2270e4f0708c7fbae673ef1c85f4ccb9c",
+          "executable": false
+        },
+        "src/Ai/Base/Actions/InviteToGroupAction.cpp": {
+          "sha256": "81dd27ae5c8cadca25ef70951875f5dd31f3abd2e7329dd79b980b2ac5c62520",
+          "executable": false
+        },
+        "src/Ai/Base/Actions/LeaveGroupAction.cpp": {
+          "sha256": "ced4a7ca2fd9b1e4fa29cf01889b39cd91189f2e038af0292ec227d35c9c3529",
+          "executable": false
+        },
+        "src/Ai/Base/Actions/LfgActions.cpp": {
+          "sha256": "935c13e64a3165335e5317b3d2f1ac544e7bd7536b2e10f154c76b8e15d19e45",
+          "executable": false
+        },
+        "src/Ai/Base/Actions/MovementActions.cpp": {
+          "sha256": "4a75e84c0ab3179e1a206f6ad6c3db65125ddf2bf5157e0fe52cd9b8facb47e1",
+          "executable": false
+        },
+        "src/Ai/Base/Actions/NonCombatActions.cpp": {
+          "sha256": "71f24f288b7fbd2006ab7a1a92818bb8a3cc15b943332cc2a1b5848a394106e4",
+          "executable": false
+        },
+        "src/Ai/Base/Actions/QuestAction.cpp": {
+          "sha256": "9951e92b87465225aba08bf59fca124d8dd0957e769fdd2892c729234b63a03c",
+          "executable": false
+        },
+        "src/Ai/Base/Actions/ReleaseSpiritAction.cpp": {
+          "sha256": "d44fe5e0dee95a4be674cf88654057c32642940b2cda920938e16e587502e3b6",
+          "executable": false
+        },
+        "src/Ai/Base/Actions/ReviveFromCorpseAction.cpp": {
+          "sha256": "88056a6117c76ee2bd3e2c712b54205f3110e285a0754de08a66c55d51ad4670",
+          "executable": false
+        },
+        "src/Ai/Base/Actions/SayAction.cpp": {
+          "sha256": "28939360d7a7c69f34e40e11781d331aab551f39268c2f4ac606c9a39dc8da9c",
+          "executable": false
+        },
+        "src/Ai/Base/Actions/SayAction.h": {
+          "sha256": "1bf821920b7908f9d3e597152511e259b14a024ff4fe07f76cad51086a395bc4",
+          "executable": false
+        },
+        "src/Ai/Base/Actions/UseItemAction.cpp": {
+          "sha256": "3657c6cb78949b2a45ac641ea2002f75ff1b0c7dd3b5743521cdd5c0d0b3453b",
+          "executable": false
+        },
+        "src/Ai/Base/Actions/UseItemAction.h": {
+          "sha256": "b348e4e778da69dd70505e1a4fdf061a2c79ed25bb6c50696f945028cbf84388",
+          "executable": false
+        },
+        "src/Ai/Base/Actions/UseMeetingStoneAction.cpp": {
+          "sha256": "272ea20a8e025703a35472409994b439267e4bc50ccb71dd94105a4507c1f38e",
+          "executable": false
+        },
+        "src/Ai/Base/Strategy/CastTimeStrategy.cpp": {
+          "sha256": "0ebb8598e35cef0c4ffc1ea8161b335dcc0e3ceff43fb7db7af4ecb146cdf374",
+          "executable": false
+        },
+        "src/Ai/Base/Strategy/FollowMasterStrategy.cpp": {
+          "sha256": "1ef9012bce173bf48ea24a1e92e5857a08efc60dc8e645209a901fea9394a00d",
+          "executable": false
+        },
+        "src/Ai/Base/Strategy/NonCombatStrategy.cpp": {
+          "sha256": "e59f6fd4f4ed7dc234063a85d651a34d3c02a72b82a0f2be5c0550f362211b95",
+          "executable": false
+        },
+        "src/Ai/Base/Strategy/QuestStrategies.cpp": {
+          "sha256": "de8341d91d74bc97d9828fa10f66b3e50e51c002e52f06fe55edeaecc5a3d01b",
+          "executable": false
+        },
+        "src/Ai/Base/TriggerContext.h": {
+          "sha256": "19a6d2505d0c0c0a5c3cb3f8861692b3e3528c135665f16fbedf0636f520a39b",
+          "executable": false
+        },
+        "src/Ai/Base/Value/InvalidTargetValue.cpp": {
+          "sha256": "4e80f56b9e20cb8f77e64ad703327b2a1b3c260b16d915956217e1d17dd76178",
+          "executable": false
+        },
+        "src/Ai/Base/Value/ItemUsageValue.cpp": {
+          "sha256": "6a56a481e97ac58fc2d19d131f5ee47d50beea7bc1ffcd94b18b85655bf68c3e",
+          "executable": false
+        },
+        "src/Ai/Base/Value/PartyMemberToResurrect.cpp": {
+          "sha256": "c8031c3ba9e81e8c71698c2b4a8d11f843e7e8ff1a5aec031d0c3efcd75eda02",
+          "executable": false
+        },
+        "src/Ai/Base/Value/TankTargetValue.cpp": {
+          "sha256": "3bc040c18da76a0152f175523415c2574a5a63e46873fd446fd027c4daff38e2",
+          "executable": false
+        },
+        "src/Ai/Base/WorldPacketActionContext.h": {
+          "sha256": "b5c5f48c92624b71bf9f7bc854b300e88b5efa36916aa7ae420f32d2fa6ac0ca",
+          "executable": false
+        },
+        "src/Ai/Base/WorldPacketTriggerContext.h": {
+          "sha256": "a98aa984334b103b4fb3cf080c1803856513049507ac5a7136672cf6713c4f59",
+          "executable": false
+        },
+        "src/Ai/Class/Coa/CoaAiObjectContext.cpp": {
+          "sha256": "29a4170a562e9520cce82b05b36109cea124b29c6387a5b7140eed1df35d5f27",
+          "executable": false
+        },
+        "src/Ai/Class/Coa/CoaAiObjectContext.h": {
+          "sha256": "24425621a139bc2dc80db7f99c3e109caafc2e441dddb96b7de559052d30979b",
+          "executable": false
+        },
+        "src/Ai/Class/Coa/CoaBotNames.cpp": {
+          "sha256": "eb605f1a6462c6668b76473c9a76befebe38b5cc02fc6fed18d7f6c10fb0fcd3",
+          "executable": false
+        },
+        "src/Ai/Class/Coa/CoaBotNames.h": {
+          "sha256": "20b2a8194a0bb61b9f04ca58808954632f8ec600886a8280d74b932c22318a96",
+          "executable": false
+        },
+        "src/Ai/Class/Coa/CoaBrewingProfile.cpp": {
+          "sha256": "e1ad1392048668ec6ae060a78ab6566e355fe77159689def49554d1ed6d008bb",
+          "executable": false
+        },
+        "src/Ai/Class/Coa/CoaBrewingProfile.h": {
+          "sha256": "84debffa96fcce18f5e50d417c21bc1d0b51113dcda6a0b19c8e3da8936e20d7",
+          "executable": false
+        },
+        "src/Ai/Class/Coa/CoaGroupTelemetry.cpp": {
+          "sha256": "de2961da76ddce5de4eaa00ee6eb5498332bdf8429067a3cf90843dd0efadaa6",
+          "executable": false
+        },
+        "src/Ai/Class/Coa/CoaLevelBuildData.h": {
+          "sha256": "c25bf92f8a817c274428fd41f97030e43afafc3eca1e3246de34b0532e8983ab",
+          "executable": false
+        },
+        "src/Ai/Class/Coa/CoaRoleProfile.h": {
+          "sha256": "6492836befa75d9ef7ec1cee5745c064ed638124d27e95cb8acac73d4dd7830d",
+          "executable": false
+        },
+        "src/Ai/Class/Coa/CoaSpecialization.cpp": {
+          "sha256": "3486fe6fd863a80e15f2d9c4836492ac245af4a2a194d9ff85d994efd1f567ba",
+          "executable": false
+        },
+        "src/Ai/Class/Coa/CoaSpecialization.h": {
+          "sha256": "63abaf2eae911318c70d9ef74d2dcbce3babc17930591cba3996cf7a4b70c3e0",
+          "executable": false
+        },
+        "src/Ai/Class/Coa/CoaStatusFile.cpp": {
+          "sha256": "f182d59486ee00859d5b6c2b8704ed426dfcbb06106670b05c466f46afc65151",
+          "executable": false
+        },
+        "src/Ai/Coa/CoaBossKnowledge.cpp": {
+          "sha256": "dc10f17a8accd005c19fee5eecc91d3c3a01bd633c524ae4ba11f090a4f63810",
+          "executable": false
+        },
+        "src/Ai/Coa/CoaBossKnowledge.h": {
+          "sha256": "6df8f8a4b8fe59be447586b86f9d76d691d860de4bda50f54badc89a430952c1",
+          "executable": false
+        },
+        "src/Ai/Coa/CoaGenericContext.cpp": {
+          "sha256": "3ebb954f8a0cdaeff851e5d41c5cbd36df5ab069baaa659644e07350cfab13e1",
+          "executable": false
+        },
+        "src/Ai/Coa/CoaGenericContext.h": {
+          "sha256": "c668c9191669e5b1abf82cd7bb029f089b17f07203f6d1002a45a16171d446db",
+          "executable": false
+        },
+        "src/Ai/Coa/CoaSpecLookup.h": {
+          "sha256": "c709225e2132afeebb022d7267c177abca71f1d925354aee1ad8d0c4ec645019",
+          "executable": false
+        },
+        "src/Ai/Coa/CoaSpecStatWeights.h": {
+          "sha256": "67a4104198d08a15832af44900997e4e52200645c1dbe3b174b988af1957fa0b",
+          "executable": false
+        },
+        "src/Ai/Coa/CoaSpecStrategies.h": {
+          "sha256": "19b133ec884bcb7246b9bbb63c9ecf8cc82e2b3432c3b4768f7eed8c99bd678e",
+          "executable": false
+        },
+        "src/Ai/Dungeon/DungeonStrategyContext.h": {
+          "sha256": "e6aa98dd38b6a5f5bcaf3a756fad5d831b0b0fb8527784e687a1b208bb34bf6f",
+          "executable": false
+        },
+        "src/Ai/Dungeon/RFC/RFCActionContext.h": {
+          "sha256": "b5bf755518e06412bc4fca52ec3bceaa875837b881f744ebc65465744f0d0b47",
+          "executable": false
+        },
+        "src/Ai/Dungeon/RFC/RFCActions.cpp": {
+          "sha256": "e0c321425a30ee197619715e0fbab07d91f3061e70de23bb967a1ce75cf65b76",
+          "executable": false
+        },
+        "src/Ai/Dungeon/RFC/RFCActions.h": {
+          "sha256": "c3a4cde13c95b2da30dc8cae6c44202d0357cba2032765d0573e10363c25d073",
+          "executable": false
+        },
+        "src/Ai/Dungeon/RFC/RFCMultipliers.cpp": {
+          "sha256": "4402825ffb7b743f495d69b6943abacb98865cfeb3b88bc70cd060d6efa052c6",
+          "executable": false
+        },
+        "src/Ai/Dungeon/RFC/RFCMultipliers.h": {
+          "sha256": "e702be40320914fde96927094ebb9d2450ce8f524b7e41516e9c3f1aaae4c39f",
+          "executable": false
+        },
+        "src/Ai/Dungeon/RFC/RFCStrategy.cpp": {
+          "sha256": "ecbe76c04738b0de2af168b0a0cc95ca2cd5abb9572a0723a02d54ebcc314d7f",
+          "executable": false
+        },
+        "src/Ai/Dungeon/RFC/RFCStrategy.h": {
+          "sha256": "003bcf2a63add2170bf1db698c9299aef8121b33ee66a0bb17b9377767dbd9ec",
+          "executable": false
+        },
+        "src/Ai/Dungeon/RFC/RFCTriggerContext.h": {
+          "sha256": "13695beb90d46f0920a7295d222384d4479c99c6c6c762397e9eef142aeee53e",
+          "executable": false
+        },
+        "src/Ai/Dungeon/RFC/RFCTriggers.cpp": {
+          "sha256": "7a78f8e6be3dc41e2f1030efcec1740184e41e2c1d91fd82945d544acfcaed2d",
+          "executable": false
+        },
+        "src/Ai/Dungeon/RFC/RFCTriggers.h": {
+          "sha256": "d5d8b0f5cbfe269cd6fd33ad956ea6a24cdd09934feb5dde5cd6db6de8a8d08c",
+          "executable": false
+        },
+        "src/Ai/Dungeon/SFK/SFKActionContext.h": {
+          "sha256": "f6a3f7671d3fecb4022f4f5ddcfdc96eaf1dd6597dac6d791f679d7dd35f118c",
+          "executable": false
+        },
+        "src/Ai/Dungeon/SFK/SFKActions.cpp": {
+          "sha256": "f64887bca88614269765fb0ac45b57bf81488c4dcdead242a2e78bdde25a170d",
+          "executable": false
+        },
+        "src/Ai/Dungeon/SFK/SFKActions.h": {
+          "sha256": "b2998507e611c1a7702d58061a8ec7daeb5616482d2c1febf5154e0566b73b04",
+          "executable": false
+        },
+        "src/Ai/Dungeon/SFK/SFKMultipliers.cpp": {
+          "sha256": "ad7613ed79878d262092ee3a99e9c8487a23777d593c602efc483ab0a7b8176d",
+          "executable": false
+        },
+        "src/Ai/Dungeon/SFK/SFKMultipliers.h": {
+          "sha256": "4079672341d303cae1efa9a1d72443698c7452120c67312ae0745bb457b9fefc",
+          "executable": false
+        },
+        "src/Ai/Dungeon/SFK/SFKStrategy.cpp": {
+          "sha256": "89e58b587a83eb023391d3b69997fb2206354e796adb06a74aa9c75bad2acc2e",
+          "executable": false
+        },
+        "src/Ai/Dungeon/SFK/SFKStrategy.h": {
+          "sha256": "bd8a0ff5a82358b36ae4c0b748129960d5ca70896b199d4c4824999bed92955f",
+          "executable": false
+        },
+        "src/Ai/Dungeon/SFK/SFKTriggerContext.h": {
+          "sha256": "aa6e4bf4ad1ea11582a61bac91d34acfc95d50828b95524d635a7ed76bb1e838",
+          "executable": false
+        },
+        "src/Ai/Dungeon/SFK/SFKTriggers.cpp": {
+          "sha256": "55480ca91ea1199e5f2cb4d235aef35aa3968e60058b42c6f3a4a20841712a65",
+          "executable": false
+        },
+        "src/Ai/Dungeon/SFK/SFKTriggers.h": {
+          "sha256": "4c39ef3a804d747df98b068e1c2f6d5ecee55fca1de7311507e0d18ad29f2877",
+          "executable": false
+        },
+        "src/Ai/Dungeon/VanillaDungeonActionContext.h": {
+          "sha256": "745037a23409c9d2cf3c095cc5be6732dfd847c125210b2e08d9fde3931af5f5",
+          "executable": false
+        },
+        "src/Ai/Dungeon/VanillaDungeonTriggerContext.h": {
+          "sha256": "77f69dbffb5703bda6bef855f8bc438c91d33f82e6c548136e46f508f2bfbdf4",
+          "executable": false
+        },
+        "src/Ai/World/Rpg/Action/NewRpgAction.cpp": {
+          "sha256": "87ccb2468b74c6a5d6253ed41e8c0f0a213fea0756c2e6595646840e096153df",
+          "executable": false
+        },
+        "src/Ai/World/Rpg/Action/NewRpgAction.h": {
+          "sha256": "4605d98d107a128858af50b33e5e33b312dcd157e2f7dcc4ced85b7a1e16c5a6",
+          "executable": false
+        },
+        "src/Ai/World/Rpg/Action/NewRpgBaseAction.cpp": {
+          "sha256": "fd0bc40e6e3dbaea8605b1fda4057f84ce071b5d547593eac49638f3655f196b",
+          "executable": false
+        },
+        "src/Ai/World/Rpg/Action/NewRpgBaseAction.h": {
+          "sha256": "7d3a2dbc15995a6deca85dde29f8992a4066e62ea28220228e9e9f1320d42d86",
+          "executable": false
+        },
+        "src/Ai/World/Rpg/CoaQuestMenu.h": {
+          "sha256": "290b32966b66807b928f991efd7f45ef2ce1a63029b269a0d62a61661b21b5d6",
+          "executable": false
+        },
+        "src/Ai/World/Rpg/NewRpgInfo.cpp": {
+          "sha256": "24c4f735e9ee110e273f63c77f3de8b59669389eff5dbde4081f685d5d313e20",
+          "executable": false
+        },
+        "src/Ai/World/Rpg/NewRpgInfo.h": {
+          "sha256": "c685b3b12cba755db613d7f553c3c8dcd1e5ff3350987fe3f09aa80e4c0f0310",
+          "executable": false
+        },
+        "src/Ai/World/Rpg/Strategy/NewRpgStrategy.cpp": {
+          "sha256": "a683fca1792b57f7e08d8620121d81721ed37f7cce5e5a4668405ed7f8fba4f5",
+          "executable": false
+        },
+        "src/Bot/Cmd/ChatHelper.cpp": {
+          "sha256": "a0ba0462f64bcdf0694ef1ee595ae45c564592150f129ff35f819d2a50166625",
+          "executable": false
+        },
+        "src/Bot/CoaTestPilotAccess.h": {
+          "sha256": "c88b760e4643ed304acba5bad0861588bf25a878195e7a67fade2c7c052e2c91",
+          "executable": false
+        },
+        "src/Bot/Engine/Action/Action.h": {
+          "sha256": "397400a1a7d15b7302609eedead7507b41dc3217670ad8bb7ee60641d42978a8",
+          "executable": false
+        },
+        "src/Bot/Engine/AiObjectContext.cpp": {
+          "sha256": "d1a4c63f22b63e7efb0140ec2ed5413a5368487aa13cb6be2ce19195d204e270",
+          "executable": false
+        },
+        "src/Bot/Engine/BuildSharedActionContexts.cpp": {
+          "sha256": "44b0b878cbc6562071498c5240fe70ccb37865526603111b3dc9772b6d668c91",
+          "executable": false
+        },
+        "src/Bot/Engine/BuildSharedStrategyContexts.cpp": {
+          "sha256": "eed5b0b3d9a290404ec9cbd281ef18b4b42a77fb566a66b25162230790179c35",
+          "executable": false
+        },
+        "src/Bot/Engine/BuildSharedTriggerContexts.cpp": {
+          "sha256": "a1d4e675f258c0851e2587170858094e94433c0a48fa77a9abceb2e49225f946",
+          "executable": false
+        },
+        "src/Bot/Engine/Engine.cpp": {
+          "sha256": "7439c3403a00ac301cc2fe14f54e3af2e70e887e2fe773f56b8451a06b02ca8c",
+          "executable": false
+        },
+        "src/Bot/Engine/Engine.h": {
+          "sha256": "523a6ca56401e585f24dd80330ae706791ac867bdbc7ca194093f9bb17cdc8bc",
+          "executable": false
+        },
+        "src/Bot/Engine/ExternalEventHelper.cpp": {
+          "sha256": "f6e6a99d59a6d0d6d36ea9e73a70a0db1f965eb4ab8d25c47f75e8969cb83212",
+          "executable": false
+        },
+        "src/Bot/Engine/ExternalEventHelper.h": {
+          "sha256": "e7817b5c926b531aee403a9f3f72cb2b6ae30069540dd0b1426f63700813a6c8",
+          "executable": false
+        },
+        "src/Bot/Engine/NamedObjectContext.h": {
+          "sha256": "acb95c9f0e003f9ee6096fa4379f2cabfa39c0caa6ca09200620dd2a9777d6f8",
+          "executable": false
+        },
+        "src/Bot/Engine/PassiveMultiplier.cpp": {
+          "sha256": "167b3222ea8d98814a11c26beba8bb9299f71e9aa35eeeebe58755ae1e47a0e4",
+          "executable": false
+        },
+        "src/Bot/Engine/SharedObjectPool.h": {
+          "sha256": "6095700801e825948e1a59d079f0cdb4ec9fcd383a181a6e78fa341330645ff1",
+          "executable": false
+        },
+        "src/Bot/Engine/Strategy/CustomStrategy.cpp": {
+          "sha256": "d53098da7585b25be4818d870469cd172c47e3ebc68f771be3b783bebeb72457",
+          "executable": false
+        },
+        "src/Bot/Engine/Strategy/Strategy.cpp": {
+          "sha256": "8e3218ffcd9327346c0667350bf4832291e9643e6a91b5b62aaf35585cbcc80c",
+          "executable": false
+        },
+        "src/Bot/Engine/Trigger/Trigger.cpp": {
+          "sha256": "ef637549971acadb5c314c6df394423d66f58a78670f79ef2f61c5c817460926",
+          "executable": false
+        },
+        "src/Bot/Engine/Trigger/Trigger.h": {
+          "sha256": "b76cd526a603826c06468dcb7dc75f545595193a7bd021cfb89066d508b87553",
+          "executable": false
+        },
+        "src/Bot/Factory/AiFactory.cpp": {
+          "sha256": "dc8fcbae4f6c7e8afe865ab809711faa6adf29f3a5e5a1bf5cb0ce0a4d5981b6",
+          "executable": false
+        },
+        "src/Bot/Factory/AiFactory.h": {
+          "sha256": "17d85d4fe1adf3ddebe9ad377707b3b2f6b881223d33af06dfc238cf2b2f92b1",
+          "executable": false
+        },
+        "src/Bot/Factory/PlayerbotFactory.cpp": {
+          "sha256": "10e7aebd42d1473a2bef75629942eba32f93fcf62881aa14cd1e53fb13d9fc6b",
+          "executable": false
+        },
+        "src/Bot/Factory/PlayerbotFactory.h": {
+          "sha256": "9ed84fe50c8f6d8f2bedc0b89171559189ea7242ba0dbd5be7fa9875fe2e6179",
+          "executable": false
+        },
+        "src/Bot/Factory/RandomPlayerbotFactory.cpp": {
+          "sha256": "61166e5817e1c46bdaebb103b3e021072c8d15fc7d3719be1dd25c2fe9ed0eda",
+          "executable": false
+        },
+        "src/Bot/PlayerbotAI.cpp": {
+          "sha256": "12f135638be4c162889eade0af5e02958db9d5d5928d0a90cbb2fef7efb5d9ae",
+          "executable": false
+        },
+        "src/Bot/PlayerbotAI.h": {
+          "sha256": "1cbae7c36cd585224bd5b21e2e0649a3d9870bdd27f2b16e4962d6108dd7f065",
+          "executable": false
+        },
+        "src/Bot/PlayerbotMgr.cpp": {
+          "sha256": "23553480701c2634f8aa18e70d485f2b88da04aa1bed50c84b762fc92be11db7",
+          "executable": false
+        },
+        "src/Bot/PlayerbotMgr.h": {
+          "sha256": "298ecd89ea6a9f2c44617383a256650787a5c9c835fc64b452e80329120c0087",
+          "executable": false
+        },
+        "src/Bot/RandomBotLevelMgr.cpp": {
+          "sha256": "b84c23bd8a4ea20eb2c29f3173e3f530780360274f5f5e007d832906f928c3e9",
+          "executable": false
+        },
+        "src/Bot/RandomBotLevelMgr.h": {
+          "sha256": "c3ff0f6a39918e22deedc0fbac09c4a5fbc08268a927f67ad8cdffe193bddf67",
+          "executable": false
+        },
+        "src/Bot/RandomPlayerbotMgr.cpp": {
+          "sha256": "092a7fa776f019aeef18894febfc52c19413073bc5c7db0fa66eb15a59a3f947",
+          "executable": false
+        },
+        "src/Bot/RandomPlayerbotMgr.h": {
+          "sha256": "a7561cbda6247185edd29c915e0b73feee5fc707f16f6362c2977d3e6e8c3b4a",
+          "executable": false
+        },
+        "src/Mgr/Item/ItemVisitors.cpp": {
+          "sha256": "bd487c3e3f0884c855439fc63d1125691f128b4d0cf5604b5205861e1f8afd03",
+          "executable": false
+        },
+        "src/Mgr/Item/LootObjectStack.cpp": {
+          "sha256": "15efeb708d1617d61e2c656b696e3b303dd3e43da0cd9bc1375849b7beead6f3",
+          "executable": false
+        },
+        "src/Mgr/Item/RandomItemMgr.cpp": {
+          "sha256": "72d20a85ceac6ec6bd6daac204987d1eb8e615f7dde63884361d525b51de550a",
+          "executable": false
+        },
+        "src/Mgr/Item/StatsWeightCalculator.cpp": {
+          "sha256": "30c2cce9b411c513f510b64d28ad2d82cc858f5f65b93586263182a506b59ad3",
+          "executable": false
+        },
+        "src/Mgr/Item/StatsWeightCalculator.h": {
+          "sha256": "004d1f841cb877bbbc761d24c4473a9ec4971c2dae2fdbef70dbf2d87da1867a",
+          "executable": false
+        },
+        "src/Mgr/Text/PlayerbotTextMgr.cpp": {
+          "sha256": "c208e3ca567491584930f26eb8d2c2703d0bc8ae3c03d60847f31e8e17060597",
+          "executable": false
+        },
+        "src/Mgr/Travel/TravelMgr.cpp": {
+          "sha256": "626f31eb806b926524c59eae9cbef0ac1e09f41b6ca486c59641e9fe33fcf9a0",
+          "executable": false
+        },
+        "src/PlayerbotAIConfig.cpp": {
+          "sha256": "74984354937d34743eec8ce92c1ccdf8b44fcbbb7d6be3b30e51d76586b2bd85",
+          "executable": false
+        },
+        "src/PlayerbotAIConfig.h": {
+          "sha256": "c9c734f13f0d3c083e7338e3f6fa43d6a97282ba50771f5aceac57d4b128275f",
+          "executable": false
+        },
+        "src/Script/PlayerbotCommandScript.cpp": {
+          "sha256": "2fafff1eaffe64e1081447673da9b2068e6ff5f4d964dffe7e7eea0a3ccaf3e8",
+          "executable": false
+        },
+        "src/Script/Playerbots.cpp": {
+          "sha256": "982b6129ff383d5e12ffed0d501baeb2023b0c95cbfcf1aba68aa7b6f4d4c51b",
+          "executable": false
+        },
+        "src/Util/BotChatPacing.cpp": {
+          "sha256": "0eda6dcc32d5fe358c65019f6024af5c18bd1fd2cba4f2449a61a61a675bcb37",
+          "executable": false
+        },
+        "src/Util/BotChatPacing.h": {
+          "sha256": "70b2d6666432e26d3f506096a71a0043871d5510d80f19b4003f647411b5cf6f",
+          "executable": false
+        },
+        "src/Util/BotChatPacingPolicy.h": {
+          "sha256": "414284139352846dfc8bfe3c62c3ad7f898576d53812082c7ba93b119b571968",
+          "executable": false
+        },
+        "src/Util/BotPartySocial.cpp": {
+          "sha256": "3be70755a9a8bd929cdc522fa2b6eabc268104f638dea7b91eca7645281b9fc9",
+          "executable": false
+        },
+        "src/Util/BotPartySocial.h": {
+          "sha256": "f27802590c93173edf52d13c61da86efbab7aebbdf2609a7f506a54a414c099c",
+          "executable": false
+        },
+        "src/Util/BotPartySocialPolicy.h": {
+          "sha256": "1e96e88c1fc404a5981fb24396d9121bf9e75694f0f5a987f3e43c87b3af3174",
+          "executable": false
+        },
+        "src/Util/BotSocialChat.cpp": {
+          "sha256": "48a8aa2f24b9a2181ed8b57f62e3aa66b76ce60b26ca01a2766332c4e5778959",
+          "executable": false
+        },
+        "src/Util/BotSocialChat.h": {
+          "sha256": "7d00ed61bd8fc15019010b570b3bb8b63bb5d2d9342358dc2fd93d69689b0111",
+          "executable": false
+        },
+        "src/Util/BotSocialChatPolicy.h": {
+          "sha256": "ab22e41d057c2ba068e2f857164290ba2bb915dc20823e87e95c9face3f69e41",
+          "executable": false
+        }
+      }
+    }
+  ],
+  "overlays": [
+    {
+      "source": "releases/g1-20261029/mod-local-profession-tools",
+      "target": "modules/mod-local-profession-tools",
+      "files": {
+        "README.md": "769239961ab009d0a11a45a1072c3fdfee7b23186cf236ae69fee9de87c7224f",
+        "client/CoAGatheringAlerts/CoAGatheringAlerts.lua": "53dc7ccaa959b466fe9723ce59bd134989f01e8bfb24c74bd25852be2be85d60",
+        "client/CoAGatheringAlerts/CoAGatheringAlerts.toc": "e06224368bb058d2f85fdf0841e09eabed7bb5405c77a7331b6bd30d9725a84e",
+        "client/CoAGatheringAlerts/Core.lua": "1a104b423eaee148902af1caed7db919edf3b0313d1a24410ee8c7bdb1f627f4",
+        "conf/LocalGatheringAlerts.conf.dist": "33c7394d4625ad6103d9941c89fe22130671cfbfdd4f1d6e6a00bda28fe32173",
+        "src/GatheringAlerts.cpp": "d19c8a44e44d71bfa58e074b5fd139e1346e7f19d98c762690c248fe2093f5e4",
+        "src/GatheringAlertsPolicy.h": "c89bb264526ada0184d00b2fbfdc211d488782c13c27f165e4034df1e2f27b09",
+        "src/LocalProfessionTools.cpp": "c8f03abcbeb0a505836c416daaee840f5a60477eb0ae9e6dcfb02aac4376d123"
+      }
+    }
+  ],
+  "modules": [
+    "mod-destiny-weaver",
+    "mod-local-profession-tools",
+    "mod-playerbots"
+  ],
+  "data": {
+    "dbc_files": {
+      "Achievement.dbc": "0a03ebc05bdc8dabdd134a04efb64c8bc909ea6e5f62860288b2aa5400f552af",
+      "AchievementRewards.dbc": "d4fb08332a5b6deb5361d765b462cedbe4b806964a2561eb776498bd746b6d2e",
+      "Achievement_Category.dbc": "3b8f666e58ebb5c5f584a1060efcb5854d8ce14ec10845ac471b873a97284985",
+      "Achievement_Criteria.dbc": "4ddcc8300a008b96a6b0625e79a99c9efb86486ec9026877591acd7677f989e2",
+      "AnimationData.dbc": "0af1f9b3b83b1f7df1221d4d5e0af6fa0851044b549d705279a1d060ba0a033d",
+      "AppearanceCategories.dbc": "f2252b0fcdf33d196a2e8b2b906f8a964af2f84e2b9011baea6dbb906defa80c",
+      "AppearanceDetails.dbc": "91c3d3ed5ac9b4405b912f3edab03e4636b5933e394a5e6a2734e3640bc96b92",
+      "Appearances.dbc": "7c7b27fa9e535d7ec7549eb61ef1490ec69b990fa243a2ed36fb6dbf7df118f9",
+      "AreaGroup.dbc": "c5b643ef35f0d718c69f7619aa7784ed29a399bef451742c301bad3edebd8e3d",
+      "AreaPOI.dbc": "f1cc9b829786444f8ebb25a6ee52f64573b42fccaf1d4a43eb1c9cb2e856c239",
+      "AreaTable.dbc": "696a8fa876b55503217827d92ddb48c57078ab9cfde8af3c46023a1f7b15c8ec",
+      "AreaTrigger.dbc": "5d61db5bd479f21efdfb6237b26d473e3d5a657ce4da84f52f8737c647f599c8",
+      "AttackAnimKits.dbc": "9b9a43f367aed2d98436cc9e57f8cb398b4a75c40ecca530b607370135096b0c",
+      "AttackAnimTypes.dbc": "330aaeb83908885a21dd9b9262cbf8423ac8802467234baab1caa24d0f682c88",
+      "AuctionHouse.dbc": "6ecca5797c40e3576cd5794e98d828dac0774ad331b3b0572d6f7d3aa591ab13",
+      "BankBagSlotPrices.dbc": "1787dbae16e5f28984ccf0738904012d31f69abf4e14bde0d2bcc61600fa3f71",
+      "BannedAddOns.dbc": "5d3dcef2826d400b5c1e1050af9cb4439f813b8109a295355a7994d601209044",
+      "BarberShopStyle.dbc": "0c072924ec813c3d0ed1305467f711b0360edcd20ac0515473edbbbeafbd6d22",
+      "BattlemasterList.dbc": "54d942c31be22ef3e90ebb90d045bfa3deddc0609181798d98983323be6c9925",
+      "CameraShakes.dbc": "c8b880d4a24b7798b4e6c25a10c56a986675b8ccdb1c5d0733441530b5eee5d8",
+      "Cfg_Categories.dbc": "fe1a34dabe6acd50dd35a41d4e10db1e062b085c56b6b8bb87ee66a7ff4917a6",
+      "Cfg_Configs.dbc": "3b5c427d8b1cd4169a59ab16ce73d1e4dfa29c9bed88caa5ba6ae31384a682d1",
+      "Challenge.dbc": "fea6a34e78318c78a917265abf2b79a2e827450d4f9b79325bc87630288242c7",
+      "ChallengeConditionTypes.dbc": "0336288cc5d18a319c3ba8b0441ea209805e338439dbf48a7317fcc3512d163f",
+      "ChallengeConditions.dbc": "0cd5a6709cbe98e0732cd4ed97c4b798ec09a359ef74fb8d2d730e37b88bff44",
+      "ChallengeFeatured.dbc": "a456c1638f56609f3aa9371810674f09b9522d00269a335660b5f8688c9e90a6",
+      "ChallengeGroupRewards.dbc": "ac177053f51b005b7d065173df14e967ad9151680fb5f43f0670eccb210aa764",
+      "ChallengeGroups.dbc": "09bdcaa5001ad2fea9681eae1040d557129cd81fc6c3d38eec9b828579e001c3",
+      "ChallengeLevels.dbc": "e318095860ef9066163382ff945b0cd86d37a6afbff09d6f3c1499cb8ef62e14",
+      "ChallengeModifierTypes.dbc": "5fb4205b3e050c9a4fd5a5447a76d66c4cf81a72a119a8eab308ee1675bb41d1",
+      "ChallengeModifiers.dbc": "7b6482b1c2d01777a0d7eeab36a4f0598430b1b336ecb84e76e040b8163b5d51",
+      "ChallengeRequirementTypes.dbc": "57314b44ad9a5104e79549d2c6038b49af97a647d751d1852461ae3abc8cfade",
+      "ChallengeRequirements.dbc": "b6596298a52f79a5f5afc2703d7b12b599aa7022a659e86964c53a5746c34298",
+      "ChallengeRewards.dbc": "d8e63ad40b598b1d74b3d6dbbc4888ecbc323b75f4d593124c165854b321b7e0",
+      "ChallengeRuleTypes.dbc": "353aef51c14c018367e679c541cec0dc803c60c3a2b40ecf8c83ba03e98c1dd2",
+      "ChallengeRules.dbc": "ad347c4930e5bfd655a6ee4e839fbac9d68b3f97d713eb187077022c3ddb1ff4",
+      "ChallengeSpells.dbc": "4e01af63c8dd4e0548923b4b25972263381107a50ffd9969e8b329203e36bf0f",
+      "CharBaseInfo.dbc": "458988dcf88d5245024119220301aa415fa68219d3995a2255e5ddac230e181a",
+      "CharHairGeosets.dbc": "d042047304d1f3b3741fabbef6bb7bc022ba76d0dba6d3985a9d8d932b9c69dc",
+      "CharHairTextures.dbc": "ae3dc90406f4e0ed406c04f1441f40f4067328bd29ce83d93dca09aff2ef53ab",
+      "CharSections.dbc": "e33f3732f5a85046279de03b77cd94836d5d31f9f159ae9c924bc32bcad56a6e",
+      "CharStartOutfit.dbc": "23812ac3120c00ed3759c6fa2ef697d258ca3130ff26b2019f85fe4347135ab4",
+      "CharTitles.dbc": "1b8dda2603683bc30f31610a92dcb1765d87b5d442aad100b3b15da613e196ec",
+      "CharVariations.dbc": "3f1ae4da4769cabf218a775c9fd5e8ac3eb76abd8b9718c6119d71520f768c64",
+      "CharacterAdvancement.dbc": "2c501672d09ead8f1e8a74d683c75bb00e9eb64ae2c9647657f0f73b9cd21336",
+      "CharacterAdvancementCategories.dbc": "ecd79664f943c5678263390f52b36e887d91ffb5431cacc06c6dc6a88338623e",
+      "CharacterAdvancementClassTypes.dbc": "02da78174798c0db90b5509fac6d829d6b3b91db39410b4d61772c184b61bedb",
+      "CharacterAdvancementEssence.dbc": "ac6715bca5de98692ecc59f3ee08836d27c450bdf4851c17762e490027e175f7",
+      "CharacterAdvancementTabTypes.dbc": "f1c295b4acfcf71d03d3a9ce9749885dbca10c243b9be912b8803e3c1268fde4",
+      "CharacterCreationArchetypeCategories.dbc": "a5919c430b2e5323e2811d1d153ef78a4a962b32f828f04eb4ef1830389b1ebf",
+      "CharacterCreationArchetypeDetails.dbc": "2cbc5bb3756f0116630aee79e536f3e06b93f1ae443963c72cc3d5d9cce64564",
+      "CharacterCreationArchetypeRoles.dbc": "a935ac6cc3199e0d9cb4bb2102dadbcdc8cfd75b06a5e59406d5de8cdb99b33e",
+      "CharacterCreationArchetypes.dbc": "4042891f6c9ab700cff38aac96d7714d85500b86b988f664e8c8f607fa3ed2ff",
+      "CharacterCreationClassDetails.dbc": "d58a1288458b307d942da4ed2a7152148ffa623ed62366392ca58939606d9a53",
+      "CharacterCreationClassGuideRoles.dbc": "bb54029a2a0c14b082c785967928903e9b3d9a5d548d6edf527eb93627280cb3",
+      "CharacterCreationClassGuideSubroleClasses.dbc": "4b1d2e6f16c35ef0e5b7e31319199f38615cb86affeb6e9ce1188bafbf5a37d1",
+      "CharacterCreationClassGuideSubroles.dbc": "8fece6699cbdb17729d1db048c3191ea12fc573a6f7448a837bf448c6fec1cb9",
+      "CharacterCreationPetDetails.dbc": "8b6d7fd7515130a02e9a9a2504bbe32307215326ffd10dfbc95f67999bf841c4",
+      "CharacterCreationShapeshiftDetails.dbc": "e64df8311e376e7b6fe57db6f10cc2f5d93741e2a4e5b889b49f42c77f4d9079",
+      "CharacterFacialHairStyles.dbc": "c63889a84cbc9630760c34fd55c84ee065fa48f96b9770d14e4d3f99cb0b4ab3",
+      "ChatChannels.dbc": "b44af7aa0be962d956f7e9b9a4c16c4cb6253dc1a5e1fc71a2047553a712390c",
+      "ChatProfanity.dbc": "658096282304c2fa68b57e276eb5a07a0021d523ca2e64981fe5df174f613da1",
+      "ChrClasses.dbc": "a29a9ecf7fc5952b5738a4946383371c252e21e4cf108decf2aa19344a9f2517",
+      "ChrClassesRoles.dbc": "138f1da926fb281a53615dd7d0ae6fde4b7aa4789ab4f73f1a881b1df1bcfaa2",
+      "ChrRaces.dbc": "6310e9f9ba70700612409610a619e47c089313c112ff882980e9228fe981f8c4",
+      "ChrSpecs.dbc": "1a602c618ba0aa24406fe482561d5b98133772d651e069ffc14d7ddd01988894",
+      "CinematicCamera.dbc": "061568b41fe508f4e85a52b44095e2fcfcf57db148b460597d65cf6daca85352",
+      "CinematicSequences.dbc": "a3213f3366ce5aa12c89d94681c629ea0298c19ae5e16db067cee41226ec4e5a",
+      "CollectorCacheItems.dbc": "6bb80a7f10f5872cfea77df9ff79061e02ca5b98d24d7778ea9bab81a946a364",
+      "CollectorCacheRarityRates.dbc": "f13b16c0cc703b0f31976baaf07e56030ea298afdbd1537722b4de47de3f8e4d",
+      "CollectorCacheRarityTypes.dbc": "a52d9de94f70347c45de0d70bfee856baebaa03bd4eb41ee57bb32688fa3307c",
+      "CollectorCacheTypes.dbc": "71edf720498edc199364b747d4aa63563d58112bbb4fe19a20fe203a64cb805d",
+      "Creature.dbc": "a6b1d023ecb44f85be7205cacd7cd5aed5521b9634f5b7146bf1712ed5a66f0d",
+      "CreatureDisplayInfo.dbc": "0ff00f000dbe8de488681785815bebcf3091208c9235bbc577fe2c4fc9cc2d98",
+      "CreatureDisplayInfoExtra.dbc": "46a63afa50095db1990c603ada0af358b00d1356ec22b1779544d04770dc8335",
+      "CreatureDisplayInfoGeosetData.dbc": "489b7ac42d6dc10d4393f4e002218de907ee10160a4c5a05502c4a709c64dca2",
+      "CreatureFamily.dbc": "31545d9d7e261f018e580015277dcdaa96000aa1a786d151afbba0a817a5bef4",
+      "CreatureModelData.dbc": "2b0c9de931b92c60b029cf50a70d5febe04a7eadb408a8caf1b86c6072f9e24f",
+      "CreatureMovementInfo.dbc": "18df195930edde569282a612ba700138b8bb8e618f442a39fc82f20b8153afd8",
+      "CreatureSoundData.dbc": "7f78807c342be91475a2d269a74637464077d3163351c15d051148ccd3df145c",
+      "CreatureSpellData.dbc": "cb2f19fb988766668aa2dcff3532b5e166b5c0f5be549a278e2f3327e3486aa9",
+      "CreatureType.dbc": "51701ac538a41992bbfa71d9db1c7664aad931c9794934cdfa85899985c217c5",
+      "CurrencyCategory.dbc": "c0779a33a09f634f53f19fdb10a5d6a4210599172cd8be4579850d7a6b51ac01",
+      "CurrencyTypes.dbc": "e382c18116014302db3c7d8b27a9a654db6583ec8b2f8c3086e563e03536d934",
+      "DanceMoves.dbc": "f5d29ee88b659aa33ce4627ac7b581571a7fc6931081c5c63bfa8a93cffd74ee",
+      "DeathThudLookups.dbc": "8db1d2d037a23a257e8057832481015654d21402d396aa74244e2f990e19b7c0",
+      "DeclinedWord.dbc": "bcb59c262020f1c6dc1efae67e69bfd77d5405f2b6b395009bcd43a5313090fc",
+      "DeclinedWordCases.dbc": "47c5b9adb49e1d1c5431fff8a7047c8a2f2c8f4fc85a0f8d678fd9f8975cf959",
+      "DestructibleModelData.dbc": "131fcbb1d1e49df31e1879fe64553d068f33742363ff23274ef158bc5c94ae19",
+      "DungeonEncounter.dbc": "f02642f3a02302f8b6d965a2ab3c0adb4f5b73117c6e0ece04bbb2c0facdded9",
+      "DungeonEncounterExtra.dbc": "23a4a48014f107cd9c0f0927918aedabc42729bebf82edf18422189855ef525e",
+      "DungeonMap.dbc": "5d26cf070f7af297ff63bf03300776aba117d423eb2b5702c178b6fc890ea522",
+      "DungeonMapChunk.dbc": "e3820fd86ec96eb9a628a4df746d62d76510cf6a88d9a900e6bf862e08278a7b",
+      "DurabilityCosts.dbc": "718a64d3eae9c540f5ab1d4785fce88205ff1fbe844584a97e74365324137ae7",
+      "DurabilityQuality.dbc": "2b1a28c5f1809dd2caa2a9e7311c53f2328493658b671f43e7e3875b6a536a92",
+      "Emotes.dbc": "57e217cf93847426c9e03436ad70469437baf82beb6a9f910c2c39fe776ae681",
+      "EmotesText.dbc": "a6a87931342757cc0c664136b886e7c51f793254abf09bcc02d188d495a67ba6",
+      "EmotesTextData.dbc": "9d2856f3d410716b1d0157390de73377bbc6e62ee888ae28dfbf5aa54e4bd1ef",
+      "EmotesTextSound.dbc": "2742d78a30c1a31fa753784327a2f511a8aaa98356439495db003de7eab5c419",
+      "EnchantEnchantSuggestions.dbc": "e6dd6108adedcd8e66b1ddd84306776f90c5a7149cd4c5bf4331def49949370e",
+      "EnchantRoleSuggestions.dbc": "6a6a447cdf470a14ef662b1fa5fc624ba06c8eb8ce37b8c9ac001272e59accca",
+      "EnchantStatSuggestions.dbc": "6a6a447cdf470a14ef662b1fa5fc624ba06c8eb8ce37b8c9ac001272e59accca",
+      "EnvironmentalDamage.dbc": "81f4a158d904fd04a6eac16dd5bbdd3fcba54e6711b935a5f7a0e6de98f5036e",
+      "Exhaustion.dbc": "c87430b03c5094715b604ec2f10d006087cdff1c34501d1199d6b0fdee68b79d",
+      "ExtraActionButtons.dbc": "d73ca7eadf31a4ea1fcbd7d6e1c93d020c2066f18e7950d39ab53e6f7e36aa8b",
+      "Faction.dbc": "58e03b45ca65ddfe7e08599c7386183a37e9c57bd5db0c063df067cbb426ae3f",
+      "FactionGroup.dbc": "45bdc95bacc7cacb77dd644caa935b853134d4758c2b6c7936c6bef990f9ad21",
+      "FactionTemplate.dbc": "2e42e5dd0e685db09f74d2c42589b1f315afe1d0633dd77c18485cd6d5b0edf9",
+      "FileData.dbc": "fb73ec0e0db8deb8408e3bb4b287ded694ef389f48718fbca9e4827f4895c13c",
+      "FootprintTextures.dbc": "139c946cf2ae36d142bd067460d490750a5ca4cce496c5e58d45ee0d1c34e57e",
+      "FootstepTerrainLookup.dbc": "3e1bbc9fd67ed0501fc4eb120f1481fb369537c99566944ae8ce5cca91ff1f92",
+      "GMSurveyAnswers.dbc": "19fe01859c61213c7d76358247a8baf1f4f6cc50b89ae296567fa0f295470ca3",
+      "GMSurveyCurrentSurvey.dbc": "b468c54bf7e6db404eaaabe3fb8db3f4644d541e4fd7f96ee9d41037ada05521",
+      "GMSurveyQuestions.dbc": "63f7ab8458248e810e4f4032867a9e4ea25d12308a536fd82e8931d85414a934",
+      "GMSurveySurveys.dbc": "9b0edc0dc2af9e4349813ecf1f5532acb3ed050d89a20cfb083456b0ac4a731c",
+      "GMTicketCategory.dbc": "f98fcf8b80768f484a62f64750a9955517fcb158a32d85f45a6a7989e05908ad",
+      "GameObjectArtKit.dbc": "1c4369db9ccabc4bf72cd7097977b489e3f8051a0fdd067cc2ccef13dde84e71",
+      "GameObjectDisplayInfo.dbc": "e6fc4f503cded2e82dfece0e492c0205e2bcf3d6f80d9935f3194ebe796f7ff9",
+      "GameObjectDisplayInfoAddon.dbc": "025253c257e706f8a87bcdefcf8689bc48e07fc0d2c60900617f7150221a535b",
+      "GameTables.dbc": "fa4930d02d448c74eaaa79e097d4b5d202a43ea50514905693e96579e16913b3",
+      "GameTips.dbc": "b13fc04baea17b009aa906f4065f1d6fbbaaa987bf019ce51c7d05cd087ff1d8",
+      "GemProperties.dbc": "c4449a08fe3d77af1b79a25d79aae200d9ac224d5b7736fb224c8bc79eec032a",
+      "GlobalStrings.dbc": "4ef7671affe8f1cf46d020e5d60150c5a84687d8c72f4efc3c6a1cce29b1c347",
+      "GlyphProperties.dbc": "f1bcd26ffb13499a58409b833cec171f38c01aab85258d59895696f0ea45bf28",
+      "GlyphSlot.dbc": "4e431c96868c205d24d79d413febbeb02030664e654932732f0e09ce11c16a8d",
+      "GroundEffectDoodad.dbc": "70ce4011059e43558ade669bb942bba6ffc2611c9eb15b0d3d3e5e51a4a6d113",
+      "GroundEffectTexture.dbc": "36175ed21db35bd558ccdb0a31e31618268c9df746c0fc6aa4eac824748cca43",
+      "HDCharHairGeosets.dbc": "21a4f75f619b7450fa3080efe22099943250286a0ce722f2ec6768b6391d6656",
+      "HDCharSections.dbc": "99b8d6ffcc0b29f7bf5a92397829b7095f86c0b43718812fe67975d33ceaeb36",
+      "HDCharacterFacialHairStyles.dbc": "9c348ae36f62815aae5cef1a9863ec86ffe81737a98870a530f179d45fa6cad0",
+      "HDCreatureDisplayInfo.dbc": "3fef2a34eac2ba7b1a06a5d462b64957ff93dcfc5cd6854244549b97aadc0830",
+      "HDCreatureDisplayInfoExtra.dbc": "036842a5c8392497f13053d1355e903aa39460c887cf27042d919e9245a072b1",
+      "HDCreatureModelData.dbc": "d7a017722e55a1fd7c6f53148a5721ee86e43e951a743d71b100c666f7a6044d",
+      "HDEmotesTextSound.dbc": "ea5b4c4debea307f940c87859d4a3bad07854086d83f60838e625fb124eb30e1",
+      "HDHelmetGeosetVisData.dbc": "f95af23544f492117bf92f66231a08af9412aca320feab0ab53c93ae6a4284cd",
+      "HDSpellVisualEffectName.dbc": "bed28bd741603f3da05fb990ea370d21604c75089fcfda7cad6590493cfeae7b",
+      "HDSpellVisualKitModelAttach.dbc": "bdaf5ac7256683584676c108432d4981fce0f927235ee07b55e3c98a22464b41",
+      "HelmetGeosetVisData.dbc": "2de72eacd8949fb0c89edacaf7c2aece00641efc1f6475f4de20ae622b4b71fa",
+      "HolidayDescriptions.dbc": "5591276b56070006d4b9d8e11220872a7263409e01bcc6c413a7a8eef12feb61",
+      "HolidayNames.dbc": "7c268385fdec208f57677b27a0c3cebb5ffe308738612f0a8bbe7a1209fc3761",
+      "Holidays.dbc": "7f781f0de019599c845c42bdd9eaeff73a91839973d3ab1a2486b52b18b9c67c",
+      "Item.dbc": "96526f57068775e738db06cb1e741af7d6889dfab540dfad791fd1dc275989ea",
+      "ItemAddon.dbc": "814491f591624e3b97057e6c6e09afada4a7359223c286ae28d1426e844a6693",
+      "ItemAppearances.dbc": "c2533eaa0c84ccb35e1087b6244e8881f89642385e646a9f7fc6dddf1e6ea434",
+      "ItemBagFamily.dbc": "3c1e4d8b846df656bae1de716b6ad86256250aec75a69d4e616fa1888ed17fc5",
+      "ItemClass.dbc": "f18b7ea83918481c73b6b1e1f9f8c8fccb8ca182d35ab1d0a7daa22e0a2ee6d2",
+      "ItemCondExtCosts.dbc": "f178565cc07a9cfa641f87821b987d4aede9e07a406ca769c507008901a60791",
+      "ItemDisplayInfo.dbc": "8823933c8cc57499e1097b2b44b5950e00e627745e6560562ac93d7754477e99",
+      "ItemDisplayInfoCollections.dbc": "85a1d1806651eaab28cafd7ebca522f23c81281fe7d503ec94f3b3b884a989db",
+      "ItemExtendedCost.dbc": "34dd4d5c78b59eca083d956eb5f44cc255bbdc371122859e1d09bfc86cbbb425",
+      "ItemGroupSounds.dbc": "9df7d8352cd54613b7b5606d2e304ebfe422089b3bdc3814fe921e4c6586994a",
+      "ItemLimitCategory.dbc": "29c1ca6918f954e565f67dc3fdfc07c9e4e39d768280a15faf9818e774f86192",
+      "ItemPetFood.dbc": "fa69f1391d3f3d4a9932740bd6fd5d180dfcf6250e9d1f2ad697c6e717b73a65",
+      "ItemPurchaseGroup.dbc": "d89d957edecf02c6459dd783f78c663b830ebd7078c3a683d5dd24e2aec9dbec",
+      "ItemRandomProperties.dbc": "56c46a3de975cdcc3e5790c7d3d8c193792c4f2b011aa5d6cc4657f5becb2578",
+      "ItemRandomSuffix.dbc": "7f6d762abdab76b57a1084b7e0df4fb9f83c56ee6dee7f20e8f7def8aa783ac1",
+      "ItemSet.dbc": "77b5885390404b81f8714e9f1982195e29b5490c6ff2777260c4d79e9bdfe236",
+      "ItemSetAppearances.dbc": "044a0f83ca4a2eba7658555fc0b30d75707f0400dfb05c3414bf2f89727861f4",
+      "ItemSpells.dbc": "3aa714952955037ee2be2d29aef39e06c7d6357212fa89b29084f592b4552c8c",
+      "ItemStat.dbc": "c09b91e67d97db5624f68a3de3cc0a3aa76e8672647cbf9bd924e343f918b237",
+      "ItemSubClass.dbc": "a7350f8cc4590008b456bbdd6562f9d8f8ecff7b0dd9cc472c8b38821be4e195",
+      "ItemSubClassMask.dbc": "ddd51aa40618af2d41b32fcd061cac848205a817d35689099b179bafcb656211",
+      "ItemVisualEffects.dbc": "4e22a60173b8fa07aae3ca991d4ffa0210d4399a0e30048cd7082ac75b971551",
+      "ItemVisuals.dbc": "820b8dd9e27c5e32c646fb04626eba75ea240abec10e5a346c48b9cc4af575b8",
+      "LFGActivities.dbc": "dd0e132611b4da34a1381082933a4bdad357e43f66699261942a9b7c45bdd08f",
+      "LFGActivityCategories.dbc": "40370182c39e8d80d249f4989bb557bc92933fcf5b1b3bbbb2170f020353351c",
+      "LFGActivityGroupType.dbc": "472b745900c5386e59193172f875657cb9bab033bdf201c2e01701ae410a3b29",
+      "LFGDungeonGroup.dbc": "48a287de4c038503b55e0e01cebe2cc58f684097b8443de9221e40eb37b1365f",
+      "LFGDungeons.dbc": "112f00021290673d6cf55cfb97998b292486e95e4418bb6bfaac4216bf11ef65",
+      "LanguageWords.dbc": "00382b3c391386297647c2391d5dcbf51ede11b0575b961980ddadb46d599589",
+      "Languages.dbc": "bf70c60c03ba6fec0dbba9d713e685b5b9f05ee21da28b4747e559c1ac2bfd36",
+      "LfgDungeonExpansion.dbc": "12575f0ce799161dea1eab3916ae0bc92ec5b8d32101ce8968956ac6530bf038",
+      "Light.dbc": "a80801da418a7b48c359c96e063830921ac8afaa6dd2ce891a780da75a499e7e",
+      "LightFloatBand.dbc": "7222db4cdc1f64416d05108ee6634217e290876cbf14baf3dfc93771bd5356c8",
+      "LightIntBand.dbc": "ddbe627e41de07e9600064791df7aaa84694b41a45fec4526e748c86d30c91c6",
+      "LightParams.dbc": "255cee48d5dabfb80ad29c50dc33b0a61350d38c84444040704e2cec23b404bb",
+      "LightSkybox.dbc": "208145e35e85fcae48a5cb578a107ebd50cac8f2caccdb33c06946ebda86b943",
+      "LiquidMaterial.dbc": "103b8daa4f2b7d683ff95c19ffe03160ba684eb05e035491033b463911a23d0b",
+      "LiquidType.dbc": "08fd0fdb14862820f2f20888f95b0b0a0e3343143eb972b31cd97264c33d1030",
+      "LoadingScreenTaxiSplines.dbc": "9f1374425f76368b76fb1e284d70e24b28b3dc45a455c73417c04cb7bfc52553",
+      "LoadingScreenVariation.dbc": "94cb30142126204b18487ed64f9f0f6e10caa4a64b58d8b28a2d17d6dfb64088",
+      "LoadingScreens.dbc": "620ddd6341ed1fd0f48727b40b62e44ae9e60e0ec1e9d8e449405f88fac59090",
+      "Lock.dbc": "332a4c3141cd6ee6fda9ea76c332280168070ff7ec8bd7982290060883c95cc8",
+      "LockType.dbc": "80a175a4c9d22604d7f9a222378a5ab56c4c373353aac4b5a93aecd2810c701b",
+      "MailTemplate.dbc": "390967508302df421c96c392df9b8fd97ab31bc83593742a1e6bfbfc9b86123d",
+      "Manastorm.dbc": "3d617c89cbc4ff721b1f13fcc2c79b4f67299c958f909e647f9ef14cb5e6d0dc",
+      "ManastormMessages.dbc": "737adbca4c7891f3920356afd3cdac01aa06989ae3117c1264a1319b3d153770",
+      "ManastormModifiers.dbc": "87616982c6c4e58ea680b78449093897c5e8484bf419c1d60551fde6de3e7101",
+      "ManastormPlayerGroupModifiers.dbc": "2b228922073ea876aa4f812c701b4b5b380ac2ad67d91e72c8b5d85ece4ce2bc",
+      "Map.dbc": "04a4d696b53a65e3579f6329af9c1948dd865cf05cb6dd5df8def68897b8d328",
+      "MapDifficulty.dbc": "fd939f473a1313aaa23360ea4661813c3ab05f13d41655a2aab64e3ee3d09dab",
+      "Material.dbc": "0c30ba608a985d0b773a52b50e288789231206923b6120464646bd71286e265b",
+      "MentorSpecializations.dbc": "b9a83c20cbb0440e752f5b5d22bbf8aac77e10bb8807ae92bd2c6c3aa644819e",
+      "Movie.dbc": "bd6295ab896787384bb0d941595cb1241eae33ca75d5f4b2043bade33a3c95d2",
+      "MovieFileData.dbc": "a64ea777b722831f5af71c4de0fb7c33bcbc001a6eaafbfb9adc888800e9642b",
+      "MovieVariation.dbc": "d4fd88bc0cfc78d3a3abbc5fd109b92678be102a7830626882d1ac7b39a797a3",
+      "MysticEnchant.dbc": "04353236f457c3e8c7d426bbce61a073a7ab0b1f2a4178acd783f15ae8a20feb",
+      "MythicAffixes.dbc": "3ac7eaa831da17a71ab21b2abc4cbacbe842a67e211dff95f2ca5c1137c0b762",
+      "MythicKeystones.dbc": "dff13de53f727e1a92defccdaf99f4341d96f7e318604b5acdfcdb053f714f4d",
+      "MythicPlusScaling.dbc": "9a2b9d036f757f7e177964226a2a26d0080fa04b271b3dd690242e02f9177402",
+      "NPCSounds.dbc": "66f85436cb279c6df6f701b8b912488985aa2bda1e3285b636b28d6802cc75d7",
+      "NPCTrainer.dbc": "4eb4ec8c02e0969181f1db1d3a6a43f54c3d598dce494b0b14107647a2d9294d",
+      "NameGen.dbc": "8c3aea9dbddd572894c1bd32c237cdd8cd53ab34448885a5684993fb154be4eb",
+      "NamesProfanity.dbc": "fbb2371f1afbd74ddaf059cf6816e6fd10eff079f15f0df0fa03b7a39f05bb8d",
+      "NamesReserved.dbc": "35c307c3d5f62d142cdd7fcc800fff8e6d74943261e1bd3f044ce2eced52d8e6",
+      "ObjectEffect.dbc": "a17dd215a7fba639bf0d1ab009bd7e9a9128d9f7bf42c32848e50541cb87915c",
+      "ObjectEffectGroup.dbc": "5b4b467e6f1f7d296ee90465d7129abe7f9de81ab4465583235381524a9eb6ba",
+      "ObjectEffectModifier.dbc": "4d03f2f3ff8046271d1f51315c5c28a2ecdf1ae6f24f3335433620414df80751",
+      "ObjectEffectPackage.dbc": "f092e714b8c5b4a3ebd60e5e613f3e78125fbdd1a90ae573e663cbf317a6f953",
+      "ObjectEffectPackageElem.dbc": "b89ef3ab854287c8b1907a39283a0075b0234d53a7ddc2c75a6ced818f6f2e44",
+      "ObjectSpawnVisibilitySettings.dbc": "7c5ae3d728342cf408f652f479ca7839c6793d6ccf681df4ab7287062ed48a00",
+      "OcclusionVolume.dbc": "9657b21891d5c5324869cce440fc5548c083b8b0a817d73a6811ff3fd9aee873",
+      "OcclusionVolumePoints.dbc": "af56dbb4ce970a5f2983f327b05e820e4f3f5696334de90c4406bb3c99a2da66",
+      "OverrideSpellData.dbc": "9ddf34992c821d3c60c00b319de296587f3093c676ba400667923654b0d0559b",
+      "Package.dbc": "6708613d6f229c3b32efb37b591e2d1adca46ed4e022a715ef5bf4befefaaf6b",
+      "PageTextMaterial.dbc": "25f19f032c0ced6824d0e43296e27428767e64822d9954d12c89eec10ad2a560",
+      "PaperDollItemFrame.dbc": "43c40ee0a4ea5bd9046056a18062e01ef7aafeea62fb2c5022421ef760642817",
+      "ParticleColor.dbc": "1740cf817f327a022ff4fc6c237a094dce224ac81cac5c0a5f3e6d472ad99f25",
+      "PetPersonality.dbc": "31e0be3e060d7b7bb67ddbdb484669a66b9a895c5ab9a7d67cce7617187897c8",
+      "PetitionType.dbc": "bf33b20226b455536ffb7b78b4f2f9eb7b143782a8c2ae98d82d51c7ac7e7ae4",
+      "PowerDisplay.dbc": "6dce660d4502b5f32e1bb8b9865fff97cfb7670d2c10f241bfb949e9c36261ea",
+      "PvpDifficulty.dbc": "868ded54246725633a20f25b1aebc386e757e0f4f7ed978675408543f73787ce",
+      "Quest.dbc": "cec3867581168e34bbaf77fae18e078ab8ef3d69fb196dd1ecedf35c277c7797",
+      "QuestFactionReward.dbc": "e7f81065acf64e7fc4ecc68f345f5e870d8dfac5eb87ef045353189aea9ff6ac",
+      "QuestInfo.dbc": "c60b0f69c48cd8441685545676572908e2e35703969f42a3b4a1507de75de9c6",
+      "QuestSort.dbc": "0297d2b5294766960e31f3facb599dc9395f2e8d0bdbbc1749d25982d278d4f9",
+      "QuestSuperTrack.dbc": "c6e584f430c08a0381dd613e04f031d1fb1cd751936f49f9e47a1f3a8b86277a",
+      "QuestTemplateScaling.dbc": "d0052b06a25d0daa0f17c904fccec56c190b265796a1dd375870a4e5f98e0fbb",
+      "QuestXP.dbc": "ce97ff654302d15e2d3e0e4c014685b27cd167a5e71ee9f3527ded78555a8954",
+      "RandPropPoints.dbc": "13b7aa3abd731297f98a6faba8ec78b1aeeb153204d8caa706204151773f8e26",
+      "Resistances.dbc": "a26f523ec66bd8cb5900d3d21a9cb5ac4e5e9c79f9241788f91938c996d8342d",
+      "ScalingStatDistribution.dbc": "20b327c50074dee4858ec32fb73a4aa4022599e3ceb27b6f893e7bd9dc414d71",
+      "ScalingStatValues.dbc": "b512a82bdd05c6bba83f53a34b22200260eaa79ff82014b8199804933d0d91fb",
+      "ScreenEffect.dbc": "52428850d9bf56d023a982b6b6bcaccd6a8386b8696c480fa6ec722f19b55268",
+      "ScreenLocations.dbc": "5886ddd194592394a1bd4c3b88f7e2f4f19c4b0d557c97096b283efdbdff5589",
+      "SealedCardCosts.dbc": "9609e074fab36a384a9fefa7b1005a08c8029ab9634bb2b6246ad0433d36153c",
+      "SeasonalAppearances.dbc": "3777ff565c932bc155fa60c4e6388dbdd2a874a9dfce24aba4eac6937bf830d2",
+      "ServerMessages.dbc": "51736a126ac75bf98226d84c994cf69ac9bd080ef4431e7018aafadf84e17a36",
+      "SheatheSoundLookups.dbc": "4757d38512ebdcab7499c1be07456caa73786ef4a9536cb7bba96489386af939",
+      "SkillCard.dbc": "dc7389bc02580195a69548ba32536d9f7461d3fcf420dc474511cc0128b4d25c",
+      "SkillCostsData.dbc": "849b80dfd621a40ff503c7a3c346d6a61b80e99bc9f1127ef1dd4a44a98a1891",
+      "SkillLine.dbc": "ab69d16132fa1457b3c014e5d37b9d34dfd734ed14ee9380ca8eb0aa045a2dfa",
+      "SkillLineAbility.dbc": "e5267b9c63b26ccf9e79ba39159fe06a1d43411a6f9e7152371ac8aa212c5562",
+      "SkillLineCategory.dbc": "fe7e0e354f03bc10635dc47f1a1c186033e1fb2a5be4a7a3cdd6c852e5ae4e70",
+      "SkillRaceClassInfo.dbc": "4cac26775810c2e2d9336d1213b583d204d92d641e3f6a61fcb36941fe1022ba",
+      "SkillRaceClassInfo_335.dbc": "e5cbefca0adba78ce929b189ca18ba35464a647f8766f0bfcbb5341140716c2c",
+      "SkillTiers.dbc": "9574853ca87f85b4734f1e2dcb667e9b2ac987d14f6888cbe79954f53e988931",
+      "SoundAmbience.dbc": "1db8e3b9da6b2f503e073a34117bfaa0c7d309756f7d9e3bf8b706aef8c9eeec",
+      "SoundEmitters.dbc": "dd159ee3ee6704d0446539d771818c67a37a5f23b074ec3ec5002844631fdad9",
+      "SoundEntries.dbc": "b50c036703835018c327b466d2f22c0262a396a3ded34d3c765e41627c4802bc",
+      "SoundEntriesAdvanced.dbc": "6ebd996d216af919545a73e742bc6cacb5fe86e513815a608ec826ca68570d78",
+      "SoundFilter.dbc": "4cb6dbcce4ca2a2a94bf8bf1684fb965e43c205140523bc0c5da29cbdfdbbaa1",
+      "SoundFilterElem.dbc": "fb5796645ceb146032ab01efd49a0441532987cd692f449c637642523b5644f2",
+      "SoundProviderPreferences.dbc": "2abc6636c08b9fad5559d3a432801302a04497fffeb66675977a5a56840620c1",
+      "SoundSamplePreferences.dbc": "e5a7a69b01580ae819159f7d8dc605bdccbf3b654018382cfec0748776caa3cc",
+      "SoundWaterType.dbc": "69a7303a315946f96aebd9f0c6eb49748430e1730e414e8a6dba857e105b16f9",
+      "SpamMessages.dbc": "aeecd470d1c8a7c3a99e1aca17b5984e99454714a8c4d8bf6e49f6ba99b6c648",
+      "Spell.dbc": "d3dd607291d2d6793f72c7b13537f94fd7748d40a79a326db6a8b4cb2ed41068",
+      "SpellActivationOverlays.dbc": "d5e857ac06cdc91197831e05a90ef84f58d0ad40232679e6350ddd19f2be8f75",
+      "SpellAddon.dbc": "849f838020eeba8f94093323ffac67215bc80e48b00afa1eddc1656008c6bb51",
+      "SpellAffect.dbc": "bddf0363c94558a8564681224a8c3e0e359d9eef4b5ba450b7a7a215e9cf02be",
+      "SpellAlternativeCost.dbc": "5be0608b5a73c8e90cddc1b306c79f0e1c53547dc4ccb66013a4732faafc2679",
+      "SpellAlternativePowerType.dbc": "67f0e8d81d0afb2822df416abb1cbc95e8490e9cedd11dc49b027aa083978f6a",
+      "SpellCastTimes.dbc": "82e5f22dbbd21971947601a50e6df12587953cf5d5af2739785e7b040d049981",
+      "SpellCategory.dbc": "ff42a86ac3ba0548b5fb64bfddfa6d0ad6c737f5622c43f8cf195ea731f4b87a",
+      "SpellChainEffects.dbc": "8a851f2df97a5269295a6413a9f78b700e1fc9ce1a7e4ea4e70f442efdd439ef",
+      "SpellCharges.dbc": "0eaea9b94be7c07b5d5451bd43b7ab3b9c8f65ccd6c1d39adc9d1ba47ae1e284",
+      "SpellChargesCategory.dbc": "a01bd23be19e6b86b9b7f12302c4daad7495c71f1d5d3563a59da910cd03435e",
+      "SpellCustomAttr.dbc": "b867a392317357af055be31d3544c6e144a4c11d6a6aeb89bef2388d468fdccd",
+      "SpellDescriptionVariables.dbc": "c0576e466ef6a3473ca79c0ee16f2dff2254aacaed62ccf138e7ecd343f039b5",
+      "SpellDifficulty.dbc": "44f1de91888c69490a27cabb5aa85056a73976c24bcfd5fb96565c3e1d86ac01",
+      "SpellDispelType.dbc": "cb112f7b585e68915c9def3f902d6c0931cebac1f81877785242e4b52204d037",
+      "SpellDuration.dbc": "eeae44ef0185924f3d6ec57ab2701c66566db86e51ab0bae017a9449126eb3a0",
+      "SpellEffectCameraShakes.dbc": "3034e507a4d13ea8ba051664aaa66f4e63a0add9156f3a200ec66b96456df042",
+      "SpellEnchantSuggestions.dbc": "398c52f3b065d693cc7e1c8f56caf49c9733cf3c9b4c7021b4e79e48cc3ae1be",
+      "SpellFocusObject.dbc": "0d9bfd4665e85e53d9b218c21ea12e6d90b062eb6ed57c1864737188fcd2ac2b",
+      "SpellIcon.dbc": "0352754bcfe62dcbe5d52a4ea8deedf1914dadaeebc0849267d881cba40d7d29",
+      "SpellItemEnchantment.dbc": "da85ddff6cb70b91f295910a6b203d50690a38f2fb0be64edcc561927f07b5b0",
+      "SpellItemEnchantmentCondition.dbc": "07eda4eff9b99f8de7cb77f17cfac283878263beb28339138b052baf6c7c3f43",
+      "SpellMechanic.dbc": "ede893f538999689101eacc073013a3e0311ea0c46d82019a3bf95be58fa1757",
+      "SpellMissile.dbc": "3b4416007e74b0641db2a317dcecf154894da16c95205badc388a636b5992b7b",
+      "SpellMissileMotion.dbc": "2c9d3ad58eb8ffe9f19e07b5f49d77c7e87faf24a6231c57041d5c7a00fae8e0",
+      "SpellRadius.dbc": "dba6ed2f165f75c84dda5f32ae46b1a01fe562efd88fa51fd19365705c3e6a44",
+      "SpellRange.dbc": "bb899631818942a7a7100abfb7a970612a79ac99637b1b459561e2b108125ddd",
+      "SpellRank.dbc": "e558cfc434806cbadaab6a5356bfb73e6aa4d72c65e0cbd7b8c86c6d7320e3b4",
+      "SpellRoleSuggestions.dbc": "6a6a447cdf470a14ef662b1fa5fc624ba06c8eb8ce37b8c9ac001272e59accca",
+      "SpellRuneCost.dbc": "18406c2b532d9751319ed4db16b6e158403de0cd1695abb0216163852a340f06",
+      "SpellShapeshiftForm.dbc": "be842b8f14fce179cb658296ab3ca505f784c1b8830651ad720c150a255f2fd4",
+      "SpellSpellSuggestions.dbc": "df1d553c0a8e8670772265ae15135ba778c0ff0127dee0cf338eee2fe72aa7da",
+      "SpellStatSuggestions.dbc": "43dfbd9edb63291fd59ee436fb4c7db094c731c0723d99a754125b088cf57265",
+      "SpellTagTypes.dbc": "4b92069b284f7cc9929b7f8338fe4b09902013205e37952c79fb611ff9a9df7c",
+      "SpellTags.dbc": "eb2166cd98673c02ef591f5ad4dc81f92df6744eb9b0b9d49b8453daf5c7344f",
+      "SpellVisual.dbc": "240d77e9b3e9cd09196618aa00ecc5f28612bce29f5dee2ae8da9f20b6d7eb1c",
+      "SpellVisualEffectName.dbc": "5ced128862d297c60a1a06fb44c1c5861615317edffe70a0e645d48581398b29",
+      "SpellVisualKit.dbc": "b3cc54988a31a1a052e6c82531eaafbec6f65d211039210d4e77def4d0e218da",
+      "SpellVisualKitAreaModel.dbc": "e26997e5c4dfe24a5be7ef59063afe9f28fa1d56adcd0f304a271b3eb9c99f9d",
+      "SpellVisualKitModelAttach.dbc": "7bc0486e389e02a67ae1c923f3e2ea9fe82bdcb4895dcaae9043278bafabd85e",
+      "SpellVisualPrecastTransitions.dbc": "c4b89658b2d2b874fb969f1028376db096aaab196a86580fc9dba0af9d368666",
+      "StableSlotPrices.dbc": "8e2aa2ba1d6eaffbd7e5e1baa9b03ba8abce83aa7903319d084317618cd5d3b9",
+      "Startup_Strings.dbc": "c4cc19a4103caafa9d9f930201625ebffc8524b25632693d5c4a4019993ad4eb",
+      "Stationery.dbc": "70fec42fc99542b6864df2d2d8a8f65bc966a22cab72724e47a60f4b3ef046cc",
+      "StringLookups.dbc": "06b2aef8087125463554e30d1fac1ebeedceed491fd0e7947081b3aacf41ce30",
+      "SummonProperties.dbc": "7a18e515cd0416aa1407aede0086bbd81ad58c57bab4901e4c72ce195bcf25dd",
+      "SuperTrack.dbc": "6a32b4ab9ee53bec00f0fe23b6f29aa1523a47bb8cd97e42ff1e63907f58bc6d",
+      "Talent.dbc": "1a12b890dcdfdd46bb1fb5fe4435372a342fd3501aa47ecbdad2d07337d20eea",
+      "TalentTab.dbc": "5673d2fc4831df706eb52151c5bad285198807465db9f021008726582b4b151d",
+      "TaxiNodes.dbc": "4fa184e3986cc19616a361693ed6d21e4ef8ee2579f49f9fc3741c7cd3d05a5a",
+      "TaxiPath.dbc": "a8157d5717a74da1c8298dcc5573da081eec4b3905b5c0ea008e510c70d5672a",
+      "TaxiPathNode.dbc": "60070f8a5b797f9e27e327130276b296393be34a654acf96b9884dfbf5d5283b",
+      "TaxiTimes.dbc": "8a3043154840cfbb28b230abef6b4dc73a63591e57fe725afe618ae1e5bcb978",
+      "TeamContributionPoints.dbc": "c3b51faa31a0c9b460af20bb5d45b0c1afc97f3a3a5379b98607e80270a03481",
+      "TerrainType.dbc": "6f01e690efb37b2154afa52d7d2e9a614c287ed746d7e37af63891873288fe27",
+      "TerrainTypeSounds.dbc": "9164cf6f524240baaf48cf99306d7e75eaadd832af64cc2977abc1dc401928c6",
+      "TimedDungeons.dbc": "8f8d412452a485d864b59757a033c859c1202ff33b889d9d2c418f4f9c106a76",
+      "TokenTypes.dbc": "89387e5b7843a4a8d96cd7624c1cc7a7b7355e289519f89fd2778bbdccf19c31",
+      "TotemCategory.dbc": "b114dc58436bf616c2fbfde7a1f536d964ba3e363c642611174baf5e6da64526",
+      "TransportAnimation.dbc": "9490b95b48efc18386b1c3a967757671f83a3e3fbce1aa243cdc263146e058eb",
+      "TransportPhysics.dbc": "78602adccb9fcf729784bcabb414b7a5769239638b12e0fc9353f719c10f6f7e",
+      "TransportRotation.dbc": "344178bb1f001fdeb492eac986d5c98bb65c363ed29ad3702691a6d7f6cb2c69",
+      "Tutorial.dbc": "bac2e74aa390001e23c4ba5e79f4b4de7516a411e297d1af009cc35ff2b80356",
+      "TutorialCategories.dbc": "d1ccd557dbb8915a2af0e1eeafd22da297d621c6448bf0f6039cb1150a5c7410",
+      "TutorialKeywords.dbc": "2b70a138145295689e89672de207e4e9832cab537e8dd6a45925944b00ca5d3f",
+      "TutorialObjectiveTypes.dbc": "dad8d63f180e5a1a36c23bbb7f651e7fc8da92b0d895328df3c821299e8bca89",
+      "TutorialObjectives.dbc": "8c57eec36b5eb3f5c1d561a53ea02492e418a2966479ef7c6f69e2ed4c03f542",
+      "TutorialRewards.dbc": "c03a6adc983bb1019188c799c0b9ec822b0399932eaa022976211b025fbfcad2",
+      "UICameraAppearanceChrRaces.dbc": "b6c37bb5f412ddb42054666d78788ed488f30602d3b0c868a4d988af3e15d385",
+      "UICameraAppearanceWeapons.dbc": "912656f634aa605b9b0b063a8d19f18eb0adf03b73fc64abc9a1f86e446d379e",
+      "UICameras.dbc": "1edf984ac07c2dd77e1b2dc9bcf6e84077f218f09648aae4a0d7eb104042f245",
+      "UISoundLookups.dbc": "9c464a15d2a9a2bbf5527cf1d6b4805a708844c8a0b48d07fbad518d2cb662fa",
+      "UnitBlood.dbc": "e7e552cbc5f1a9ea5cd2cd8aa2a8a88fa1e4b0320b169cb12dc6063247a2ed04",
+      "UnitBloodLevels.dbc": "29f067c5fdb622264cc47a5e8438b084a2a8356f0a11a0c71e7527bdb1069d73",
+      "VanityCollection.dbc": "aae91e8c4966790be090c1a69d124745aca4bfa4a09f43b52f0789667c98d46c",
+      "Vehicle.dbc": "793a3a518dbed6b11a6a79a740fb6c522d4f1f35e6b052f98756719951409c30",
+      "VehicleSeat.dbc": "6db6b2e6b551ae94268ab09df144576c27ec16f06969f11d7f8bbd218e039e65",
+      "VehicleUIIndSeat.dbc": "1ef2bd0303b4edb5870d81ae7a05807b0e899610a7ad97d659a67f5e27f0b89f",
+      "VehicleUIIndicator.dbc": "6cd292356fa4f13d60a28d449ba0cbf443533feb9206877c7f30297bbe4615af",
+      "VideoHardware.dbc": "729c24d4eb59baebc18f8e827d4c07f8a23bc3c2ce461d4f58d1f1558f9a4b46",
+      "VocalUISounds.dbc": "bf17d55549ebc07a70b2ba33f5f7818ee4f6e4ab14395f84f1f8fe214cad8051",
+      "WMOAreaTable.dbc": "74c80ffedb51f7203c91b26668a270c18a4c36d30c1a5a6037ac91db0902ec7b",
+      "WeaponImpactSounds.dbc": "adde2b6e8e205d60e8f7c4feee0169b2fdd8f77ac15ae49fc9a6bf297bdef428",
+      "WeaponSwingSounds2.dbc": "0c75521451dd4a28a32697aa546bf53738fcef7c3faff8d75c6b5372b893a928",
+      "Weather.dbc": "e9ee18f3dd66e9ea78e0b333f4b850ca751ec043960b0ee73f80190760eba9f0",
+      "WorldChunkSounds.dbc": "2593a413f5962f50090e8e7b3041c860dcebf3a1088d9a6a551d96b98feb662e",
+      "WorldMapArea.dbc": "203c101fcf1fc33e27dcde8ba721db402814567d3976825f0f94012188aaed09",
+      "WorldMapContinent.dbc": "644091fdf74bfd8405476ce63fe587a531a952f5c8212d07a6a730c9563f3d35",
+      "WorldMapOverlay.dbc": "de2e536a6c4fa8f44f9507c65886f63c45700e8f4b08b91d83c20a7be64e640c",
+      "WorldMapTransforms.dbc": "340aa0e2c383f892e4719c91ecce05e7c0302e135c6098594d7eb43ec99f3634",
+      "WorldSafeLocs.dbc": "f51a25e16367785675e91eff2fb3dbdd033bbb073bf7b9c2d4d67a40737e1347",
+      "WorldStateUI.dbc": "31309236143046293565566f58e71040e8c3eb8d52917009e515c62326005a94",
+      "WorldStateZoneSounds.dbc": "6f7054cc0173614ca0b82795097d5ff2d700761708bf5c55ed668137c9b375ce",
+      "WowError_Strings.dbc": "0aef55a0771c6fc7324c11322c72a600386ecf984b9572df9747e1cfeb3cbb86",
+      "ZoneIntroMusicTable.dbc": "fb86be2d7f4ae2204c98bd8f53eaed75e95f01b2823673c822be7e344d3451d1",
+      "ZoneLight.dbc": "e413124ce1bf6f62e966a43f670617ddaa8b06be63603970493913bdd66f9268",
+      "ZoneLightPoint.dbc": "d7fc377703f6477c5b2b54d05f06b75714b809b02754919762f0b17e5f4c0f1f",
+      "ZoneMusic.dbc": "42213ab824d874e3d748761c0e3588550ddb5a8536eaa267dd71b3c240dce9c7",
+      "ZoneStory.dbc": "c8bb212fc6010274adbd97ea4bdb52688e1f1e89ccd4593cb8c851a030909183",
+      "gtBarberShopCostBase.dbc": "c6c36ce18859cbcae085de9ff354cdb727f6cfab60438fec47a821eb2060c91e",
+      "gtChanceToMeleeCrit.dbc": "5ee9fbc992bba25c3dc21c89c7c9f58f9c05f7cec304c564d2e0ac499b4dc5a3",
+      "gtChanceToMeleeCritBase.dbc": "078feacd0072226c057d96ac79973ca11cac50ca3dc451dce71808da5164bb2e",
+      "gtChanceToSpellCrit.dbc": "fc69aa127756673ccc07e7702a965aca739872409a8db6cdea4bfbd8e4f3eb1c",
+      "gtChanceToSpellCritBase.dbc": "b6dc49d218285209efb46ac5cb0b4a46a045412ddfbc865fcb08585c18c0d049",
+      "gtCombatRatings.dbc": "685005ac08ea037aa21c868b3c70b9c4b7b82eb9f7a456ef215faaca9578e551",
+      "gtNPCManaCostScaler.dbc": "9cff4003f1588f5a68c045365ef4d64105a4dae11f8256df83b745e7acdcdb19",
+      "gtOCTClassCombatRatingScalar.dbc": "735e573f49f7a3db29f188af62bd39430d794d8ed5ae960990a13eb3cc9dd51f",
+      "gtOCTRegenHP.dbc": "80aa0fdf2516b895e361bef1fdb9df92cef555dd08b15cb58bf0559eb330f1fd",
+      "gtOCTRegenMP.dbc": "fd5288d5b54b7a9e12f884f651f8bc1432b653e42333b661c99521b66cb1ccc7",
+      "gtRegenHPPerSpt.dbc": "0a8f507776eb42ba0093c997efd50c3af04d7cc89730625ec8224a181ff6f3f8",
+      "gtRegenMPPerSpt.dbc": "958ab5fdb41669620edcddc5d0d750a6dc2d462d31066b6067f4b351fc898c00"
+    },
+    "terrain_required": [
+      "maps",
+      "vmaps",
+      "mmaps"
+    ],
+    "description": "Exact qualified CoA G1 DBC set; supply files separately. Terrain must match the client world."
+  },
+  "settings": {
+    "worldserver.conf": {
+      "SkillGain.Crafting": "4",
+      "CoA.ProfessionCastTimeCapMs": "2000",
+      "SkillGain.Gathering": "4",
+      "Rate.XP.Kill": "1",
+      "Rate.XP.Quest": "1",
+      "Rate.XP.Explore": "1",
+      "DungeonFinder.MaxExpansion": "2",
+      "Expansion": "2",
+      "StartPlayerMoney": "0",
+      "Rate.XP.Global": "0.9295",
+      "Rate.XP.Profession": "0.4",
+      "Rate.XP.Profession.BaseFraction": "0.02",
+      "Rate.XP.Profession.Gray": "0",
+      "Rate.XP.Profession.Green": "0.95",
+      "Rate.XP.Profession.Yellow": "1",
+      "Rate.XP.Profession.Orange": "1.05",
+      "Rate.XP.Profession.Mining": "2.11",
+      "Rate.XP.Profession.Herbalism": "1.44",
+      "Rate.XP.Profession.Disenchanting": "1.44",
+      "Rate.XP.Profession.Skinning": "0.55",
+      "Rate.XP.Profession.Fishing": "0.33",
+      "Rate.XP.Profession.Blacksmithing": "3.77",
+      "Rate.XP.Profession.Jewelcrafting": "3.77",
+      "Rate.XP.Profession.Alchemy": "3",
+      "Rate.XP.Profession.Enchanting": "2.88",
+      "Rate.XP.Profession.Leatherworking": "2",
+      "Rate.XP.Profession.FirstAid": "0.55",
+      "Rate.XP.Profession.Cooking": "0.55",
+      "Rate.XP.Profession.Engineering": "3.6",
+      "Rate.XP.Profession.Tailoring": "1.66",
+      "Rate.XP.Profession.Lockpicking": "0",
+      "Rate.XP.Profession.Inscription": "2.88",
+      "Rate.XP.Kill.TBC": "1.0909091",
+      "Rate.XP.Kill.WotLK": "0.90909094",
+      "Rate.XP.Elite": "1.44",
+      "Rate.XP.DungeonElite": "2.175",
+      "Rate.XP.Quest.TBC": "1.26",
+      "Rate.XP.Quest.WotLK": "1.05",
+      "Rate.XP.Quest.DF": "1",
+      "Rate.XP.Pet": "1",
+      "Rate.XP.BattlegroundKillAV": "1",
+      "Rate.XP.BattlegroundKillWSG": "1",
+      "Rate.XP.BattlegroundKillAB": "1",
+      "Rate.XP.BattlegroundKillEOTS": "1",
+      "Rate.XP.BattlegroundKillSOTA": "1",
+      "Rate.XP.BattlegroundKillIC": "1",
+      "Rate.XP.BattlegroundBonus": "1",
+      "Updates.EnableDatabases": "0",
+      "Updates.AutoSetup": "0"
+    },
+    "modules/coa.conf": {
+      "CoA.PlaintextWorldHeaders": "1",
+      "CoA.CharacterSelectionMaxActive": "10",
+      "CoA.ProfessionCastTimeCapMs": "2000",
+      "CoA.AutoProgression": "1",
+      "CoA.ItemScaling": "0",
+      "CoA.ItemScaling.Native": "0",
+      "CoA.CreatureScaling.Enable": "0",
+      "CoA.EquippedGearLoot": "0",
+      "CoA.DungeonTuning.Enable": "0",
+      "CoA.AllowAzerothMountFlight": "1",
+      "Ascension.CallboardCache.ReleaseStage": "8",
+      "CoA.RotationAssist.Enable": "0"
+    },
+    "modules/playerbots.conf": {
+      "AiPlayerbot.MinRandomBots": "1000",
+      "AiPlayerbot.MaxRandomBots": "1000",
+      "AiPlayerbot.GroupInvitationPermission": "1",
+      "AiPlayerbot.UseGroundMountAtMinLevel": "1",
+      "AiPlayerbot.UseFastGroundMountAtMinLevel": "1",
+      "AiPlayerbot.UseFlyMountAtMinLevel": "1",
+      "AiPlayerbot.UseFastFlyMountAtMinLevel": "1",
+      "AiPlayerbot.RandomBotMaxLevel": "80",
+      "AiPlayerbot.RandomBotMaxLevelChance": "0.1",
+      "AiPlayerbot.BotActiveAlone": "10",
+      "AiPlayerbot.ZoneBracket.3483": "58,66",
+      "AiPlayerbot.ZoneBracket.3521": "60,67",
+      "AiPlayerbot.RandomBotAutoJoinWSBrackets": "7",
+      "AiPlayerbot.RandomBotAutoJoinABBrackets": "6",
+      "AiPlayerbot.RandomBotAutoJoinAVBrackets": "3",
+      "AiPlayerbot.RandomBotAutoJoinEYBrackets": "2",
+      "AiPlayerbot.RandomBotAutoJoinBGEYCount": "1",
+      "AiPlayerbot.RandomBotAutoJoinArenaBracket": "14",
+      "AiPlayerbot.RandomBotsPerInterval": "5",
+      "AiPlayerbot.RandomBotPrintStatsInterval": "20",
+      "AiPlayerbot.EnableAutoTradeOnItemMention": "0",
+      "AiPlayerbot.BroadcastToWorldGlobalChance": "30000",
+      "AiPlayerbot.BroadcastToTradeGlobalChance": "30000",
+      "AiPlayerbot.RandomBotCustomClassesOnly": "1",
+      "AiPlayerbot.SocialChat.Enabled": "1",
+      "AiPlayerbot.SocialChat.PartyStatus": "1",
+      "AiPlayerbot.SocialChat.AmbientPacing": "1",
+      "AiPlayerbot.RandomBotAutologin": "1",
+      "AiPlayerbot.RandomBotAccountCount": "201",
+      "AiPlayerbot.DeleteRandomBotAccounts": "0",
+      "AiPlayerbot.CoaBotSurname": "0",
+      "AiPlayerbot.RandomBotMinLevel": "1",
+      "AiPlayerbot.LevelBrackets.Enabled": "0",
+      "Playerbots.Updates.EnableDatabases": "0",
+      "Playerbots.Updates.CoaSafeProfiles": "1"
+    },
+    "modules/destiny_weaver.conf": {
+      "DestinyWeaver.Scaling.Offset": "3",
+      "DestinyWeaver.Scaling.QuestMoneyKeepShare": "100",
+      "DestinyWeaver.Scaling.QuestXpKeepShare": "100",
+      "DestinyWeaver.ExperienceBonusControl": "0"
+    }
+  },
+  "verification": {
+    "gameplay_source": "locally qualified G1 and player acceptance",
+    "community_fresh_install": "See docs/g1-verification.md for qualification scope and results",
+    "reference_g1_binary_sha256": "4ae51ba6f58fec49d8891d2932b191a67ef3e37643547f5d2c30167d72313510"
+  },
+  "dependencies": {
+    "mysql_image": "mysql@sha256:3466ba4a4828aa8d46fb7c3bc16b67b781c98413cf4ea0fac6feaa6e881faa26"
+  },
+  "companion_addons": {
+    "repository": "https://github.com/AzerothLabWorks/addons",
+    "release_id": "g1-20261029",
+    "protocols": {
+      "CoAGatheringAlerts": 1,
+      "CoALfgTracker": 1
+    },
+    "revision": "e029784d805dd4d283c9aa55991fc329c4029a2b"
+  },
+  "images": {
+    "mysql": "mysql@sha256:3466ba4a4828aa8d46fb7c3bc16b67b781c98413cf4ea0fac6feaa6e881faa26"
+  }
+}

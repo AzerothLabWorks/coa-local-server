@@ -14,6 +14,8 @@ python3 "$ROOT/tests/test-staging.py"
 python3 "$ROOT/tests/test-staging-restore-proof.py"
 python3 "$ROOT/tests/test-candidate-verification.py"
 python3 -B "$ROOT/tests/test-coa-range.py"
+python3 -B "$ROOT/tests/test-client-patches.py"
+python3 -B "$ROOT/tests/test_g1_installer.py"
 
 for patch in "$ROOT"/source-patches/*.patch; do
   git apply --numstat "$patch" >/dev/null
@@ -89,11 +91,22 @@ test_root="$(mktemp -d)"
 trap 'rm -rf "$test_root"' EXIT
 mkdir -p "$test_root/data/dbc" "$test_root/data/maps" "$test_root/data/vmaps" "$test_root/data/mmaps"
 mkdir -p "$test_root/client/Interface/AddOns"
+mkdir -p "$test_root/bin"
+# Dry-run checks must never require or operate a real Docker daemon.
+cat > "$test_root/bin/docker" <<'SH'
+#!/usr/bin/env bash
+if [[ "$*" == 'compose version' || "$*" == 'info' ]]; then
+  exit 0
+fi
+printf 'Unexpected Docker mutation in dry-run test: %s\n' "$*" >&2
+exit 1
+SH
+chmod 700 "$test_root/bin/docker"
 for number in {1..100}; do
   touch "$test_root/data/dbc/test-$number.dbc"
 done
-"$ROOT/scripts/install-coa.sh" --data-dir "$test_root/data" --dir "$test_root/runtime" --dry-run >/dev/null
-"$ROOT/scripts/install-coa.sh" --data-dir "$test_root/data" --dir "$test_root/runtime" \
+PATH="$test_root/bin:$PATH" "$ROOT/scripts/install-coa.sh" --data-dir "$test_root/data" --dir "$test_root/runtime" --dry-run >/dev/null
+PATH="$test_root/bin:$PATH" "$ROOT/scripts/install-coa.sh" --data-dir "$test_root/data" --dir "$test_root/runtime" \
   --client-dir "$test_root/client" --dry-run >/dev/null
 [[ ! -e "$test_root/runtime" ]]
 [[ ! -e "$test_root/client/Interface/AddOns/COAWeakAurasRange" ]]

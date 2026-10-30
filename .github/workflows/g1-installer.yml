@@ -1,0 +1,20 @@
+name: G1 installer and release checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  installer:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the legacy client Lua runtime for verification
+        run: sudo apt-get update && sudo apt-get install -y lua5.1
+      - name: Validate installer guards, client repairs and release artifacts
+        run: bash tests/run.sh
+      - name: Check command help
+        run: python3 -B scripts/g1.py --help

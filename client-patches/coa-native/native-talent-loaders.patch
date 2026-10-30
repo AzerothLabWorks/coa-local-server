@@ -1,0 +1,22 @@
+--- a/Interface/FrameXML/FrameXML.toc
++++ b/Interface/FrameXML/FrameXML.toc
+@@ -361,7 +361,6 @@
+ LocalSpellChargeData.lua
+ LocalSpellCharges.lua
+ LocalRunemasterEchoes.lua
+-LocalCharacterAdvancementBridge.lua
+ LocalLootLoader.lua
+ Ascension_CustomResources\Ascension_CustomResources.xml
+ Ascension_BuildDraft\Ascension_BuildDraft.xml
+--- a/Interface/AddOns/Ascension_Collections/Collections.xml
++++ b/Interface/AddOns/Ascension_Collections/Collections.xml
+@@ -7,9 +7,6 @@
+         instead so it is guaranteed to execute.
+     -->
+     <Script file="ClassInfoCompat.lua"/>
+-    <Script file="CoATalentNodeData.lua"/>
+-    <Script file="CharacterAdvancementCompat.lua"/>
+-    <Script file="CharacterAdvancementStateCompat.lua"/>
+     <Script file="LocalOutfitCompat.lua"/>
+     <Script file="LocalMountData.lua"/>
+     <Script file="LocalMountTooltipCompat.lua"/>

@@ -1,0 +1,12 @@
+diff --git a/Interface/AddOns/Ascension_AppearanceUI/AppearanceUI.xml b/Interface/AddOns/Ascension_AppearanceUI/AppearanceUI.xml
+--- a/Interface/AddOns/Ascension_AppearanceUI/AppearanceUI.xml
++++ b/Interface/AddOns/Ascension_AppearanceUI/AppearanceUI.xml
+@@ -66,7 +66,7 @@
+                                 PlaySound(SOUNDKIT.UI_TRANSMOGRIFY_APPLY)
+                                 self:Disable()
+                                 self:GetParent().CancelButton:Disable()
+-                                C_Appearance.ApplyPendingAppearances()
++                                C_Appearance.ApplyPendingAppearances(false)
+                             </OnClick>
+                         </Scripts>
+                     </Button>
