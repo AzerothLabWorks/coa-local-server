@@ -11,6 +11,9 @@ usage() {
   cat <<'USAGE'
 Usage: ./scripts/prepare-coa-data.sh --client-dir DIR --source-dir DIR --mpqcli FILE [options]
 
+Historical build helper: this downloads standard terrain. It is not the G1 terrain preparation path.
+See docs/g1-installation.md for the current release's matching-client data requirements.
+
 Required:
   --client-dir DIR   Existing COA/Ascension client root containing Data
   --source-dir DIR   Checkout of jealous-sound/azerothcore-wotlk-coa

@@ -1,0 +1,81 @@
+{
+  "schema": 1,
+  "id": "g1-coa-client-20261029",
+  "client_build": "Ascension/CoA 3.3.5a 12340",
+  "archive": "Data/patch-B.MPQ",
+  "archive_members": 1406,
+  "accepted_archive_sha256": [
+    "00734080f0755da35d70e1ea78131d8bf448b5e8dd49fd0d990b02996e4ffb37",
+    "3973dcd6f1b38877bd7c372730b4fc2998e226f41dd6818856038539cd31bfde",
+    "68269a4e080f0273613c2f4d447b893a3c1e50cd6c92bf4dd51f91bc9c2b74fd",
+    "da8d205f21721b7e5a1df8046a168d60d12d814fbd955343ecc81f4c4437a986",
+    "c0655361cbd58d2d1d48a71f6ab8675f92a67f6d9bd3275ae05cca0e8b5c4a1e"
+  ],
+  "protected_identity": {
+    "Ascension.exe": "f4b9f6fce448194638c5b1c751483090a48c597c6272237f31b3d151b50d3114",
+    "Extensions.dll": "9791801053f828d1ccdab1a4c17e64852d3ebe0fa708b91fa3674d0805d15bc8"
+  },
+  "mpqcli": {
+    "repository": "https://github.com/thegraydot/mpqcli",
+    "revision": "4bd21908966bafbafc55c6dd293c68488684d212",
+    "windows_sha256": "5dc56b130432098d18e911fdf4b3464adf850432b7fbb35003a2feff7c30a79f"
+  },
+  "members": {
+    "Interface/FrameXML/FrameXML.toc": {
+      "before": [
+        "6c09ba51b3e0db03f93f60b92a725819fafd9e58a045cfae09a50173678865af"
+      ],
+      "after": "2b635682f355427682a909c373eac8b86dd257b6437eb4490786b70d7f341369",
+      "patch": "coa-native/native-talent-loaders.patch"
+    },
+    "Interface/AddOns/Ascension_Collections/Collections.xml": {
+      "before": [
+        "7a7ac4b32b8b1975a068b9ad834de91dff10f3febd522f1c470fa2537ed40bdb"
+      ],
+      "after": "1a82dc94d0c7a38b88c916744945b3f04765565a715b93612b13595d940090f6",
+      "patch": "coa-native/native-talent-loaders.patch"
+    },
+    "Interface/LibraryXML/LibRangeCheck-2.0/LibRangeCheck-2.0.lua": {
+      "before": [
+        "f57253d9f771a8bb24a8707147fc450fbae1a3846d1d6463ff3c9c6cee00002e"
+      ],
+      "after": "b5b05d87f78d4783edcfa4905668c75d1e341c383630798d47a64423ae4286c5",
+      "replacement": "coa-range/LibRangeCheck-2.0.lua"
+    },
+    "Interface/AddOns/Ascension_AppearanceUI/AppearanceUI.xml": {
+      "before": [
+        "c04678d5ebcfd328567357dafda24dc2c7ae0a963a1eb87143713a45d27cf88e"
+      ],
+      "after": "6798066637d6274026ff053716192da256baa72f422af2f68a663426a9dcf8dc",
+      "patch": "coa-cosmetics/native-appearance-vanity.patch",
+      "alternate_patch": {
+        "68d9463ab7260cb64c1a7ac29f9b1db86103075df97646468b8195b4065488e9": "coa-cosmetics/required-apply-argument.patch"
+      }
+    },
+    "Interface/AddOns/Ascension_AppearanceUI/AppearancePlayerModelMixin.lua": {
+      "before": [
+        "0620a048c2db878b8c543ed8ebe6111644e7de2de83e62e715e8c80e8ec7fbd7"
+      ],
+      "after": "de3a5158b39d07e06aaf2a1d5b800625229e351ac0dd45350abb8a3527ffba7e",
+      "patch": "coa-cosmetics/native-appearance-vanity.patch"
+    },
+    "Interface/AddOns/Ascension_VanityCollection/VanityStore.lua": {
+      "before": [
+        "537d9d7740198347800f4808eec9f28700c83582956473f93e174b896ccaa0e7"
+      ],
+      "after": "204687620c7f8617bb128870215ac94ef4274891b7b19a87481eb4b9528b2307",
+      "patch": "coa-cosmetics/native-appearance-vanity.patch"
+    }
+  },
+  "optional_loose": {
+    "Interface/AddOns/WeakAuras/Prototypes.lua": {
+      "before": [
+        "7ddb157f324c9ee90eb592c989b8ffcd22ed5061a081606ec9930edb8bb8952e"
+      ],
+      "after": "81af4f54a6918609dfb6aa879b53b4f325f8f9ae6bbed6654175b20a86965e96",
+      "patch": "coa-range/WeakAuras-GetRange.patch",
+      "patch_member": "Prototypes.lua"
+    }
+  },
+  "retire_addon": "Interface/AddOns/COAWeakAurasRange"
+}

@@ -1,0 +1,72 @@
+diff --git a/Interface/AddOns/Ascension_AppearanceUI/AppearanceUI.xml b/Interface/AddOns/Ascension_AppearanceUI/AppearanceUI.xml
+index 7dea048..ea24577 100644
+--- a/Interface/AddOns/Ascension_AppearanceUI/AppearanceUI.xml
++++ b/Interface/AddOns/Ascension_AppearanceUI/AppearanceUI.xml
+@@ -66,7 +66,7 @@ https://raw.githubusercontent.com/Ascension-Addons/UI.xsd/main/UI.xsd">
+                                 PlaySound(SOUNDKIT.UI_TRANSMOGRIFY_APPLY)
+                                 self:Disable()
+                                 self:GetParent().CancelButton:Disable()
+-                                AscensionLocalApplyPendingAppearances()
++                                C_Appearance.ApplyPendingAppearances(false)
+                             </OnClick>
+                         </Scripts>
+                     </Button>
+diff --git a/Interface/AddOns/Ascension_AppearanceUI/AppearancePlayerModelMixin.lua b/Interface/AddOns/Ascension_AppearanceUI/AppearancePlayerModelMixin.lua
+index 0e6d322..bbe5f8c 100644
+--- a/Interface/AddOns/Ascension_AppearanceUI/AppearancePlayerModelMixin.lua
++++ b/Interface/AddOns/Ascension_AppearanceUI/AppearancePlayerModelMixin.lua
+@@ -52,29 +52,6 @@ local SlotLayout = {
+ 
+ local ItemCategoryFallback = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14 }
+ 
+-local function NormalizeLocalRealmAppearanceResult(canApply, reason)
+-    if not canApply and type(reason) == "string" and string.find(reason, "NOT_REALM_APPROPRIATE", 1, true) then
+-        return true, nil
+-    end
+-    return canApply, reason
+-end
+-
+-function AscensionLocalApplyPendingAppearances()
+-    local submitted = false
+-    for categoryID = 1, 68 do
+-        local appearanceID = C_Appearance.GetPendingAppearance(categoryID)
+-        if type(appearanceID) == "number" then
+-            SendChatMessage(format(".localappearance %d %d", categoryID, appearanceID))
+-            submitted = true
+-        end
+-    end
+-
+-    if submitted then
+-        C_Appearance.ClearPendingAppearances()
+-    end
+-    return submitted
+-end
+-
+ local function NormalizeNumericSequence(values)
+     local normalized = {}
+     if type(values) ~= "table" then
+@@ -157,8 +134,6 @@ function AppearancePlayerModelMixin:APPLY_PENDING_APPEARANCE_RESULT(applied, res
+     if applied then
+         self.ErrorFrame:Clear()
+         self.ErrorFrame:AddMessage(_G[result] or result, GREEN_FONT_COLOR:GetRGB())
+-    elseif type(result) == "string" and string.find(result, "NOT_REALM_APPROPRIATE", 1, true) then
+-        self.ErrorFrame:Clear()
+     elseif result == "APPLY_APPEARANCES_COSMETIC_PET_APPEARANCE_CONFIRMATION" then
+         self.ErrorFrame:Clear()
+         StaticPopup_Show("CONFIRM_APPLY_COSMETIC_PET")
+diff --git a/Interface/AddOns/Ascension_VanityCollection/VanityStore.lua b/Interface/AddOns/Ascension_VanityCollection/VanityStore.lua
+index 749cd50..1aad462 100644
+--- a/Interface/AddOns/Ascension_VanityCollection/VanityStore.lua
++++ b/Interface/AddOns/Ascension_VanityCollection/VanityStore.lua
+@@ -793,10 +793,6 @@ end
+ local function ActivateItem(self)
+ 	PlaySound("igMainMenuOptionCheckBoxOn")
+ 	if (Store.ItemSelected ~= 0) and (self:IsEnabled() == 1) then
+-		if LocalHeirloomItemSet[Store.ItemSelected] then
+-			SendChatMessage(".localvanity " .. Store.ItemSelected)
+-		else
+-			C_VanityCollection.RequestDelivery(Store.ItemSelected)
+-		end
++		C_VanityCollection.RequestDelivery(Store.ItemSelected)
+ 	end
+ end

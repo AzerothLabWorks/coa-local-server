@@ -1,5 +1,9 @@
 # COA range library compatibility
 
+For the G1 source release, use the fingerprinted, configurable
+[client setup procedure](../../docs/client-setup.md) and `scripts/client-patches.py`.
+The machine-specific staging procedure below is retained as deployment history, not a portable installer.
+
 This repair makes the shared native `LibRangeCheck-2.0` discover suitable learned COA spells rather than
 depending only on original WotLK class lists. WeakAuras keeps its normal Range Check trigger and range
 conditions, including combinations with other triggers. The repair was installed in the separate staging
