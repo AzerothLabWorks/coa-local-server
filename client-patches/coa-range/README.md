@@ -6,13 +6,25 @@ The machine-specific staging procedure below is retained as deployment history, 
 
 This repair makes the shared native `LibRangeCheck-2.0` discover suitable learned COA spells rather than
 depending only on original WotLK class lists. WeakAuras keeps its normal Range Check trigger and range
-conditions, including combinations with other triggers. The repair was installed in the separate staging
+conditions, including combinations with other triggers. This is a published shared-library repair and a
+targeted cleanup of an earlier local override, **not a complete WeakAuras addon package or addon upgrade**.
+The complete addon is available separately as
+[WeakAuras-CoA 5.21.2-alw.1](https://github.com/AzerothLabWorks/addons/releases/tag/weakauras-coa-5.21.2-alw.1),
+built from pinned public Ascension source with the reviewed icon cooldown guard and component notices.
+See [WeakAuras on CoA](https://github.com/AzerothLabWorks/addons/blob/main/docs/weakauras-coa.md) for addon
+installation and attribution. Installing that package alone does not repair the shared client library.
+Personal auras and SavedVariables are not included or replaced by either package.
+
+## Historical local acceptance
+
+The repair was installed in the separate staging
 client on 2026-10-03. All 26 focused checks passed against the packaged library and installed WeakAuras
 range functions. Player testing accepted the repair in staging on 2026-10-03: the existing Quake melee
-aura and other melee attack auras work, and the improvements survive logout/login. Production promotion
-remains pending. Installation retained all 1,406 archive member identities and the bytes of all 1,403
-unrelated ordinary members. Production and
-unrelated protected client files were verified unchanged, and the current staging rollback is retained.
+aura and other melee attack auras worked, and the improvements survived logout/login. Installation retained
+all 1,406 archive member identities and the bytes of all 1,403 unrelated ordinary members. Production and
+unrelated protected client files were verified unchanged during that operation, and rollback files were retained.
+This dated staging record is distinct from the published `g1-20261029` source recipe and its configurable
+client-repair workflow linked above; it is not a pending public-release promotion.
 
 ## What changes
 
@@ -43,7 +55,7 @@ Friendly, hostile, dead and neutral units retain their separate checker lists. G
 abilities must not be treated as universal distance probes. Changing an aura's range value does not teach
 the character a new range checker.
 
-## Staging installation and rollback
+## Historical staging installation and rollback
 
 `scripts/Install-CoARangeStaging.ps1` is deliberately pinned to the reviewed local staging client and archive.
 It is not a general installer for other client versions. `-Prepare` creates a fresh private artifact directory

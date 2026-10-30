@@ -35,6 +35,20 @@ The native `verify_all.py` source, build and unit stages passed; its additional 
 stages were skipped in that build invocation. The separate fresh-bootstrap/startup probe described above and
 historical player acceptance are separate evidence, not a substitute for claiming those skipped stages passed.
 
+## October 30 client-tool compatibility update
+
+The current repository additionally recognizes the exact clean `WeakAuras/Prototypes.lua` from the
+separately packaged Ascension WeakAuras source, preserving its original bytes. The old wrapper and already
+repaired variants remain supported; unknown/customized variants and unreviewed native client identities
+still stop for review. This does not update the server baseline frozen by `g1-20261029`.
+
+All **27 focused client-patch tests passed**, including the exact public upstream file, unchanged-byte
+installation/rollback fixtures, and unknown-input rejection. The tests use disposable fixtures, not a live
+client. Repeat with `python tests/test-client-patches.py --weak-auras-prototype PATH`, where `PATH` is the
+clean file extracted from the [separate WeakAuras package](https://github.com/AzerothLabWorks/addons/blob/main/docs/weakauras-coa.md).
+Without that optional file, its external-source test is explicitly skipped. This is not an in-game acceptance
+claim for the newly packaged download.
+
 ## Gameplay evidence
 
 See [improvements and acceptance](g1-improvements.md) for the player's observations on the existing G1 realm:

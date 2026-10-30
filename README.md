@@ -12,6 +12,22 @@ and extracted data; this repository does not contain a full client, character da
 Public source reconstruction, clean build/unit checks and isolated fresh-database startup passed;
 see [verification](docs/g1-verification.md) for the exact scope and remaining gameplay acceptance.
 The release freezes the tested source rather than following upstream `main` during installation.
+Later work on the local reference realm is not included until a new public release records and qualifies it.
+For a reusable introduction with links and the release's scope, see the [community announcement](docs/community-announcement.md).
+
+## Start here
+
+1. Read the [installation prerequisites](docs/g1-installation.md#prepare-the-host-and-data). You need a
+   compatible CoA client and matching extracted data before installing; this repository does not acquire them.
+   The data-preparation workflow is not yet a complete newcomer setup guide.
+2. On Ubuntu/Linux or Ubuntu in WSL2, run the read-only installation check below. Continue only when its
+   release, data, Docker and port checks pass. Use a new runtime directory for this fresh-install recipe.
+3. Follow [account creation and connection](docs/g1-installation.md#create-your-account-and-connect), then
+   choose any [optional client addons and repairs](docs/client-setup.md). They are separate from server installation.
+
+The reference setup is Windows 11 with Ubuntu in WSL2 and a separately supplied compatible Windows client.
+See [verification](docs/g1-verification.md) for the difference between automated checks, fresh-server startup,
+and gameplay observed on the existing reference realm.
 
 ## Improvements
 
@@ -24,8 +40,8 @@ The release freezes the tested source rather than following upstream `main` duri
 | Professions | Four-point crafting/gathering gains; crafting, smelting, mining and skinning capped at two seconds while preserving faster casts. Fishing's channel is unchanged. |
 | Character progression | Native talent persistence, the Defiance/Hellfire Imp correction, improved Book of Artisans profession filtering, and quest-display resynchronization. |
 | Gathering alerts | Live nearby herbs/minerals produce private minimap pings through the companion addon when the matching tracking is active. |
-| Client compatibility | Reviewed native talent-loader, range/WeakAuras, and wardrobe/vanity patch recipes. |
-| Optional client tools | CoA GM Command Center, LFG Tracker, Gathering Alerts, Resource Monitor, and a separate fog/water graphics setup. |
+| Client compatibility | Reviewed native talent-loader, shared range-library, and wardrobe/vanity patch recipes; compatible installed WeakAuras can use the repaired range checks. |
+| Optional client tools | CoA GM Command Center, LFG Tracker, Gathering Alerts, Resource Monitor, a separately packaged Ascension WeakAuras fork, and a separate fog/water graphics setup. |
 
 The reference realm runs **1,000 bots**. Population is configurable; that observation is not a hardware guarantee.
 Read the [improvements and acceptance record](docs/g1-improvements.md) for what has actually been tested and
@@ -87,6 +103,11 @@ See [updates and preservation](docs/g1-updates.md).
 - [Client compatibility and optional graphics](docs/client-setup.md): version-aware patch preparation, backup and rollback.
 - [AzerothLabWorks addons](https://github.com/AzerothLabWorks/addons): matching `g1-20261029` CoA addon packages and their installer.
   Ready-made ZIPs and checksums are available on the [addon release page](https://github.com/AzerothLabWorks/addons/releases/tag/g1-20261029).
+- [WeakAuras on CoA](https://github.com/AzerothLabWorks/addons/blob/main/docs/weakauras-coa.md): installation,
+  source attribution, and testing guidance for the separate
+  [5.21.2-alw.1 package](https://github.com/AzerothLabWorks/addons/releases/tag/weakauras-coa-5.21.2-alw.1).
+  The addon package and the shared client range-library repair are separate steps. Personal aura definitions
+  and account settings are not included.
 - Gathering Alerts and LFG Tracker require their matching server components. The GM addon requires server-granted
   GM permissions and explicit character/realm opt-in.
 
