@@ -10,12 +10,13 @@ The number of modified files is not a count of independent features.
 | Component | What it does | Installation path |
 | --- | --- | --- |
 | Native talent loaders | Stops loading the retired local talent compatibility bridge so the native G1 talent protocol can work. | Reviewed archive repair below. |
-| Range library and WeakAuras | Discovers usable learned CoA spells for range checks; removes the old single-spell wrapper when that exact wrapper is present. | Reviewed archive/loose-file repair below. |
+| Shared range library | Discovers usable learned CoA spells for range checks, including checks used by compatible installed WeakAuras; removes the old single-spell wrapper when that exact wrapper is present. | Reviewed archive/loose-file repair below; not a complete WeakAuras package. |
 | Wardrobe and vanity | Uses the native appearance Apply and vanity delivery calls, including the required Apply argument. | Reviewed archive repair below. |
 | CoALfgTracker | Displays the supported dungeon's authoritative final objective and completion state. | Ordinary addon; matching server bridge required. |
 | CoAGatheringAlerts | Pings nearby active tracked herbs/minerals, privately, with repeat suppression. | Ordinary addon; matching server bridge required. |
 | GMCommandCenter_CoA | CoA GM command interface, with commands disabled until configured for the intended realm. | Ordinary addon. |
 | COAResourceMonitor | Shows the custom classes' simultaneous resources. | Ordinary addon. |
+| WeakAuras for CoA | Ascension-adapted display/trigger addon with the reviewed icon cooldown guard. | Separate six-folder [5.21.2-alw.1 package](https://github.com/AzerothLabWorks/addons/releases/tag/weakauras-coa-5.21.2-alw.1); manual installation below. |
 | CoAVolFog | Optional volumetric fog and modern water from the separate upstream graphics project. | Separate source build and optional manual installation below. |
 
 The local G1 client has player acceptance for talent persistence, the tested appearance/vanity paths, range
@@ -34,11 +35,35 @@ pwsh scripts/Install-CoAAddons.ps1 -ClientPath 'D:\Games\CoA' -PackageDirectory 
 
 Review the check output, fully close the game, then use `-Action Install`. The installer supports selecting
 individual addons with `-Addons` and receipt-based rollback. Keep its backup/receipt folder. It does not copy
-our account settings, WeakAuras, action bars, or SavedVariables into your client.
+our account settings, personal aura definitions, action bars, or SavedVariables into your client. This
+four-addon installer does not install the separate WeakAuras package.
 
 The gathering protocol is `COAGATHER` version 1; the dungeon tracker uses `COA_LFG_STATUS` version 1.
 The corresponding server components are part of the matching `g1-20261029` release. Installing only the
 client addon on an unrelated server does not add the server's node detection or dungeon status support.
+
+## WeakAuras and the separate range repair
+
+The optional [WeakAuras-CoA 5.21.2-alw.1 package](https://github.com/AzerothLabWorks/addons/releases/tag/weakauras-coa-5.21.2-alw.1)
+contains all six addon folders from [Thinato/WeakAuras-Ascension](https://github.com/Thinato/WeakAuras-Ascension/tree/5741c0cd6ee021a954b83ea6c69edf8bd0bba196),
+pinned to that public source revision, with our small icon cooldown guard and retained component notices.
+It does not contain personal auras or SavedVariables. Follow the
+[CoA WeakAuras guide](https://github.com/AzerothLabWorks/addons/blob/main/docs/weakauras-coa.md) to verify the
+download, back up existing addon/settings files, install the six folders, and test in game. The package is
+separately versioned and is not handled by the four-addon installer above. A Retail, Classic, or generic
+WotLK download is not interchangeable with this Ascension fork.
+
+The published range repair updates the client's shared `LibRangeCheck-2.0`; installing the WeakAuras ZIP
+does **not** apply that repair. WeakAuras keeps its normal Range Check trigger and range conditions. The
+client repair also removes one earlier local `Prototypes.lua` override when its exact fingerprint is present;
+the new addon package already uses the standard wrapper. See the
+[range repair details](../client-patches/coa-range/README.md) for behavior and limits.
+
+Use the current server repository's client-repair tools, manifest and patch directory together when preparing
+this package; the original `g1-20261029` tagged tools do not recognize its clean upstream `Prototypes.lua`
+fingerprint. The updated tools accept that exact file without replacing it, alongside the earlier reviewed
+variants. An absent WeakAuras installation remains allowed; unknown files stop for review. This client-tool
+compatibility update does not change the server revision frozen by `g1-20261029`.
 
 ## Reviewed native client repair
 
@@ -69,7 +94,7 @@ duplicate names, checks every named member after extraction, applies only the re
 verifies all unrelated ordinary members byte-for-byte. Generated MPQ metadata may change. It records the
 prepared archive's actual hash instead of assuming different MPQ packing runs produce identical archives.
 
-If WeakAuras is installed, its `Prototypes.lua` must match the known original or repaired fingerprint. The
+If WeakAuras is installed, its `Prototypes.lua` must match a reviewed original, repaired, or clean upstream fingerprint. The
 repair preserves mixed line endings and checks the exact resulting bytes. Unknown customized versions stop
 for review; the tool does not overwrite them with a bundled copy. An absent WeakAuras installation is allowed.
 The retired `COAWeakAurasRange` addon is moved to the artifact directory at installation, with its original

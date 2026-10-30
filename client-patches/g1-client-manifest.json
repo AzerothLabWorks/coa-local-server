@@ -73,6 +73,14 @@
         "7ddb157f324c9ee90eb592c989b8ffcd22ed5061a081606ec9930edb8bb8952e"
       ],
       "after": "81af4f54a6918609dfb6aa879b53b4f325f8f9ae6bbed6654175b20a86965e96",
+      "accepted_unchanged": [
+        "324b1fe1cabdf6629f4c9c663bd9c3250e076f71361c91f7995b1612e42eca33"
+      ],
+      "unchanged_source": {
+        "repository": "https://github.com/Thinato/WeakAuras-Ascension",
+        "revision": "5741c0cd6ee021a954b83ea6c69edf8bd0bba196",
+        "path": "WeakAuras/Prototypes.lua"
+      },
       "patch": "coa-range/WeakAuras-GetRange.patch",
       "patch_member": "Prototypes.lua"
     }

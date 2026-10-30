@@ -168,7 +168,9 @@ def patch_sections(data):
 
 def transform(data, item, member):
     before = digest(data)
-    if before == item["after"]:
+    # Reviewed clean distributions can differ only in line endings. Accept their
+    # exact hashes without normalizing or rewriting the user's original bytes.
+    if before == item["after"] or before in item.get("accepted_unchanged", []):
         return data
     alternative = item.get("alternate_patch", {}).get(before)
     require(before in item["before"] or alternative, "Unsupported input member: " + member)

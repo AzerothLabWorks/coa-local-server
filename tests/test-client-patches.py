@@ -13,6 +13,7 @@ SCRIPT = Path(__file__).resolve().parents[1] / "scripts/client-patches.py"
 SPEC = importlib.util.spec_from_file_location("client_repairs", SCRIPT)
 REPAIR = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(REPAIR)
+WEAKAURAS_PROTOTYPE = None
 
 
 def hash_bytes(value):
@@ -93,6 +94,23 @@ class Patches(unittest.TestCase):
             item = {"before": [hash_bytes(old)], "after": hash_bytes(new), "patch": "x"}
             with patch.object(REPAIR, "PATCHES", root):
                 self.assertEqual(REPAIR.transform(old, item, "a"), new)
+
+    def test_clean_variant_preserves_bytes_without_accepting_other_newlines(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "x").write_text("--- a/a\n+++ b/a\n@@ -1,3 +1,2 @@\n first\n-old\n last\n")
+            old = b"first\r\nold\nlast\r\n"
+            repaired = b"first\r\nlast\r\n"
+            clean = b"first\nlast\n"
+            item = {"before": [hash_bytes(old)], "after": hash_bytes(repaired),
+                    "accepted_unchanged": [hash_bytes(clean)], "patch": "x"}
+            with patch.object(REPAIR, "PATCHES", root):
+                self.assertEqual(REPAIR.transform(old, item, "a"), repaired)
+                for value in (repaired, clean):
+                    self.assertIs(REPAIR.transform(value, item, "a"), value)
+                for unknown in (b"first\r\nlast\n", clean + b"-- customized\n"):
+                    with self.subTest(unknown=unknown), self.assertRaisesRegex(ValueError, "Unsupported input"):
+                        REPAIR.transform(unknown, item, "a")
 
     def test_running_client_rejected(self):
         result = subprocess.CompletedProcess([], 0, stdout='"Ascension.exe","123","Console","1","20 K"\n')
@@ -183,6 +201,24 @@ class Installation(unittest.TestCase):
         REPAIR.rollback(self.args)
         self.assertEqual(REPAIR.tree(self.client), before)
 
+    def test_clean_loose_file_is_not_replaced_by_install_or_rollback(self):
+        clean = b"already clean\nretained bytes\n"
+        entry = self.entries[-1]
+        self.file(entry["target"], clean)
+        (self.artifacts / entry["backup"]).write_bytes(clean)
+        (self.artifacts / entry["prepared"]).write_bytes(clean)
+        entry["before"] = entry["after"] = hash_bytes(clean)
+        self.write_proof()
+        original = REPAIR.tree(self.client)
+        with patch.object(REPAIR, "replace_file", wraps=REPAIR.replace_file) as replace:
+            REPAIR.install(self.args)
+            REPAIR.rollback(self.args)
+        self.assertEqual(replace.call_count, 2)
+        self.assertTrue(all(call.args[0] == self.client / self.manifest["archive"]
+                            for call in replace.call_args_list))
+        self.assertEqual((self.client / entry["target"]).read_bytes(), clean)
+        self.assertEqual(REPAIR.tree(self.client), original)
+
     def test_install_replay_rejected(self):
         REPAIR.install(self.args)
         with self.assertRaises(ValueError):
@@ -240,5 +276,24 @@ class Installation(unittest.TestCase):
         self.assert_originals()
 
 
+class PublicWeakAurasFile(unittest.TestCase):
+    def test_reviewed_public_file_is_preserved_and_customized_file_is_refused(self):
+        if WEAKAURAS_PROTOTYPE is None:
+            self.skipTest("Supply --weak-auras-prototype to check the exact external upstream file")
+        original = WEAKAURAS_PROTOTYPE.read_bytes()
+        item = REPAIR.read_json(REPAIR.MANIFEST)["optional_loose"][
+            "Interface/AddOns/WeakAuras/Prototypes.lua"]
+        self.assertIn(hash_bytes(original), item["accepted_unchanged"])
+        self.assertIs(REPAIR.transform(original, item, "Prototypes.lua"), original)
+        with self.assertRaisesRegex(ValueError, "Unsupported input"):
+            REPAIR.transform(original + b"\n-- unreviewed customization\n", item, "Prototypes.lua")
+        self.assertEqual(WEAKAURAS_PROTOTYPE.read_bytes(), original)
+
+
 if __name__ == "__main__":
-    unittest.main()
+    parser = argparse.ArgumentParser(description="Offline client repair tests; never install to a game client")
+    parser.add_argument("--weak-auras-prototype", type=Path,
+                        help="Read-only clean Prototypes.lua from the pinned upstream source")
+    args, unittest_args = parser.parse_known_args()
+    WEAKAURAS_PROTOTYPE = args.weak_auras_prototype
+    unittest.main(argv=[__file__, *unittest_args])

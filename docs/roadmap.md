@@ -2,11 +2,16 @@
 
 G1 is the public source baseline. Work is prioritized by observed gameplay problems and reproducibility,
 not by a promise to implement every idea before a release. There are no delivery-date commitments here.
+The published recipe is **`g1-20261029`**. Subsequent development and gameplay on the local reference realm
+are not part of that release until their source, migration handling and qualification are published in a new version.
+Optional client tools can have separate versions: the
+[WeakAuras 5.21.2-alw.1 package](https://github.com/AzerothLabWorks/addons/blob/main/docs/weakauras-coa.md)
+and its matching client-tool compatibility update do not advance the frozen server baseline.
 
 | Status | Work | Acceptance target |
 | --- | --- | --- |
 | Current release | CoA bot integration, dungeon access/completion fixes, profession improvements, client compatibility, live gathering alerts | See [observed results](g1-improvements.md) and [verification](g1-verification.md). |
-| Active | Reproducible community installation and matching client/addon packages | A new isolated installation from public pins, with no personal database snapshot. |
+| Active | Community onboarding and fresh-install acceptance | A complete new-user walkthrough from compatible client/data through account creation, login and a bot dungeon; build and isolated fresh-database startup already have the evidence linked above. |
 | Active | Playerbot reliability and dungeon feedback | More level ranges, classes, tank/healer/DPS combinations, deaths, reconnects and full dungeon completion; review authored talent coverage beyond level 60. |
 | Active | Reviewed upstream updates | Weekly review, frozen revisions, local-fix overlap/migration checks, isolated qualification, then a versioned release. |
 | Next | Existing-server update and restore workflow | Latest-data backup, migration identity checks, rehearsal, preservation of accounts/characters/bot profiles, rollback proof. |

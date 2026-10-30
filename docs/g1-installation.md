@@ -4,6 +4,12 @@ The G1 installer creates a new local realm from the exact public source revision
 [`releases/g1-20261029/manifest.json`](../releases/g1-20261029/manifest.json). It does not update an existing
 realm or import a player's saved characters. Check the [qualification record](g1-verification.md) before using
 the release; tests of an existing realm and tests of a fresh installation are separate evidence.
+This recipe remains frozen at **`g1-20261029`**. Later fixes tested on the local reference realm do not enter
+an installation automatically; they require a separately qualified public release.
+
+Start with the host and data prerequisites below, then run `check`, install into a new directory, create
+your account, and connect your compatible client. Optional client repairs, addons and graphics are separate
+steps described in [client setup](client-setup.md). The server installer does not supply or configure a client.
 
 ## Prepare the host and data
 
@@ -24,6 +30,9 @@ CoA source/client extraction workflow for your client revision. The historical `
 downloads standard terrain and is **not the G1 terrain preparation path**: using it can reintroduce geometry
 mismatches in modified towns. The source build produces extraction tools, but this release does not yet qualify
 a portable end-to-end terrain extraction recipe. Keep your extracted data versioned alongside your client.
+If you do not already have the compatible client and extracted data, resolve that prerequisite before running
+`install`. Do not bypass a fingerprint failure or substitute stock terrain to make the check pass; report the
+release ID and the mismatched file name/hash without uploading game assets.
 
 The following placeholders describe three locations you supply:
 
@@ -119,6 +128,9 @@ Keep console output private when entering credentials.
 Point your compatible client at `127.0.0.1:33727`, or the login port selected during installation. Configure a
 separate client copy when you also play another realm. Follow [client setup](client-setup.md) for the optional
 G1 patches, addons, and graphics. The server installer does not modify your client.
+WeakAuras is available as a [separate CoA compatibility package](https://github.com/AzerothLabWorks/addons/blob/main/docs/weakauras-coa.md);
+neither server installation nor the four-addon G1 installer installs it. Its addon files and the shared
+client range-library repair have separate installation and rollback steps.
 
 ## Daily controls
 
