@@ -1,7 +1,8 @@
 # Community announcement
 
-The text below describes the frozen `g1-20261029` server source release and the separately versioned
-WeakAuras compatibility package. Later local development is not automatically included in either release.
+The text below describes the frozen `g1-20261118` source recipe on the repository's main branch and the
+separately versioned addon packages. Its source/package checks and reference-realm acceptance are described
+in the verification guide; earlier fresh-install evidence remains identified by its original release.
 
 ---
 
@@ -18,8 +19,9 @@ been testing through ordinary questing and dungeon runs:
   and location requirements.
 - Four-point profession skill gains and a two-second maximum for crafting, smelting, mining and skinning,
   while preserving faster casts.
-- Live tracked herb/mineral minimap pings and sound, plus talent, appearance, profession-service and dungeon
-  objective/completion fixes.
+- Live tracked herb/mineral minimap pings and sound, filtered by the character's gathering skill.
+- Native Worldforged sparkles that disappear after collection, a reusable duration-stacking experience potion,
+  and character-specific Gelkis/Magram choices, alongside the talent, appearance and dungeon fixes.
 - Companion GM tools, resource display and dungeon tracker addons; a separate Ascension WeakAuras compatibility
   package; and instructions for optional CoAVolFog environmental graphics.
 
@@ -32,15 +34,18 @@ your own compatible CoA client and matching extracted data. Data preparation sti
 workflow; the release does not include a client, game-data download or automatic upgrade of an existing realm.
 WeakAuras and environmental graphics have their own setup instructions.
 
-- [Server release and installation guide](https://github.com/AzerothLabWorks/coa-local-server/releases/tag/g1-20261029)
+- [Current server source and installation guide](https://github.com/AzerothLabWorks/coa-local-server)
+- [Pinned November 18 source recipe](https://github.com/AzerothLabWorks/coa-local-server/blob/main/releases/g1-20261118/manifest.json)
 - [Four companion addon downloads](https://github.com/AzerothLabWorks/addons/releases/tag/g1-20261029)
 - [WeakAuras for CoA download and setup](https://github.com/AzerothLabWorks/addons/blob/main/docs/weakauras-coa.md)
-- [Playerbot guide, roles and mount behavior](https://github.com/AzerothLabWorks/coa-local-server/blob/g1-20261029/docs/playerbots.md)
+- [Playerbot guide, roles and mount behavior](https://github.com/AzerothLabWorks/coa-local-server/blob/main/docs/playerbots.md)
 - [Test scope](https://github.com/AzerothLabWorks/coa-local-server/blob/main/docs/g1-verification.md) and [roadmap](https://github.com/AzerothLabWorks/coa-local-server/blob/main/docs/roadmap.md)
 
 Credit goes to the upstream CoA/AzerothCore developers, mod-playerbots, Zyth's CoA Bots, the WeakAuras and
 Ascension addon contributors, and the graphics/community contributors whose work makes this possible.
-This project focuses on integrating, testing and sharing the local setup and its improvements.
+This project focuses on integrating, testing and sharing the local setup and its improvements. We developed
+and tested these integrations in collaboration with OpenAI Codex, using automated checks and ordinary gameplay
+feedback. I'm sharing the work for anyone interested in using it for their own local project.
 
 Feedback on installation and gameplay is welcome. Please include your release version and enough steps to
 reproduce a problem so we can keep improving the shared build.

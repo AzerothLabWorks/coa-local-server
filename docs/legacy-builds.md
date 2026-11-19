@@ -6,7 +6,7 @@ terrain matches the modified G1 client. Follow the current [data prerequisites](
 The original `scripts/install-coa.sh`, `compose.yaml` and older ordered patches reproduce the earlier
 local build. They do not install the native G1 release described on the current landing page.
 
-For G1, use `scripts/g1.py` and `releases/g1-20261029/manifest.json`. Do not append old compatibility
+For the current G1 recipe, use `scripts/g1.py` and `releases/g1-20261118/manifest.json`. Do not append old compatibility
 patches to the G1 export, replay an old module SQL import against an existing realm, or replace a current
 character database with a historical snapshot.
 

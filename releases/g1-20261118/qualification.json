@@ -1,0 +1,195 @@
+{
+  "schema": 1,
+  "release_id": "g1-20261118",
+  "public_source_reconstruction": {
+    "status": "passed",
+    "public_pins_fetched": true,
+    "core": {
+      "repository": "https://github.com/jealous-sound/azerothcore-wotlk-coa.git",
+      "revision": "437cf5c65bbb003ae180e9239ed89756e3385579"
+    },
+    "playerbots": {
+      "repository": "https://github.com/mod-playerbots/mod-playerbots.git",
+      "revision": "619a06fc795a7220fd5c27d5a5aa4a2fbe383b72"
+    },
+    "matched_files": {
+      "core": 19214,
+      "playerbots": 1559,
+      "modules/mod-local-profession-tools": 8
+    },
+    "bytes_and_executable_modes_match": true,
+    "method": "Installer prepare_sources fetched public pins and applied the packaged patches/overlay; complete source inventory matched the qualified reference build."
+  },
+  "community_fresh_install": "not run as one uninterrupted build/install command; see bounded qualification stages",
+  "reference_runtime": {
+    "core_upstream_revision": "437cf5c65bbb003ae180e9239ed89756e3385579",
+    "worldserver_sha256": "4e696a58cb7301d76c639c9329f861aa5186fbf02501a585fd8570dd8b93f46d",
+    "prepared_source_build_verification": "passed on unchanged artifacts; reused after recovery",
+    "worldforged_native_gameplay": {
+      "status": "passed",
+      "assertions": 56,
+      "scenarios": 1,
+      "clock": "simulated",
+      "report_sha256": "7b3a39292276388f5d1165992cc46b04c9bb6c47f5ed11e01a1de02cf456a74c"
+    },
+    "player_acceptance": {
+      "date": "2026-11-18",
+      "worldforged_sparkle_before_collection": true,
+      "worldforged_sparkle_and_interaction_removed_after_collection": true
+    },
+    "worldforged_activation_migrations": 0,
+    "online_bots_observed": 1000,
+    "authserver_sha256": "07c9dfd40baec1ede265bce01e46c69b3b6588d64a713c58733f57d56338a6e1",
+    "dbimport_sha256": "e62035a313fa0a16ace29cb4b85dd7da1e9c4e8eec926b19f895cb0a9c168602"
+  },
+  "not_qualified": [
+    "Worldforged prestige reset",
+    "Worldforged full-process restart persistence",
+    "Worldforged full-bag awards",
+    "Worldforged group-roll awards",
+    "All classes, items and dungeons"
+  ],
+  "existing_server_upgrade": "Manual isolated qualification required; installer accepts only a new runtime directory",
+  "manifest_sha256": "a2dce82fc6717edcfb0df63943fc54072cc981d7c80fbe64a434f744a77d7575",
+  "fresh_native_build": "not repeated for this publication; exact source reconstruction matched unchanged qualified local build inputs",
+  "public_artifact_checks": {
+    "status": "passed",
+    "repository_tests": {
+      "total": 141,
+      "passed": 139,
+      "skipped": 2,
+      "installer_tests_passed": 59,
+      "skips": "Optional externally supplied WeakAuras prototype fixtures"
+    },
+    "packaged_git_archive_tested": true,
+    "cli_help": "passed",
+    "tool_sha256": {
+      "scripts/g1.py": "0d37a6949c79e876f90d3df0a08050921470436e27ac78eac156977594bc6e8a",
+      "docker/g1-container.py": "05b2bfd3e60f046e6194ea8052d28e2bc9bf4fcf0a6108f49c5c09f82bd4694f",
+      "tests/test_g1_installer.py": "f222d531cda387df99373977d9e956ec87070635a604c482bd1fb9fce48a4bff"
+    }
+  },
+  "fresh_database_and_service_probe": {
+    "status": "passed",
+    "scope": "fresh four-schema public bootstrap, then bounded ordered native service startup using previously qualified identical binaries",
+    "bootstrap_replayed": false,
+    "player_snapshot_imported": false,
+    "initial_accounts": 0,
+    "initial_characters": 0,
+    "base_world_tables_verified": 318,
+    "schema_table_counts": {
+      "acore_auth": 27,
+      "acore_characters": 190,
+      "acore_world": 386,
+      "acore_playerbots": 30
+    },
+    "worldforged_world_sql_files_excluded": 40,
+    "collection_table_exists": true,
+    "character_schema_dependencies": {
+      "2026_09_16_00_mod_coa_challenges.sql": {
+        "sha1": "1b5773c9a26b5ad8a2887af02aaaf08224a3c3f9",
+        "sha256": "2244f9a53713cc3686c3cd4a31ebf761cb210ecdc01859fb5df80887d344d4c2",
+        "source": "modules/mod-coa-challenges/data/sql/db-characters/2026_09_16_00_mod_coa_challenges.sql",
+        "state": "MODULE"
+      },
+      "2026_09_16_00_worldforged_loot.sql": {
+        "sha1": "c8407e807323de193e9b8e9cd49ff20b22836d69",
+        "sha256": "42e4fb03efe4de777c72a8b80b5bc31065c6b454610d4c4635bb61290ef82304",
+        "source": "modules/mod-worldforged-pickups/data/sql/db-characters/2026_09_16_00_worldforged_loot.sql",
+        "state": "MODULE"
+      }
+    },
+    "playerbot_migration_ledger_entries_verified": 33,
+    "experience_potion_item_id": 8180460,
+    "experience_potion_spell_id": 818046,
+    "experience_potion_item_and_category_cooldown_ms": 1000,
+    "configured_test_bot_logins": 0,
+    "generated_bot_accounts": 201,
+    "generated_bot_characters": 2010,
+    "online_characters": 0,
+    "live_server_changed": false,
+    "gameplay_tested": false,
+    "full_clean_cpp_rebuild": false,
+    "full_public_toolchain_rebuild": false,
+    "full_public_install_command_tested": false,
+    "startup_seconds": 654.2,
+    "realm_initial_flag": 2,
+    "realm_final_flag": 0,
+    "realm_online_and_cache_wait_seconds": 622.6,
+    "native_heartbeat_minutes": 10,
+    "auth_cache_stable_online_seconds": 25,
+    "critical_database_startup_matches": [],
+    "remaining_data_validation_warning_lines": 33861,
+    "remaining_warning_examples": [
+      "spell/DBC references absent from provided data",
+      "commands supplied by uncompiled modules"
+    ],
+    "settings": {
+      "authserver.conf:Updates.EnableDatabases": "0",
+      "authserver.conf:Updates.AutoSetup": "0",
+      "authserver.conf:Updates.AllowedModules": "\"mod-destiny-weaver,mod-local-profession-tools,mod-playerbots\"",
+      "worldserver.conf:SkillGain.Crafting": "4",
+      "worldserver.conf:CoA.ProfessionCastTimeCapMs": "2000",
+      "worldserver.conf:SkillGain.Gathering": "4",
+      "worldserver.conf:DungeonFinder.MaxExpansion": "2",
+      "worldserver.conf:Visibility.ObjectSparkles": "1",
+      "worldserver.conf:Updates.EnableDatabases": "0",
+      "worldserver.conf:Updates.AutoSetup": "0",
+      "worldserver.conf:Updates.AllowedModules": "\"mod-destiny-weaver,mod-local-profession-tools,mod-playerbots\"",
+      "modules/destiny_weaver.conf:DestinyWeaver.ExperienceBonusControl": "0",
+      "modules/coa.conf:CoA.ProfessionCastTimeCapMs": "2000",
+      "modules/coa.conf:Ascension.Manastorm.Enable": "0",
+      "modules/coa.conf:XPHotspots.Enable": "0",
+      "modules/coa.conf:HighRisk.FelCommutation.Enable": "0",
+      "modules/coa.conf:PvePower.Enable": "0",
+      "modules/coa.conf:CoA.MonsterResistance.Enable": "0",
+      "modules/playerbots.conf:Playerbots.Updates.EnableDatabases": "0",
+      "modules/playerbots.conf:AiPlayerbot.MinRandomBots": "0",
+      "modules/playerbots.conf:AiPlayerbot.MaxRandomBots": "0",
+      "modules/playerbots.conf:AiPlayerbot.RandomBotAutologin": "0"
+    },
+    "binaries": {
+      "src/server/apps/worldserver": "4e696a58cb7301d76c639c9329f861aa5186fbf02501a585fd8570dd8b93f46d",
+      "src/server/apps/authserver": "07c9dfd40baec1ede265bce01e46c69b3b6588d64a713c58733f57d56338a6e1",
+      "src/tools/dbimport": "e62035a313fa0a16ace29cb4b85dd7da1e9c4e8eec926b19f895cb0a9c168602"
+    },
+    "resolved_findings": [
+      "canonical character challenge dependency required by unconditional core prepared statement",
+      "concurrent auth/world startup produces transient realm flag3; ordered ready marker/listener required",
+      "auth startup sets realm OFFLINE; await native uptime heartbeat and auth cache refresh before ready"
+    ],
+    "qualification_services_stopped_cleanly": true,
+    "public_realm_query_probe": {
+      "status": "passed",
+      "scope": "public realm timing function and exact read-only SQL command; ownership/host socket orchestration covered by separate unit tests, not bypassed for private network-none fixture",
+      "installer_sha256": "0d37a6949c79e876f90d3df0a08050921470436e27ac78eac156977594bc6e8a",
+      "timeout_seconds": 650,
+      "auth_refresh_seconds": 20,
+      "observed_flag": 2,
+      "database_mutated": false
+    },
+    "startup_reused_fresh_probe_database_after_failed_readiness_attempts": true,
+    "fresh_bootstrap_runs": 1,
+    "qualification_image_id": "sha256:89d8f84d1b8a03ca010d2bca7797c065113325d6943aeea365430a9dab16b51a",
+    "qualification_image_scope": "Recovered qualified Ubuntu24 toolchain plus the public Dockerfile pinned MySQL8.4 client copy step; not a fresh full public toolchain build",
+    "mysql_image_manifest": "sha256:3466ba4a4828aa8d46fb7c3bc16b67b781c98413cf4ea0fac6feaa6e881faa26",
+    "runtime_config_scope": "Public manifest presets with installer-supported --bots 0 for isolated resource qualification; 201 account/2010 character bot pool initialization remains native. No live configuration or login count changed.",
+    "fixture_scope": "Network-none database and shared isolated network namespace, no published ports, existing compatible client/terrain data mounted read-only, exact previously qualified binary artifacts. Full public install command, public host-port bindings and ownership-labelled container orchestration not executed unchanged in this fixture.",
+    "services_before_cleanup": {
+      "worldserver": {
+        "running": true,
+        "restart_count": 0,
+        "oom_killed": false,
+        "published_ports": {},
+        "network_mode": "container"
+      },
+      "authserver": {
+        "running": true,
+        "restart_count": 0,
+        "oom_killed": false,
+        "published_ports": {},
+        "network_mode": "container"
+      }
+    }
+  }
+}

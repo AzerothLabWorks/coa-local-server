@@ -7,7 +7,7 @@ integration patches, the required database/profile setup, and the matching runti
 The bot engine comes from **mod-playerbots**, and the CoA class AI and authored specialization profiles build
 on **Zyth's CoA Bots** work. This release reuses that foundation and adds the local integration and reliability
 repairs described below. It does not claim that AzerothLabWorks created every class rotation from scratch.
-See [attribution](../THIRD_PARTY_NOTICES.md) and the [source manifest](../releases/g1-20261029/manifest.json).
+See [attribution](../THIRD_PARTY_NOTICES.md) and the [source manifest](../releases/g1-20261118/manifest.json).
 
 CoA classes use a shared CoA AI context. Their native specialization selects tank, healer, melee or ranged
 strategies, with a dedicated Brewing healer strategy. Authored specialization rotations sit alongside shared

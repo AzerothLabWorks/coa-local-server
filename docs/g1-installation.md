@@ -1,11 +1,11 @@
 # Install and manage G1
 
 The G1 installer creates a new local realm from the exact public source revisions and reviewed patches in
-[`releases/g1-20261029/manifest.json`](../releases/g1-20261029/manifest.json). It does not update an existing
+[`releases/g1-20261118/manifest.json`](../releases/g1-20261118/manifest.json). It does not update an existing
 realm or import a player's saved characters. Check the [qualification record](g1-verification.md) before using
-the release; tests of an existing realm and tests of a fresh installation are separate evidence.
-This recipe remains frozen at **`g1-20261029`**. Later fixes tested on the local reference realm do not enter
-an installation automatically; they require a separately qualified public release.
+the recipe; tests of an existing realm and tests of a fresh installation are separate evidence.
+This recipe is frozen at **`g1-20261118`**. The older `g1-20261029` recipe remains unchanged. Later fixes do
+not enter an installation automatically; they require a new reviewed source recipe.
 
 Start with the host and data prerequisites below, then run `check`, install into a new directory, create
 your account, and connect your compatible client. Optional client repairs, addons and graphics are separate
@@ -75,7 +75,7 @@ Compilation and initial bot creation take time. The default population is **1,00
 configuration; this is not a promise that every machine can support that population. `--bots 0` is useful for
 an isolated installation qualification without automatic bot login. The retained reference account-pool settings
 can still create bot accounts and characters with `--bots 0`; that option disables automatic login, not pool creation.
-Choose the desired count during installation; the first release does not provide an automatic population-change
+Choose the desired count during installation; the current tooling does not provide an automatic population-change
 command. `--no-start` builds and initializes
 the realm but leaves its game services stopped. Its database remains running.
 
@@ -146,9 +146,13 @@ python3 scripts/g1.py start --dir ~/coa-g1
 `stop` stops the world and login services and retains the running database. Add `--database` to stop that service
 too. `start` starts the existing services; it never bootstraps or migrates their databases. Management verifies
 installation ownership and the generated Compose file, and starting a ready installation verifies its recorded
-binary hashes. Readiness checks both the internal service listeners and the published ports, since Docker's
-port proxy may accept connections before the server is initialized. This does not certify gameplay or completion
-of bot population login.
+binary hashes. Startup waits for the world service to finish initializing before starting the login service.
+Readiness checks the current startup marker, internal service listeners, published ports and the realm's
+online flags; Docker's port proxy can accept connections before the server is ready. The realm check is
+read-only and allows the world's native heartbeat to clear temporary offline flags, followed by the login
+service's realm-list refresh. With the default settings this can add about ten minutes to startup, especially
+after an interrupted start. Wait for the command to finish before connecting. These checks do not certify
+gameplay or completion of bot population login.
 
 Configuration is under `RUNTIME/etc/`; initialization and verification records are under `RUNTIME/state/`.
 The installation record and generated Compose file bind management to that runtime. Do not copy them to a

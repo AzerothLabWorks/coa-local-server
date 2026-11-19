@@ -3,6 +3,39 @@
 This is the current public-release summary, not a claim that all upstream CoA content is complete.
 The reference realm and community installer have separate verification records.
 
+## November 18 source sync
+
+The `g1-20261118` recipe follows the reference realm's upstream base
+`437cf5c65bbb003ae180e9239ed89756e3385579`, retaining the previously published bot integration, authored
+profiles, dungeon fixes, profession settings and client protocols. Its additions since `g1-20261029` are:
+
+- **Potion of Experience:** item `8180460` uses the same one-second item/category cooldown as the other
+  supported potion variants. Repeated use extends the remaining duration at a 25% bonus; it does not increase
+  the percentage. Alternate-character eligibility remains enforced. The player reported the repair working.
+- **Centaur reputation:** Gelkis and Magram standings remain the individual character's earned values when
+  account reputation is shared. A sibling's higher reputation no longer changes the opposing clan choice.
+  Legitimate characters friendly with both clans keep that state; this is not a global reputation reset.
+  Focused native scenarios cover both choices; follow-up player testing of the affected quest remains pending.
+- **Gathering skill filter:** herb/mineral alerts require the learned profession and sufficient effective skill,
+  including applicable bonuses, before selecting the nearest eligible nodes. Matching tracking, live-node,
+  visibility and privacy checks remain. Ordinary node visibility and harvesting rules are unchanged.
+  The existing Gathering Alerts addon and protocol version 1 work without an addon update.
+- **Worldforged pickups:** the native pickup module is compiled into the build. An uncollected pickup sparkles
+  in the world. Successfully receiving its item records the character's claim, removes its sparkle and makes
+  it non-interactable for that character; the object remains as scenery. Opening the loot window alone does
+  not consume the claim, and another character has an independent claim.
+
+On November 18 the player confirmed the Worldforged sparkle before collecting Arakor Mace and the lack of
+sparkle or interaction afterward. Focused native checks also cover repeat-collection refusal, retained claims
+across logout/login, and unrelated ordinary loot. Historical pickups cannot be reconstructed from an empty
+claim ledger, so tracking begins when the module is enabled. Prestige resets, full bags, full process-restart
+persistence and Worldforged group-roll awards have not been qualified by that focused scenario.
+
+After recovery, the player tanked a dungeon with bots and confirmed objective completion and loot.
+It retains **1,000 bots**, four-point crafting/gathering gains and the two-second cap for crafting, smelting,
+mining and skinning. This source publication does not alter those population or profession settings.
+See [verification](g1-verification.md) for the exact separation of local gameplay and public recipe checks.
+
 ## Server and bots
 
 - CoA classes and specialization-aware bot builds reuse the Zyth CoA bot implementation and authored profiles,
@@ -44,8 +77,9 @@ The reference realm and community installer have separate verification records.
 - Native wardrobe/vanity application and logout/login persistence were confirmed after the compatibility repairs.
   Some unsupported catalogue entries can still fail; the repair does not bypass ownership or invent missing assets.
 - Generic range support preserves existing WeakAuras. The retired spell-specific helper is not installed.
-- Gathering Alerts use actual nearby spawned nodes and the player's active tracking. The player confirmed visual
-  minimap pings on nodes. Sound uses the familiar MapPing cue; universal sound-device/zoom/client testing is not claimed.
+- Gathering Alerts use actual nearby spawned nodes, the player's active tracking and effective gathering skill.
+  The player confirmed visual minimap pings on nodes before the later skill filter. Sound uses the familiar
+  MapPing cue; universal sound-device/zoom/client testing is not claimed.
 - Optional CoA GM tools and Resource Monitor improve local administration and multi-resource visibility.
 - Optional CoAVolFog adds fog/water rendering. It is a separate credited project with a narrow local rendering fix;
   the player reported successful outdoor/flying/water use without an observed FPS problem on their hardware.

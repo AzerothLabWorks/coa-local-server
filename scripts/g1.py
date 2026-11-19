@@ -24,6 +24,8 @@ OWNER = "org.azerothlabworks.g1.installation"
 SCHEMAS = ("acore_auth", "acore_characters", "acore_world", "acore_playerbots")
 SHA = re.compile(r"[0-9a-f]{64}\Z")
 COMMIT = re.compile(r"[0-9a-f]{40}\Z")
+BASE_MODULES = {"mod-destiny-weaver", "mod-local-profession-tools", "mod-playerbots"}
+WORLDFORGED_MODULE = "mod-worldforged-pickups"
 
 
 def require(condition, message):
@@ -99,8 +101,14 @@ def release(path, repository=REPOSITORY):
         require(COMMIT.fullmatch(pin["revision"]), "An exact public commit is required: " + name)
         require(re.fullmatch(r"https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(?:\.git)?",
                              pin["repository"]), "Use a public GitHub source URL")
-    require(set(data["modules"]) == {"mod-destiny-weaver", "mod-local-profession-tools", "mod-playerbots"},
+    modules = data["modules"]
+    require(isinstance(modules, list) and len(modules) == len(set(modules)) and
+            set(modules) in (BASE_MODULES, BASE_MODULES | {WORLDFORGED_MODULE}),
             "Unexpected module set for this G1 release")
+    migrations = data.get("migration_modules", modules)
+    require(isinstance(migrations, list) and len(migrations) == len(BASE_MODULES) and
+            set(migrations) == BASE_MODULES,
+            "Unexpected migration module set; Worldforged placement SQL must stay excluded")
     for patch in data["patches"]:
         require(patch["target"] in ("core", "playerbots") and SHA.fullmatch(patch["sha256"]),
                 "Invalid patch declaration")
@@ -397,25 +405,110 @@ def service_listener_ready(state, role):
         return False
 
 
-def wait_game(root, state):
+def world_initialization_ready(state, entry):
+    # The native listener opens just before worldserver clears its temporary realm
+    # version-mismatch flag. Authserver must not load that realm until this point.
+    started = entry["State"].get("StartedAt")
+    if not started:
+        return False
+    try:
+        result = subprocess.run(["docker", "logs", "--since", started,
+                                 state["project"] + "-worldserver"],
+                                capture_output=True, text=True, timeout=5)
+        return result.returncode == 0 and "(worldserver-daemon) ready..." in result.stdout + result.stderr
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+
+
+def running_game_service(state, role):
+    entry = docker_inspect("container", state["project"] + "-" + role)
+    require(entry and entry["Config"]["Labels"].get(OWNER) == state["id"], "Service ownership changed")
+    require(not entry["State"].get("OOMKilled") and entry["RestartCount"] == 0,
+            "A game service crashed or restarted; inspect logs")
+    require(entry["State"]["Running"], "A game service exited before becoming ready; inspect logs")
+    return entry
+
+
+def wait_game(root, state, roles=("authserver", "worldserver")):
+    require(roles and set(roles).issubset({"authserver", "worldserver"}), "Unknown game service")
     for _ in range(120):
         ready = True
-        for role in ("authserver", "worldserver"):
-            entry = docker_inspect("container", state["project"] + "-" + role)
-            require(entry and entry["Config"]["Labels"].get(OWNER) == state["id"], "Service ownership changed")
-            require(not entry["State"].get("OOMKilled") and entry["RestartCount"] == 0,
-                    "A game service crashed or restarted; inspect logs")
-            ready &= entry["State"]["Running"]
+        for role in roles:
+            entry = running_game_service(state, role)
             ready &= service_listener_ready(state, role)
             try:
                 with socket.create_connection(("127.0.0.1", state["ports"][role]), timeout=1):
                     pass
             except OSError:
                 ready = False
+            if role == "worldserver" and ready:
+                ready &= world_initialization_ready(state, entry)
         if ready:
             return
         time.sleep(5)
     raise RuntimeError("Game listeners did not become ready; inspect logs")
+
+
+def realm_readiness_timing(root):
+    def configured(relative, key, default):
+        text = (root / "etc" / relative).read_text(encoding="utf-8")
+        values = re.findall(r"^\s*" + re.escape(key) + r"\s*=\s*([0-9]+)\s*(?:#.*)?$", text, re.M)
+        return int(values[-1]) if values else default
+    uptime = configured("worldserver.conf", "UpdateUptimeInterval", 10)
+    refresh = configured("authserver.conf", "RealmsStateUpdateDelay", 20)
+    require(1 <= uptime <= 15 and 1 <= refresh <= 120,
+            "Realm readiness requires UpdateUptimeInterval of 1-15 minutes and RealmsStateUpdateDelay of 1-120 seconds")
+    return uptime * 60 + refresh + 30, refresh
+
+
+def realm_flags(state):
+    database = state["project"] + "-database"
+    entry = docker_inspect("container", database)
+    require(entry and entry["Config"]["Labels"].get(OWNER) == state["id"], "Database ownership changed")
+    require(entry["State"]["Running"], "Database exited while waiting for the realm")
+    # Realm 1 is created by this installer's fresh bootstrap. Read its flags only;
+    # worldserver must clear them itself. The password stays inside its container.
+    command = ["docker", "exec", database, "sh", "-c",
+               'export MYSQL_PWD="$MYSQL_ROOT_PASSWORD"; exec mysql --no-defaults --no-login-paths '
+               '--user=root --batch --skip-column-names --execute '
+               '"SELECT flag FROM acore_auth.realmlist WHERE id = 1;"']
+    result = subprocess.run(command, capture_output=True, text=True, timeout=10)
+    value = result.stdout.strip()
+    require(result.returncode == 0 and re.fullmatch(r"[0-9]+", value),
+            "Could not read this installation's single realm; inspect database logs")
+    return int(value)
+
+
+def wait_realm(root, state):
+    timeout, refresh = realm_readiness_timing(root)
+    print("Waiting for the world's native realm heartbeat (up to " + str(timeout) + " seconds).")
+    deadline = time.monotonic() + timeout
+    online_since = None
+    while time.monotonic() <= deadline:
+        for role in ("authserver", "worldserver"):
+            running_game_service(state, role)
+            require(service_listener_ready(state, role), "A game listener closed while waiting for the realm")
+            with socket.create_connection(("127.0.0.1", state["ports"][role]), timeout=1):
+                pass
+        flags = realm_flags(state)
+        if flags & 3 == 0:  # neither VERSION_MISMATCH nor OFFLINE
+            online_since = time.monotonic() if online_since is None else online_since
+            if time.monotonic() - online_since >= refresh:
+                return  # allow auth's ordinary realm-list refresh to observe the online state
+        else:
+            online_since = None
+        time.sleep(5)
+    raise RuntimeError("Realm remained offline or unavailable beyond its native heartbeat interval; inspect logs")
+
+
+def start_game(root, state):
+    # Concurrent startup can combine the world's temporary VERSION_MISMATCH flag
+    # with auth's OFFLINE flag, causing auth to exit with no valid realms.
+    compose(root, "start", "worldserver")
+    wait_game(root, state, roles=("worldserver",))
+    compose(root, "start", "authserver")
+    wait_game(root, state)
+    wait_realm(root, state)
 
 
 def install(args):
@@ -476,8 +569,7 @@ def install(args):
         save(root / "installation.json", state, replace=True)
         compose(root, "create", "--no-build", "authserver", "worldserver")
         if not args.no_start:
-            compose(root, "start", "authserver", "worldserver")
-            wait_game(root, state)
+            start_game(root, state)
         print("Installed " + manifest["release_id"] + ". Client realmlist: 127.0.0.1:" + str(args.auth_port))
         print("Source/build/unit qualification passed; gameplay and client acceptance are separate checks.")
     except BaseException:
@@ -542,9 +634,8 @@ def manage(args):
     elif args.command == "start":
         compose(root, "start", "database")
         wait_database(root, state)
-        compose(root, "start", "authserver", "worldserver")
         try:
-            wait_game(root, state)
+            start_game(root, state)
         except BaseException:
             stop_failed_game(root, state)
             raise
@@ -575,7 +666,7 @@ def parser():
     for name in ("check", "install"):
         command = commands.add_parser(name)
         command.add_argument("--dir", required=True, help="New runtime directory on the Linux filesystem")
-        command.add_argument("--manifest", type=Path, default=REPOSITORY / "releases/g1-20261029/manifest.json")
+        command.add_argument("--manifest", type=Path, default=REPOSITORY / "releases/g1-20261118/manifest.json")
         command.add_argument("--data-dir", type=Path, required=True)
         command.add_argument("--dbc-dir", type=Path)
         command.add_argument("--terrain-dir", type=Path)

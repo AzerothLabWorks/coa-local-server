@@ -6,7 +6,7 @@ original copyright and license notices; this statement does not relicense third-
 
 - **AzerothCore** and **jealous-sound/azerothcore-wotlk-coa** supply the server foundation, native CoA systems,
   content fixes, database tools and verification framework. The manifest identifies the exact source revision.
-  The pinned fork includes [GPL version 2](https://github.com/jealous-sound/azerothcore-wotlk-coa/blob/bfe93aa95a25c4e60c82995df0d93e083f3bba94/LICENSE)
+  The pinned fork includes [GPL version 2](https://github.com/jealous-sound/azerothcore-wotlk-coa/blob/437cf5c65bbb003ae180e9239ed89756e3385579/LICENSE)
   and GPL-2.0-or-later file notices; follow each included component's notices.
 - **mod-playerbots/mod-playerbots** supplies the bot engine. The public module base and our complete reviewed
   change export are recorded separately; the private development checkpoint commit is not a download dependency.
