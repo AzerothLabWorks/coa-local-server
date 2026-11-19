@@ -13,7 +13,7 @@ The number of modified files is not a count of independent features.
 | Shared range library | Discovers usable learned CoA spells for range checks, including checks used by compatible installed WeakAuras; removes the old single-spell wrapper when that exact wrapper is present. | Reviewed archive/loose-file repair below; not a complete WeakAuras package. |
 | Wardrobe and vanity | Uses the native appearance Apply and vanity delivery calls, including the required Apply argument. | Reviewed archive repair below. |
 | CoALfgTracker | Displays the supported dungeon's authoritative final objective and completion state. | Ordinary addon; matching server bridge required. |
-| CoAGatheringAlerts | Pings nearby active tracked herbs/minerals, privately, with repeat suppression. | Ordinary addon; matching server bridge required. |
+| CoAGatheringAlerts | Pings nearby active tracked herbs/minerals that meet the character's effective gathering skill, privately, with repeat suppression. | Ordinary addon; matching server bridge required. |
 | GMCommandCenter_CoA | CoA GM command interface, with commands disabled until configured for the intended realm. | Ordinary addon. |
 | COAResourceMonitor | Shows the custom classes' simultaneous resources. | Ordinary addon. |
 | WeakAuras for CoA | Ascension-adapted display/trigger addon with the reviewed icon cooldown guard. | Separate six-folder [5.21.2-alw.1 package](https://github.com/AzerothLabWorks/addons/releases/tag/weakauras-coa-5.21.2-alw.1); manual installation below. |
@@ -22,6 +22,12 @@ The number of modified files is not a count of independent features.
 The local G1 client has player acceptance for talent persistence, the tested appearance/vanity paths, range
 checks, dungeon objectives, gathering visual pings, and outdoor fog/water. This does not certify every client
 distribution, appearance, map, GPU, or addon combination. Sound and alert preferences remain user settings.
+
+The reference client also has a separate **CoAVanityTools** addon for convenience/consumable delivery and
+lighter cosmetic browsing without animated grid previews. Those paths received local player feedback, but
+this addon is awaiting public packaging. It is not included in this server recipe or the published four-addon
+G1 package. See the [packaging follow-up](roadmap.md); the existing public addon and WeakAuras links below
+remain the available downloads.
 
 ## Ordinary addons
 
@@ -39,8 +45,14 @@ our account settings, personal aura definitions, action bars, or SavedVariables 
 four-addon installer does not install the separate WeakAuras package.
 
 The gathering protocol is `COAGATHER` version 1; the dungeon tracker uses `COA_LFG_STATUS` version 1.
-The corresponding server components are part of the matching `g1-20261029` release. Installing only the
-client addon on an unrelated server does not add the server's node detection or dungeon status support.
+The corresponding server components are included in both the `g1-20261029` and `g1-20261118` source recipes.
+The November 18 gathering skill filter is server-side and keeps the same addon protocol, so existing G1
+Gathering Alerts packages remain compatible. Installing only the client addon on an unrelated server does
+not add the server's node detection or dungeon status support.
+
+Native Worldforged sparkles and collection tracking need the November 18 server recipe and compatible world
+data; they do not need an additional addon or client patch. The separate optional client tools below retain
+their own versions and installation steps.
 
 ## WeakAuras and the separate range repair
 

@@ -1,8 +1,8 @@
 # Updates and preservation
 
 G1 installs a frozen source recipe. Updating a repository checkout or discovering newer upstream commits does
-not upgrade an installed realm. The first community release provides a fresh installer and backups, not an
-automatic live migration tool.
+not upgrade an installed realm. The current tooling provides a fresh installer and backups, not an
+automatic live migration tool. `g1-20261118` is a new source recipe; `g1-20261029` remains immutable.
 
 ## Check for upstream work
 
@@ -47,11 +47,23 @@ baseline, applies the allowed modules through the core importer, initializes the
 records the reviewed Playerbots migration checksums. Vendor custom SQL is excluded. Runtime core and Playerbots
 database updaters are disabled after this deterministic initialization.
 
-The core unconditionally prepares a query against `character_worldforged_loot` even when the Worldforged module
-is disabled. Fresh bootstrap therefore imports the complete canonical character base, then the one pinned
-Worldforged character-ledger schema and its migration checksum before preparing database statements. This does
-not enable that module or import its world/gameplay SQL. Its obsolete-cache cleanup is allowed only within the
-proven-new schema; this recipe must never be used on a player's existing character database.
+The core unconditionally prepares a query against `character_worldforged_loot`. Fresh bootstrap imports the
+complete canonical character base, then the one pinned Worldforged character-ledger schema and its migration
+checksum before preparing database statements. Its obsolete-cache cleanup is allowed only within the
+proven-new schema; this bootstrap must never be used on a player's existing character database.
+
+Core revision `437cf5c65bbb003ae180e9239ed89756e3385579` also accesses `coa_character_challenge` during
+startup even when the optional Challenges module is disabled. For that exact revision, fresh bootstrap
+additionally imports the hash-checked canonical challenge character schema and records its migration identity.
+This supplies the required empty tables and schema definitions; it does not enable challenge gameplay or
+import challenge world definitions or seed data. The October 29 revision keeps its original bootstrap
+requirements. Unknown core revisions require a reviewed dependency list instead of guessing which SQL to run.
+
+The November 18 recipe compiles **`mod-worldforged-pickups`** for native sparkles and per-character collection.
+Compiled modules and modules allowed to run SQL are separate lists: Worldforged's historical world-placement
+SQL remains excluded. The reference realm already had the required ledger and needed no new migration to
+enable the module. Do not replay old Worldforged placement migrations or clear an existing claim ledger.
+The older October 29 recipe imports the required ledger but leaves the pickup module disabled.
 
 The runtime database user has ordinary data-access permissions and table-scoped `DROP` on only
 `acore_characters.guild_member_withdraw` and `acore_characters.gm_ticket`. The core's daily guild allowance reset

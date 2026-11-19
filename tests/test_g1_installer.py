@@ -69,6 +69,32 @@ class InstallerTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "module set"):
             self.release()
 
+    def test_worldforged_compilation_requires_separate_sql_allowlist(self):
+        original = list(self.manifest["modules"])
+        self.manifest["modules"].append("mod-worldforged-pickups")
+        with self.assertRaisesRegex(RuntimeError, "placement SQL"):
+            self.release()
+        self.manifest["migration_modules"] = original
+        self.assertEqual(self.release(), self.manifest)
+        self.assertEqual(container.migration_modules(self.manifest), original)
+
+    def test_worldforged_placement_migrations_refused_in_host_and_container(self):
+        self.manifest["modules"].append("mod-worldforged-pickups")
+        self.manifest["migration_modules"] = list(self.manifest["modules"])
+        with self.assertRaisesRegex(RuntimeError, "placement SQL"):
+            self.release()
+        with self.assertRaisesRegex(RuntimeError, "placement SQL"):
+            container.migration_modules(self.manifest)
+
+    def test_duplicate_or_uncompiled_migration_modules_refused(self):
+        for migrations in (["mod-playerbots"] * 3, ["mod-playerbots", "mod-destiny-weaver", "mod-other"]):
+            with self.subTest(migrations=migrations):
+                self.manifest["migration_modules"] = migrations
+                with self.assertRaisesRegex(RuntimeError, "migration module set"):
+                    self.release()
+                with self.assertRaisesRegex(RuntimeError, "migration module set"):
+                    container.migration_modules(self.manifest)
+
     def test_path_traversal_refused(self):
         for name in ("../outside", "/absolute", ".git/config", "module/../../file", "module\\file"):
             with self.subTest(name=name), self.assertRaises(RuntimeError):
@@ -235,6 +261,129 @@ class InstallerTests(unittest.TestCase):
         self.assertEqual(process.call_args.args[0][:3], ["docker", "exec", "coa-g1-test-worldserver"])
         self.assertIn("8085", process.call_args.args[0][-1])
 
+    def test_world_startup_requires_current_start_ready_marker(self):
+        entry = {"State": {"StartedAt": "2026-11-18T12:00:00.000000000Z"}}
+        for output, ready in (("World listener opened", False), ("build (worldserver-daemon) ready...", True)):
+            with self.subTest(output=output), patch.object(g1.subprocess, "run", return_value=
+                    subprocess.CompletedProcess([], 0, output, "")) as process:
+                self.assertEqual(g1.world_initialization_ready(self.state(), entry), ready)
+                self.assertEqual(process.call_args.args[0], ["docker", "logs", "--since",
+                    entry["State"]["StartedAt"], "coa-g1-test-worldserver"])
+
+    def test_ordered_start_waits_for_world_before_starting_auth(self):
+        events = []
+        with patch.object(g1, "compose", side_effect=lambda root, *args: events.append(args)), \
+                patch.object(g1, "wait_game", side_effect=lambda root, state, **kwargs:
+                             events.append(("ready", kwargs.get("roles", ("authserver", "worldserver"))))), \
+                patch.object(g1, "wait_realm", side_effect=lambda root, state: events.append(("realm-online",))):
+            g1.start_game(self.root, self.state())
+        self.assertEqual(events, [("start", "worldserver"), ("ready", ("worldserver",)),
+                                  ("start", "authserver"), ("ready", ("authserver", "worldserver")), ("realm-online",)])
+
+    def test_realm_timing_uses_bounded_native_configuration(self):
+        (self.root / "etc").mkdir()
+        world = self.root / "etc/worldserver.conf"
+        auth = self.root / "etc/authserver.conf"
+        world.write_text("# defaults\n", encoding="utf-8")
+        auth.write_text("# defaults\n", encoding="utf-8")
+        self.assertEqual(g1.realm_readiness_timing(self.root), (650, 20))
+        world.write_text("UpdateUptimeInterval = 2\n", encoding="utf-8")
+        auth.write_text("RealmsStateUpdateDelay = 5\n", encoding="utf-8")
+        self.assertEqual(g1.realm_readiness_timing(self.root), (155, 5))
+        for interval in (0, 16):
+            world.write_text("UpdateUptimeInterval = " + str(interval) + "\n", encoding="utf-8")
+            with self.assertRaisesRegex(RuntimeError, "1-15 minutes"):
+                g1.realm_readiness_timing(self.root)
+
+    def test_realm_probe_is_read_only_and_scoped_to_owned_database(self):
+        state = self.state()
+        entry = {"Config": {"Labels": {g1.OWNER: state["id"]}}, "State": {"Running": True}}
+        with patch.object(g1, "docker_inspect", return_value=entry), patch.object(g1.subprocess, "run", return_value=
+                subprocess.CompletedProcess([], 0, "2\n", "")) as process:
+            self.assertEqual(g1.realm_flags(state), 2)
+        command = process.call_args.args[0]
+        self.assertEqual(command[:3], ["docker", "exec", "coa-g1-test-database"])
+        self.assertIn("SELECT flag FROM acore_auth.realmlist WHERE id = 1;", command[-1])
+        self.assertNotIn("UPDATE", command[-1])
+        entry["Config"]["Labels"][g1.OWNER] = "someone-else"
+        with patch.object(g1, "docker_inspect", return_value=entry), patch.object(g1.subprocess, "run") as process, \
+                self.assertRaisesRegex(RuntimeError, "ownership changed"):
+            g1.realm_flags(state)
+        process.assert_not_called()
+
+    def test_realm_readiness_waits_for_native_online_state_and_auth_refresh(self):
+        clock = [0]
+        def advance(seconds):
+            clock[0] += seconds
+        with patch.object(g1, "realm_readiness_timing", return_value=(650, 20)), \
+                patch.object(g1, "running_game_service"), patch.object(g1, "service_listener_ready", return_value=True), \
+                patch.object(g1.socket, "create_connection"), \
+                patch.object(g1, "realm_flags", side_effect=[3, 2, 0, 0, 0, 0, 0]) as flags, \
+                patch.object(g1.time, "monotonic", side_effect=lambda: clock[0]), \
+                patch.object(g1.time, "sleep", side_effect=advance), patch("builtins.print"):
+            g1.wait_realm(self.root, self.state())
+        self.assertEqual(clock[0], 30)
+        self.assertEqual(flags.call_count, 7)
+
+    def test_realm_readiness_times_out_without_mutating_stuck_flags(self):
+        clock = [0]
+        def advance(seconds):
+            clock[0] += seconds
+        with patch.object(g1, "realm_readiness_timing", return_value=(10, 5)), \
+                patch.object(g1, "running_game_service"), patch.object(g1, "service_listener_ready", return_value=True), \
+                patch.object(g1.socket, "create_connection"), patch.object(g1, "realm_flags", return_value=2), \
+                patch.object(g1.time, "monotonic", side_effect=lambda: clock[0]), \
+                patch.object(g1.time, "sleep", side_effect=advance), patch("builtins.print"), \
+                self.assertRaisesRegex(RuntimeError, "remained offline"):
+            g1.wait_realm(self.root, self.state())
+
+    def test_unready_world_prevents_auth_start(self):
+        with patch.object(g1, "compose") as compose, patch.object(g1, "wait_game", side_effect=RuntimeError("not ready")), \
+                self.assertRaisesRegex(RuntimeError, "not ready"):
+            g1.start_game(self.root, self.state())
+        compose.assert_called_once_with(self.root, "start", "worldserver")
+
+    def test_wait_game_fails_immediately_if_owned_service_exits(self):
+        state = self.state()
+        entry = {"Config": {"Labels": {g1.OWNER: state["id"]}}, "State": {"Running": False}, "RestartCount": 0}
+        with patch.object(g1, "docker_inspect", return_value=entry), patch.object(g1.time, "sleep") as sleep, \
+                self.assertRaisesRegex(RuntimeError, "exited"):
+            g1.wait_game(self.root, state, roles=("worldserver",))
+        sleep.assert_not_called()
+
+    def test_manage_cleans_up_failed_ordered_start(self):
+        state = {**self.state(), "phase": "ready", "compose_sha256": "verified"}
+        args = SimpleNamespace(command="start", dir=str(self.root))
+        with patch.object(g1, "prerequisites"), patch.object(g1, "owned", return_value=(self.root, state)), \
+                patch.object(g1, "compose"), patch.object(g1, "wait_database"), \
+                patch.object(g1, "start_game", side_effect=RuntimeError("start failed")), \
+                patch.object(g1, "stop_failed_game") as cleanup, self.assertRaisesRegex(RuntimeError, "start failed"):
+            g1.manage(args)
+        cleanup.assert_called_once_with(self.root, state)
+
+    def test_install_retains_failed_start_and_stops_its_game_services(self):
+        target = self.root / "new-install"
+        state = {**self.state(), "root": str(target), "phase": "planned", "release_id": "g1-test"}
+        self.manifest_path.write_text(json.dumps(self.manifest), encoding="utf-8")
+        args = SimpleNamespace(command="install", dry_run=False, manifest=self.manifest_path,
+                               toolchain_image="test-toolchain", no_start=False, auth_port=33727)
+        report = {"status": "passed", "stages": {name: {"status": "passed"} for name in ("source", "build", "unit")}}
+        with patch.object(g1, "preflight", return_value=(state, self.manifest)), patch.object(g1, "prepare_sources"), \
+                patch.object(g1, "docker_inspect", return_value={"Id": "test-toolchain"}), \
+                patch.object(g1, "executor"), patch.object(g1, "load", return_value=report), \
+                patch.object(g1, "digest", return_value="d" * 64), patch.object(g1, "composition", return_value={}), \
+                patch.object(g1, "absent_resources"), patch.object(g1, "ports_available"), \
+                patch.object(g1, "compose"), patch.object(g1, "run"), patch.object(g1, "wait_database"), \
+                patch.object(g1, "start_game", side_effect=RuntimeError("start failed")), \
+                patch.object(g1, "stop_failed_game") as cleanup, patch("builtins.print"), \
+                self.assertRaisesRegex(RuntimeError, "start failed"):
+            g1.install(args)
+        cleanup.assert_called_once_with(target, state)
+        retained = json.loads((target / "installation.json").read_text(encoding="utf-8"))
+        self.assertEqual(retained["phase"], "incomplete")
+        self.assertEqual(retained["failed_phase"], "ready")
+        self.assertTrue((target / "compose.json").is_file())
+
     def test_config_replaces_duplicate_values(self):
         config = self.root / "world.conf"
         config.write_text("# example\nUpdates.AutoSetup = 1\nUpdates.AutoSetup = 1\nOther = 5\n", encoding="utf-8")
@@ -250,6 +399,25 @@ class InstallerTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "Invalid configuration"):
             container.change_config(config, {"Key": "1\nInjected = 1"})
         self.assertEqual(config.read_text(encoding="utf-8"), "Original = 1\n")
+
+    def test_runtime_worldforged_keeps_placement_migrations_excluded(self):
+        self.manifest["migration_modules"] = list(self.manifest["modules"])
+        self.manifest["modules"].append("mod-worldforged-pickups")
+        self.manifest["settings"] = {"worldserver.conf": {"Visibility.ObjectSparkles": "1"}}
+        for relative in ("worldserver.conf.dist", "authserver.conf.dist", "modules/playerbots.conf.dist"):
+            path = self.root / "etc" / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("Updates.EnableDatabases = 7\n", encoding="utf-8")
+        with patch.object(container, "ROOT", self.root):
+            container.runtime_configuration({**self.state(), "bots": 1000}, self.manifest, "e" * 64)
+        expected = 'Updates.AllowedModules = "' + ",".join(self.manifest["migration_modules"]) + '"'
+        for relative in ("worldserver.conf", "authserver.conf"):
+            text = (self.root / "etc" / relative).read_text(encoding="utf-8")
+            self.assertIn(expected, text)
+            self.assertNotIn("mod-worldforged-pickups", text)
+            self.assertIn("Updates.EnableDatabases = 0", text)
+        self.assertIn("Visibility.ObjectSparkles = 1",
+                      (self.root / "etc/worldserver.conf").read_text(encoding="utf-8"))
 
     def test_old_mysql_client_is_rejected_before_build(self):
         with patch.object(container.subprocess, "run", return_value=subprocess.CompletedProcess([], 1, "", "unknown option")), \
@@ -282,7 +450,7 @@ class InstallerTests(unittest.TestCase):
     def test_character_dependency_refuses_existing_schema(self):
         with patch.object(container, "mysql", return_value="1") as database, \
                 self.assertRaisesRegex(RuntimeError, "new empty schema"):
-            container.import_character_schema()
+            container.import_character_schema(self.manifest)
         self.assertEqual(database.call_count, 1)
 
     def test_character_dependency_follows_complete_base_and_records_identity(self):
@@ -290,9 +458,10 @@ class InstallerTests(unittest.TestCase):
         base.mkdir(parents=True)
         for name in ("characters.sql", "updates.sql"):
             (base / name).write_text("SELECT 1;", encoding="utf-8")
-        dependency = self.root / "modules/schema.sql"
-        dependency.parent.mkdir()
-        dependency.write_text("CREATE TABLE ledger(guid INT);", encoding="utf-8")
+        dependencies = [self.root / "modules/schema.sql", self.root / "modules/required.sql"]
+        dependencies[0].parent.mkdir()
+        for dependency in dependencies:
+            dependency.write_text("CREATE TABLE " + dependency.stem + "(guid INT);", encoding="utf-8")
         imported = []
         def database(query=None, schema=None, file=None):
             if file:
@@ -301,13 +470,44 @@ class InstallerTests(unittest.TestCase):
             if query.startswith("SELECT COLUMN_TYPE"):
                 return "enum('RELEASED','MODULE','ARCHIVED')"
             if query.startswith("SELECT CONCAT"):
+                dependency = next(path for path in dependencies if path.name in query)
                 return container.digest(dependency, "sha1") + ":MODULE"
             return "0"
         with patch.object(container, "SOURCE", self.root), patch.object(container, "mysql", side_effect=database), \
-                patch.object(container, "CHARACTER_SCHEMA_DEPENDENCIES", {"modules/schema.sql": container.digest(dependency)}):
-            result = container.import_character_schema()
-        self.assertEqual(imported, [base / "characters.sql", base / "updates.sql", dependency])
-        self.assertEqual(result["dependencies"]["schema.sql"]["sha1"], container.digest(dependency, "sha1"))
+                patch.object(container, "character_schema_dependencies", return_value={
+                    "modules/" + path.name: container.digest(path) for path in dependencies}):
+            result = container.import_character_schema(self.manifest)
+        self.assertEqual(imported, [base / "characters.sql", base / "updates.sql", *dependencies])
+        for dependency in dependencies:
+            self.assertEqual(result["dependencies"][dependency.name]["sha1"], container.digest(dependency, "sha1"))
+            self.assertEqual(result["dependencies"][dependency.name]["state"], "MODULE")
+
+    def test_character_dependency_changes_fail_before_importing_base(self):
+        dependency = self.root / "schema.sql"
+        dependency.write_text("unexpected schema", encoding="utf-8")
+        with patch.object(container, "SOURCE", self.root), patch.object(container, "mysql", return_value="0") as database, \
+                patch.object(container, "character_schema_dependencies", return_value={"schema.sql": "0" * 64}), \
+                self.assertRaisesRegex(RuntimeError, "schema dependency changed"):
+            container.import_character_schema(self.manifest)
+        self.assertEqual(database.call_count, 1)
+
+    def test_character_dependencies_reject_unreviewed_revision(self):
+        with self.assertRaisesRegex(RuntimeError, "not been reviewed"):
+            container.character_schema_dependencies(self.manifest)
+
+    def test_release_dependencies_preserve_old_bootstrap_and_supply_new_core_schema(self):
+        old = json.loads((REPO / "releases/g1-20261029/manifest.json").read_text(encoding="utf-8"))
+        current = json.loads((REPO / "releases/g1-20261118/manifest.json").read_text(encoding="utf-8"))
+        original = container.character_schema_dependencies(old)
+        expanded = container.character_schema_dependencies(current)
+        self.assertEqual(original, container.CHARACTER_SCHEMA_DEPENDENCIES)
+        self.assertEqual(expanded, {**original,
+            "modules/mod-coa-challenges/data/sql/db-characters/2026_09_16_00_mod_coa_challenges.sql":
+                "2244f9a53713cc3686c3cd4a31ebf761cb210ecdc01859fb5df80887d344d4c2"})
+        for manifest in (old, current):
+            self.assertNotIn("mod-coa-challenges", manifest["modules"])
+            self.assertNotIn("mod-coa-challenges", container.migration_modules(manifest))
+            self.assertNotIn("mod-worldforged-pickups", container.migration_modules(manifest))
 
     def test_canonical_character_dependency_is_pinned(self):
         self.assertEqual(list(container.CHARACTER_SCHEMA_DEPENDENCIES), [
@@ -350,10 +550,13 @@ class InstallerTests(unittest.TestCase):
         self.assertFalse(any("custom" in p.parts for p in imported))
 
     def test_packaged_release_manifest(self):
-        manifest = REPO / "releases/g1-20261029/manifest.json"
-        if not manifest.is_file():
-            self.skipTest("Release artifacts are not present in this checkout")
-        self.assertEqual(g1.release(manifest)["release_id"], "g1-20261029")
+        for name in ("g1-20261029", "g1-20261118"):
+            with self.subTest(release=name):
+                self.assertEqual(g1.release(REPO / "releases" / name / "manifest.json")["release_id"], name)
+
+    def test_default_release_is_current_worldforged_recipe(self):
+        args = g1.parser().parse_args(["check", "--dir", "/new-runtime", "--data-dir", "/provided-data"])
+        self.assertEqual(args.manifest, REPO / "releases/g1-20261118/manifest.json")
 
 
 if __name__ == "__main__":

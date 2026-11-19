@@ -1,4 +1,8 @@
-# Architecture
+# Historical installer architecture
+
+> This page describes the earlier `install-coa.sh` workflow and its ports. For the current G1 source recipe,
+> runtime layout, database boundaries and management commands, use [installation](g1-installation.md) and
+> [updates and preservation](g1-updates.md). Do not combine this historical bootstrap with a current G1 realm.
 
 ## Separation of responsibilities
 

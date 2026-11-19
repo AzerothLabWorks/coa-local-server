@@ -6,6 +6,8 @@
 *.sql.gz
 *.zip
 client/
+!releases/g1-*/mod-local-profession-tools/client/
+!releases/g1-*/mod-local-profession-tools/client/CoAGatheringAlerts/
 data/
 repack/
 patches/

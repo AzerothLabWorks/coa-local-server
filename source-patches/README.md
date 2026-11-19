@@ -1,9 +1,17 @@
 # COA source patch recipes
 
 > Historical checkpoint. The current public G1 source release is
-> [g1-20261029](../releases/g1-20261029/manifest.json), installed with
+> [g1-20261118](../releases/g1-20261118/manifest.json), installed with
 > [scripts/g1.py](../scripts/g1.py). Do not combine the historical patch sequences below
 > with that release. See [legacy builds](../docs/legacy-builds.md).
+
+The current recipe reconstructs the deployed G1 source from pinned public core and Playerbots commits,
+two complete patches, and the profession-tools overlay. It includes the skill-aware gathering alerts,
+experience-potion reuse repair, character-specific centaur reputation policy, and native Worldforged
+pickup collection. Its four compiled modules use a separate three-module SQL allowlist; Worldforged
+placement migrations remain excluded. See [release qualification](../docs/g1-verification.md) and
+[upgrade boundaries](../docs/g1-updates.md). The earlier
+[g1-20261029 recipe](../releases/g1-20261029/manifest.json) remains unchanged.
 
 This checkpoint contains two different integration paths. The existing installer uses the accepted
 old-core build. The G1 native candidate is staging-only and has separate exports. Committing these

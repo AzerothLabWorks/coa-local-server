@@ -8,12 +8,17 @@ This project builds on [jealous-sound/azerothcore-wotlk-coa](https://github.com/
 reviewable version of the integration used by AzerothLabWorks. You supply the compatible game client
 and extracted data; this repository does not contain a full client, character database, or game-data download.
 
-**Release:** [`g1-20261029`](releases/g1-20261029/manifest.json).
-Public source reconstruction, clean build/unit checks and isolated fresh-database startup passed;
-see [verification](docs/g1-verification.md) for the exact scope and remaining gameplay acceptance.
-The release freezes the tested source rather than following upstream `main` during installation.
-Later work on the local reference realm is not included until a new public release records and qualifies it.
-For a reusable introduction with links and the release's scope, see the [community announcement](docs/community-announcement.md).
+**Current source recipe:** [`g1-20261118`](releases/g1-20261118/manifest.json), synchronized with the
+maintained reference realm on upstream `437cf5c65bbb003ae180e9239ed89756e3385579`. It includes the
+experience-potion repair, character-specific centaur reputation, skill-aware gathering alerts, and native
+Worldforged sparkles and collection tracking. See [changes and acceptance](docs/g1-improvements.md#november-18-source-sync).
+
+The recipe freezes source and patches rather than following upstream `main` during installation.
+[Verification](docs/g1-verification.md) distinguishes source/package checks, the deployed realm's tests,
+and fresh-install evidence. The November recipe passed an isolated empty-database and native startup probe
+using its qualified binaries. The October 29 clean public build remains a separate historical checkpoint;
+the current probe did not repeat a clean build or the complete public install command.
+For a reusable introduction with links and scope, see the [community announcement](docs/community-announcement.md).
 
 ## Start here
 
@@ -39,7 +44,10 @@ and gameplay observed on the existing reference realm.
 | Bot interaction | Non-LLM ambient replies and party status messages, including recovery and resurrection callouts, with pacing limits. |
 | Professions | Four-point crafting/gathering gains; crafting, smelting, mining and skinning capped at two seconds while preserving faster casts. Fishing's channel is unchanged. |
 | Character progression | Native talent persistence, the Defiance/Hellfire Imp correction, improved Book of Artisans profession filtering, and quest-display resynchronization. |
-| Gathering alerts | Live nearby herbs/minerals produce private minimap pings through the companion addon when the matching tracking is active. |
+| Gathering alerts | Live nearby herbs/minerals produce private minimap pings when matching tracking is active and the character's learned profession and effective skill meet the node requirement. |
+| Experience potion | The vanity Potion of Experience variant uses a short reuse cooldown; additional potions extend duration while keeping the 25% bonus. |
+| Centaur clan choices | Gelkis and Magram reputation remains character-specific instead of being raised by another character's rival clan choice. |
+| Worldforged pickups | Native in-world sparkles identify uncollected pickups; receiving the item removes the sparkle and prevents another collection by that character. |
 | Client compatibility | Reviewed native talent-loader, shared range-library, and wardrobe/vanity patch recipes; compatible installed WeakAuras can use the repaired range checks. |
 | Optional client tools | CoA GM Command Center, LFG Tracker, Gathering Alerts, Resource Monitor, a separately packaged Ascension WeakAuras fork, and a separate fog/water graphics setup. |
 
@@ -94,7 +102,7 @@ python3 scripts/g1.py start --dir ~/coa-g1
 python3 scripts/g1.py update-check --dir ~/coa-g1
 ```
 
-Backups and upgrades are distinct operations. The first release supports fresh installation and managed backups;
+Backups and upgrades are distinct operations. The tooling supports fresh installation and managed backups;
 it does not silently migrate an existing server to arbitrary new upstream commits.
 See [updates and preservation](docs/g1-updates.md).
 
@@ -113,7 +121,7 @@ See [updates and preservation](docs/g1-updates.md).
 
 ## Development and contributions
 
-The [release manifest](releases/g1-20261029/manifest.json) records upstream revisions, patch hashes, module files,
+The [source-recipe manifest](releases/g1-20261118/manifest.json) records upstream revisions, patch hashes, module files,
 configuration and data compatibility. [Release maintenance](docs/g1-updates.md) explains how new changes become
 repeatable releases. Keep fixes small, include relevant tests and report the exact release and reproduction steps.
 Do not attach passwords, account dumps, saved variables or a complete client to bug reports.

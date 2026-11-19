@@ -1,0 +1,8 @@
+## Interface: 30300
+## Title: CoA Gathering Alerts
+## Notes: Local minimap pings for nearby active herbs and minerals while tracking.
+## Author: AzerothLabWorks
+## Version: 1.0.0
+## SavedVariablesPerCharacter: CoAGatheringAlertsDB
+Core.lua
+CoAGatheringAlerts.lua

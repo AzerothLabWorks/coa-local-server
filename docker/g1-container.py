@@ -19,6 +19,15 @@ CHARACTER_SCHEMA_DEPENDENCIES = {
     "modules/mod-worldforged-pickups/data/sql/db-characters/2026_09_16_00_worldforged_loot.sql":
         "42e4fb03efe4de777c72a8b80b5bc31065c6b454610d4c4635bb61290ef82304",
 }
+CHARACTER_SCHEMA_REVISION_DEPENDENCIES = {
+    # Preserve the original release's bootstrap. New unconditional core statements
+    # require these tables even while the optional challenges module stays disabled.
+    "bfe93aa95a25c4e60c82995df0d93e083f3bba94": {},
+    "437cf5c65bbb003ae180e9239ed89756e3385579": {
+        "modules/mod-coa-challenges/data/sql/db-characters/2026_09_16_00_mod_coa_challenges.sql":
+            "2244f9a53713cc3686c3cd4a31ebf761cb210ecdc01859fb5df80887d344d4c2",
+    },
+}
 
 
 def require(condition, message):
@@ -45,10 +54,20 @@ def digest(path, algorithm="sha256"):
         return hashlib.file_digest(stream, algorithm).hexdigest()
 
 
+def migration_modules(manifest):
+    modules = manifest.get("migration_modules", manifest["modules"])
+    require(isinstance(modules, list) and len(modules) == 3 and
+            set(modules) == {"mod-destiny-weaver", "mod-local-profession-tools", "mod-playerbots"},
+            "Unexpected migration module set; Worldforged placement SQL must stay excluded")
+    require(set(modules).issubset(manifest["modules"]), "Migration module is not compiled")
+    return modules
+
+
 def settings():
     state, manifest = load(ROOT / "installation.json"), load(STATE / "release.json")
     require(state["release_manifest_sha256"] == digest(STATE / "release.json"), "Release manifest changed")
     require(os.getuid() == state["uid"] and os.getgid() == state["gid"], "Unexpected container user")
+    migration_modules(manifest)
     for patch in manifest["patches"]:
         target = SOURCE if patch["target"] == "core" else SOURCE / "modules/mod-playerbots"
         for relative, record in patch.get("files", {}).items():
@@ -139,7 +158,7 @@ def runtime_configuration(state, manifest, password):
     common = {"LogsDir": '"/g1/logs"', "TempDir": '"/g1/tmp"', "SourceDirectory": '"/g1/source"',
               "MySQLExecutable": '"/usr/bin/mysql"', "Updates.EnableDatabases": "0", "Updates.AutoSetup": "0",
               "Updates.AllowRehash": "0", "Updates.CleanDeadRefMaxCount": "0",
-              "Updates.AllowedModules": '"' + ",".join(manifest["modules"]) + '"',
+              "Updates.AllowedModules": '"' + ",".join(migration_modules(manifest)) + '"',
               "Appender.Console": "1,4,0", "Logger.root": "3,Console", "BindIP": '"0.0.0.0"'}
     connections = {name + "DatabaseInfo": '"database;3306;g1;' + password + ";" + schema + '"'
                    for name, schema in (("Login", "acore_auth"), ("Character", "acore_characters"),
@@ -181,10 +200,22 @@ def import_bot_updates():
     return ledger
 
 
-def import_character_schema():
+def character_schema_dependencies(manifest):
+    revision = manifest["core"]["revision"]
+    require(revision in CHARACTER_SCHEMA_REVISION_DEPENDENCIES,
+            "Character schema dependencies have not been reviewed for this core revision")
+    return {**CHARACTER_SCHEMA_DEPENDENCIES, **CHARACTER_SCHEMA_REVISION_DEPENDENCIES[revision]}
+
+
+def import_character_schema(manifest):
     """Supply core prepared-statement dependencies without enabling optional gameplay modules."""
     require(mysql("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='acore_characters';") == "0",
             "Character base import requires a new empty schema")
+    dependencies = character_schema_dependencies(manifest)
+    for relative, expected in dependencies.items():
+        path = SOURCE / relative
+        require(path.is_file() and not path.is_symlink() and digest(path) == expected,
+                "Canonical character schema dependency changed: " + relative)
     base = sorted((SOURCE / "data/sql/base/db_characters").glob("*.sql"))
     require({"characters.sql", "updates.sql"}.issubset({path.name for path in base}), "Canonical character base is missing")
     # DBUpdater::Populate skips a non-empty schema, so populate the complete canonical base before its dependency.
@@ -196,7 +227,7 @@ def import_character_schema():
                  "AND table_name='updates' AND column_name='state';")
     require("'MODULE'" in enum.upper(), "Canonical character migration ledger does not support MODULE identities")
     ledger = {}
-    for relative, expected in CHARACTER_SCHEMA_DEPENDENCIES.items():
+    for relative, expected in dependencies.items():
         path = SOURCE / relative
         require(digest(path) == expected, "Canonical character schema dependency changed: " + relative)
         require(mysql("SELECT COUNT(*) FROM updates WHERE name='" + path.name + "';", schema="acore_characters") == "0",
@@ -232,14 +263,14 @@ def bootstrap():
     run([sys.executable, "-B", SOURCE / "apps/coa-world/world_data.py", "verify"], cwd=SOURCE)
     run([sys.executable, "-B", SOURCE / "apps/coa-world/world_data.py", "bootstrap", "--defaults-file",
          STATE / "admin.cnf", "--database", "acore_world"], cwd=SOURCE)
-    character_schema = import_character_schema()
+    character_schema = import_character_schema(manifest)
     admin = (STATE / "admin.cnf").read_text(encoding="utf-8")
     match = re.search(r"^password=([0-9a-f]{64})$", admin, re.M)
     require(match, "Invalid generated administrator credential")
     config = ["SourceDirectory = \"/g1/source\"", "MySQLExecutable = \"/usr/bin/mysql\"", "TempDir = \"/g1/tmp\"",
               "LogsDir = \"/g1/logs\"", "Updates.EnableDatabases = 7", "Updates.AutoSetup = 1", "Updates.Redundancy = 1",
               "Updates.ArchivedRedundancy = 0", "Updates.AllowRehash = 0", "Updates.CleanDeadRefMaxCount = 0",
-              'Updates.AllowedModules = "' + ",".join(manifest["modules"]) + '"', "Appender.Console = 1,4,0", "Logger.root = 3,Console"]
+              'Updates.AllowedModules = "' + ",".join(migration_modules(manifest)) + '"', "Appender.Console = 1,4,0", "Logger.root = 3,Console"]
     for name, schema in (("Login", "acore_auth"), ("Character", "acore_characters"), ("World", "acore_world")):
         config.extend([name + 'DatabaseInfo = "database;3306;root;' + match[1] + ";" + schema + '"',
                        name + "Database.WorkerThreads = 1", name + "Database.SynchThreads = 1"])
