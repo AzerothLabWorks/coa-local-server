@@ -4,7 +4,7 @@ Use your own compatible Ascension/CoA 3.3.5a (build 12340) client. This reposito
 client, executable, MPQ archive, terrain package, or saved character settings. Server and client compatibility
 must be checked together: a generic WotLK client is not a substitute for the matching CoA client/data.
 
-The G1 release has three native-client repair families, ordinary addons, and an optional graphics extension.
+The current repository has four client repair families, ordinary addons, and an optional graphics extension.
 The number of modified files is not a count of independent features.
 
 | Component | What it does | Installation path |
@@ -12,6 +12,7 @@ The number of modified files is not a count of independent features.
 | Native talent loaders | Stops loading the retired local talent compatibility bridge so the native G1 talent protocol can work. | Reviewed archive repair below. |
 | Shared range library | Discovers usable learned CoA spells for range checks, including checks used by compatible installed WeakAuras; removes the old single-spell wrapper when that exact wrapper is present. | Reviewed archive/loose-file repair below; not a complete WeakAuras package. |
 | Wardrobe and vanity | Uses the native appearance Apply and vanity delivery calls, including the required Apply argument. | Reviewed archive repair below. |
+| Blood Elf wardrobe set models | Repairs the two incomplete Scribe lower-arm models for Blood Elf females while retaining full 3D set previews. | Separate [wardrobe model repair](#wardrobe-set-model-repair). |
 | CoALfgTracker | Displays the supported dungeon's authoritative final objective and completion state. | Ordinary addon; matching server bridge required. |
 | CoAGatheringAlerts | Pings nearby active tracked herbs/minerals that meet the character's effective gathering skill, privately, with repeat suppression. | Ordinary addon; matching server bridge required. |
 | GMCommandCenter_CoA | CoA GM command interface, with commands disabled until configured for the intended realm. | Ordinary addon. |
@@ -24,7 +25,8 @@ checks, dungeon objectives, gathering visual pings, and outdoor fog/water. This 
 distribution, appearance, map, GPU, or addon combination. Sound and alert preferences remain user settings.
 
 The reference client also has a separate **CoAVanityTools** addon for convenience/consumable delivery and
-lighter cosmetic browsing without animated grid previews. Those paths received local player feedback, but
+lighter spell-cosmetic browsing without animated spell-effect grid previews. Armor set previews remain 3D.
+Those paths received local player feedback, but
 this addon is awaiting public packaging. It is not included in this server recipe or the published four-addon
 G1 package. See the [packaging follow-up](roadmap.md); the existing public addon and WeakAuras links below
 remain the available downloads.
@@ -133,6 +135,24 @@ The tool never starts the client, changes a realm address, downloads an archive,
 The older `Install-CoA*Staging.ps1` helpers are historical machine-specific procedures. Do not use them as
 community installers. The source diffs and manifest are the portable recipe; a matching client is still needed.
 
+## Wardrobe set model repair
+
+The November 21 client repair addresses a repeatable crash while paging through wardrobe sets on a Blood Elf
+female. It restores complete versions of two Scribe lower-arm models from the user's own compatible client;
+the full 3D set grid and click-to-try-on behavior are preserved. The player confirmed working previews and
+dozens of pages without another crash after installation. Other races, appearances and unrelated crashes
+have not been certified by this test.
+
+This repair uses a separate [manifest and guide](../client-patches/coa-wardrobe/README.md) and
+[`scripts/wardrobe-repair.py`](../scripts/wardrobe-repair.py). It does not belong in `patch-B.MPQ` or the
+native Lua compatibility patch above: the affected model members are in `patch-U.MPQ`, and their complete
+counterparts and paired skins are in `patch-TA.MPQ`. No game assets are distributed in this repository.
+
+Use the wardrobe tool's read-only audit before and after a client update. Already repaired models are left
+alone; recognized broken inputs can be prepared for repair, and unknown files require review instead of
+being overwritten with older models. Follow the guide to prepare and verify a private backup, close the game
+and launcher before installation, and retain the matching rollback record. No server rebuild is needed.
+
 ## Optional environmental graphics
 
 Our graphics enhancement comes from [jealous-sound/coa-vfog](https://github.com/jealous-sound/coa-vfog), not from
@@ -180,6 +200,8 @@ back up your settings before optional tuning.
 For a new client version, capture file/member fingerprints and compare the actual code before adding a
 manifest entry. Keep the native talent, range and wardrobe changes together; restoring an older complete
 archive can silently undo a newer fix. Ordinary addon updates should remain separate from archive repairs.
+Include the separate wardrobe model audit in that review. A server source update must preserve the existing
+client; a new client archive must not be treated as permission to overwrite its models with this older repair.
 
 Tests for this tooling use synthetic clients and copies of retained archives. They are not a claim that a
 new user's client was installed or that its rendering has been tested. No local playable client needs to be

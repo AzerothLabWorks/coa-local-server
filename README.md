@@ -48,7 +48,7 @@ and gameplay observed on the existing reference realm.
 | Experience potion | The vanity Potion of Experience variant uses a short reuse cooldown; additional potions extend duration while keeping the 25% bonus. |
 | Centaur clan choices | Gelkis and Magram reputation remains character-specific instead of being raised by another character's rival clan choice. |
 | Worldforged pickups | Native in-world sparkles identify uncollected pickups; receiving the item removes the sparkle and prevents another collection by that character. |
-| Client compatibility | Reviewed native talent-loader, shared range-library, and wardrobe/vanity patch recipes; compatible installed WeakAuras can use the repaired range checks. |
+| Client compatibility | Reviewed native talent-loader, shared range-library, and wardrobe/vanity patch recipes; a targeted Blood Elf female Scribe model repair preserves full 3D set previews. Compatible installed WeakAuras can use the repaired range checks. |
 | Optional client tools | CoA GM Command Center, LFG Tracker, Gathering Alerts, Resource Monitor, a separately packaged Ascension WeakAuras fork, and a separate fog/water graphics setup. |
 
 The reference realm runs **1,000 bots**. Population is configurable; that observation is not a hardware guarantee.
@@ -109,6 +109,8 @@ See [updates and preservation](docs/g1-updates.md).
 ## Client setup
 
 - [Client compatibility and optional graphics](docs/client-setup.md): version-aware patch preparation, backup and rollback.
+- [Wardrobe model repair](client-patches/coa-wardrobe/README.md): the November 21 client fix, successful player testing,
+  and a read-only audit for preserving it through client updates and recovery.
 - [AzerothLabWorks addons](https://github.com/AzerothLabWorks/addons): matching `g1-20261029` CoA addon packages and their installer.
   Ready-made ZIPs and checksums are available on the [addon release page](https://github.com/AzerothLabWorks/addons/releases/tag/g1-20261029).
 - [WeakAuras on CoA](https://github.com/AzerothLabWorks/addons/blob/main/docs/weakauras-coa.md): installation,
