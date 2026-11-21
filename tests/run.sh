@@ -15,6 +15,7 @@ python3 "$ROOT/tests/test-staging-restore-proof.py"
 python3 "$ROOT/tests/test-candidate-verification.py"
 python3 -B "$ROOT/tests/test-coa-range.py"
 python3 -B "$ROOT/tests/test-client-patches.py"
+python3 -B "$ROOT/tests/test-wardrobe-repair.py"
 python3 -B "$ROOT/tests/test_g1_installer.py"
 
 for patch in "$ROOT"/source-patches/*.patch; do

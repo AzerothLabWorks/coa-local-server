@@ -13,3 +13,8 @@ repack/
 patches/
 runtime/
 __pycache__/
+*.mpq
+*.MPQ
+*.m2
+*.skin
+*.dmp

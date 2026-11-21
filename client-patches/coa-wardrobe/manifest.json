@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "id": "g1-wardrobe-scribe-bloodelf-female-20261121",
+  "archive": "Data/patch-U.MPQ",
+  "donor_archive": "Data/patch-TA.MPQ",
+  "repairable_archive_sha256": ["74bc0a78373a3dbe893c425b8bae7d2334e4b71495e6d7ba4682631db48366fe"],
+  "reference_repaired_archive_sha256": "19f7fced2b15e38c10cc916d7d9727489b5462b6b6e7b0ee7fb50d7766f4103f",
+  "archive_members": 38204,
+  "protected_identity": {
+    "Ascension.exe": "f4b9f6fce448194638c5b1c751483090a48c597c6272237f31b3d151b50d3114",
+    "Extensions.dll": "9791801053f828d1ccdab1a4c17e64852d3ebe0fa708b91fa3674d0805d15bc8"
+  },
+  "mpqcli_sha256": "5dc56b130432098d18e911fdf4b3464adf850432b7fbb35003a2feff7c30a79f",
+  "members": [
+    {
+      "path": "Item/ObjectComponents/Collections/armor_scribe_d_01_ArmLower_Right_be_f.m2",
+      "locale": 0,
+      "broken_sha256": "825a95aa67fbefcca8a6e69ca6b6ff3d7932e14072b43727ab1d81c7b83feb9b",
+      "repaired_sha256": "03551699e0653d575b1940d17f0c021deef6edc7a2e59209c4ea8ce853a1267d",
+      "skin": "Item/ObjectComponents/Collections/armor_scribe_d_01_ArmLower_Right_be_f00.skin",
+      "skin_sha256": "5234e05cb0baab3505c5d36bdb172d459734419166870ca5613e993ce43625ac"
+    },
+    {
+      "path": "Item/ObjectComponents/Collections/armor_scribe_d_01_ArmLower_Left_be_f.m2",
+      "locale": 0,
+      "broken_sha256": "0f53307a7d31cfddd20127074abeb30f82e5627b92b4e03b0c52f374578e7d8f",
+      "repaired_sha256": "bb036be7b8d841a3295a118edecebb9b5c4b8422ee583bb4c82ecdd2ea5da2d6",
+      "skin": "Item/ObjectComponents/Collections/armor_scribe_d_01_ArmLower_Left_be_f00.skin",
+      "skin_sha256": "7345b1124f3f463da9fdb912e76d0168e4220ddb6243ebc464def547739cca62"
+    }
+  ],
+  "acceptance": {
+    "date": "2026-11-21",
+    "race_and_sex": "Blood Elf female",
+    "automated": "36 structural checks per complete model/skin pair; original installation preserved 38200 unrelated ordinary members and all 38204 numeric identities",
+    "player_report": "Set previews worked and dozens of wardrobe pages were browsed without a crash",
+    "scope": "Specific Scribe arm material-table fault; other races, every recolor and unrelated client crashes are not certified"
+  }
+}

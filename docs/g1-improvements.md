@@ -3,6 +3,24 @@
 This is the current public-release summary, not a claim that all upstream CoA content is complete.
 The reference realm and community installer have separate verification records.
 
+## November 21 wardrobe client repair
+
+Wardrobe set paging could crash the Blood Elf female client when it loaded the Scribe armor family, even
+without selecting a set. Two lower-arm models in the client lacked the material and texture lookup data
+required by their paired skins. The repair restores the complete models already present in the compatible
+client. It preserves the full 3D set grid and normal click-to-try-on behavior.
+
+Both replacement model/skin pairs passed 36 structural checks each. The local installation verified that
+38,200 unrelated ordinary archive members were unchanged and that all 38,204 numeric archive identities
+were preserved. On November 21 the player confirmed working previews and scrolling through dozens of pages
+without another crash. This is acceptance for the reported Blood Elf female failure, not every appearance,
+race or unrelated client crash.
+
+The [wardrobe repair guide](../client-patches/coa-wardrobe/README.md) records the diagnosis, exact repair
+scope, audit and rollback workflow, and update-preservation requirements. The tool and manifest are separate
+from the immutable server release recipes. They use the user's own client assets; no model files, client
+archives or crash dumps are published. No server rebuild or database change is involved.
+
 ## November 18 source sync
 
 The `g1-20261118` recipe follows the reference realm's upstream base

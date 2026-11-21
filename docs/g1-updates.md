@@ -28,6 +28,7 @@ For each proposed update:
    database migration ledgers. A Git `HEAD` alone does not describe a patched build.
 2. Freeze one upstream revision. Review substantive source changes, local patch overlap, migration names and
    checksums, and genuine client/DBC/terrain requirements. Preserve Playerbots integration and authored profiles.
+   Apply the client preservation check below when reviewing the installed client or proposing client changes.
 3. Integrate in a separate checkout and runtime. Follow that checkout's `AGENTS.md` and run
    `tools/verify_all.py`. Record failed, skipped, unavailable, and passing checks distinctly.
 4. Prove a fresh installation. For an upgrade, separately prove the migration against a recent private copy of
@@ -39,6 +40,32 @@ For each proposed update:
 Keep new feature work out of maintenance unless it is explicitly part of the release. Do not change bot counts
 while comparing an upstream refresh. Keep source/module revisions, world-content baseline, and SQL overlays
 together; do not mix patches from the historical installer with the G1 recipe.
+
+## Client preservation check
+
+Server builds and deployments must leave existing client files, addons, appearance catalogues and player
+settings intact. The November 21 [wardrobe model repair](../client-patches/coa-wardrobe/README.md) is a
+separate client change: it replaces only the two incomplete Blood Elf female Scribe lower-arm models and
+preserves full 3D set previews. Do not lose it by restoring an older complete client archive during maintenance.
+
+Record the wardrobe tool's read-only audit with the maintenance evidence. Repeat it after any client updater,
+archive replacement or recovery, before declaring client compatibility preserved:
+
+- Recognized repaired models and matching skin dependencies need no replacement.
+- Recognized broken models indicate that the repair was lost. Prepare a new qualified repair and private
+  backup for the current client, then install only with the game and launcher closed.
+- Unknown model, skin or executable identities, extra providers, or an unrecognized archive needing repair
+  require inspection. They may contain a newer upstream
+  fix; do not silently add their hashes to an allowlist or replace them with the older donor geometry.
+
+Retain the repair manifest, tooling and tests when integrating new upstream source. Keep exact archive/member
+identities and rollback records with the private client backup, not public release assets. MPQ locale names
+alone are insufficient: the reviewed utility labels both neutral locale `0` and US English `0x409` as `enUS`.
+The wardrobe tool checks numeric identities so a repair cannot silently create a second locale variant.
+
+After a new client version is reviewed, test repeated set paging and try-on with the Scribe family on a Blood
+Elf female. The November 21 player confirmation covers the repaired reference client, not future client
+builds. General server qualification or a successful addon load does not replace this rendering check.
 
 ## Database boundaries
 
