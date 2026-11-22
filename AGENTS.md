@@ -3,6 +3,26 @@
 Follow the user's authorized scope and the update process in `docs/g1-updates.md`.
 Repository documentation/tooling work does not require changing a running realm or client.
 
+## Preserve twenty active character slots
+
+Read `docs/character-slots.md` when preparing a server update, release, recovery, or character-selection change.
+The reference G1 realm uses `CharactersPerRealm = 20`, `CharactersPerAccount = 128`,
+`CoA.CharacterSelectionEnable = 1`, and `CoA.CharacterSelectionMaxActive = 20`.
+
+- Audit the resolved active and proposed runtime configuration with `scripts/character-slots.py audit`
+  before cutover, and repeat against the deployed files after startup. Require a passing result for this
+  profile; treat missing files, duplicate keys and unexpected limits as unresolved checks.
+- Identify actual configuration paths from management routing, process arguments and container mounts;
+  review environment and other module overrides separately. The file audit does not prove loaded settings,
+  existing roster sizes or native client behavior.
+- Preserve both the realm creation limit and the maximum advertised to the client. Do not revert the
+  advertised limit to ten, hide/deactivate existing characters, reset rosters, or restore stale account data.
+  Check current roster counts before any intentional future limit change.
+- Keep historical release manifests immutable. The November 22 change is a documented configuration override,
+  not a rebuilt historical release or a client patch. Carry it into a newly qualified recipe when applicable.
+- Keep automated server/Lua evidence separate from manual client acceptance. Character eleven creation,
+  scrolling/selection beyond ten and the twentieth-slot boundary remain explicit client checks.
+
 ## Preserve the wardrobe model repair
 
 The Blood Elf female Scribe wardrobe crash has a player-accepted client asset repair.

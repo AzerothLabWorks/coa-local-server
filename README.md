@@ -44,6 +44,7 @@ and gameplay observed on the existing reference realm.
 | Bot interaction | Non-LLM ambient replies and party status messages, including recovery and resurrection callouts, with pacing limits. |
 | Professions | Four-point crafting/gathering gains; crafting, smelting, mining and skinning capped at two seconds while preserving faster casts. Fishing's channel is unchanged. |
 | Character progression | Native talent persistence, the Defiance/Hellfire Imp correction, improved Book of Artisans profession filtering, and quest-display resynchronization. |
+| Character selection | The reference realm's November 22 configuration enables 20 active characters on one account/realm using the existing scrolling client list. This is a separate [post-release configuration recipe](docs/character-slots.md), not a change to the frozen installer defaults. |
 | Gathering alerts | Live nearby herbs/minerals produce private minimap pings when matching tracking is active and the character's learned profession and effective skill meet the node requirement. |
 | Experience potion | The vanity Potion of Experience variant uses a short reuse cooldown; additional potions extend duration while keeping the 25% bonus. |
 | Centaur clan choices | Gelkis and Magram reputation remains character-specific instead of being raised by another character's rival clan choice. |
@@ -105,6 +106,10 @@ python3 scripts/g1.py update-check --dir ~/coa-g1
 Backups and upgrades are distinct operations. The tooling supports fresh installation and managed backups;
 it does not silently migrate an existing server to arbitrary new upstream commits.
 See [updates and preservation](docs/g1-updates.md).
+
+The [20-character guide](docs/character-slots.md) explains the two limits that must stay aligned, the
+read-only configuration audit, and how to preserve this improvement during future updates. Historical
+release manifests retain their original ten-active-character setting.
 
 ## Client setup
 
