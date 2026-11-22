@@ -3,6 +3,27 @@
 This is the current public-release summary, not a claim that all upstream CoA content is complete.
 The reference realm and community installer have separate verification records.
 
+## November 22 twenty-character selection
+
+The reference realm now permits **20 active characters on one account/realm**, using the compatible client's
+existing scrolling character list. Its server advertised only ten active characters even though the core
+and client already had support for larger lists. The update sets `CoA.CharacterSelectionMaxActive = 20` and
+`CharactersPerRealm = 20`; `CharactersPerAccount = 128` and `CoA.CharacterSelectionEnable = 1` remain unchanged.
+No character activation/deactivation workaround, additional account, client patch, rebuild or database
+migration was used.
+
+An isolated native server test created twenty characters on one disposable account and passed eleven
+assertions, including advertised maximum/total/active/inactive counts of **20/20/20/0**. The Blood Elf/Draenei
+starting-zone regression also passed its 42 assertions. Tests using the installed character-selection Lua
+with mocked native APIs passed 170 assertions for list counts, ordering, selection and creation/deletion
+mapping. These mocks do not establish native client rendering, event timing or actual selection beyond ten;
+explicit in-client creation, scrolling and selection acceptance remains pending.
+
+Deployment verified startup, unchanged binary identity, preserved configuration outside the two assignments,
+and unchanged character/account progression checks. The [20-character guide](character-slots.md) records the
+configuration, qualification limits and required update audit. This is a separate post-release configuration
+recipe: the immutable `g1-20261029` and `g1-20261118` manifests retain their original defaults.
+
 ## November 21 wardrobe client repair
 
 Wardrobe set paging could crash the Blood Elf female client when it loaded the Scribe armor family, even

@@ -28,6 +28,7 @@ For each proposed update:
    database migration ledgers. A Git `HEAD` alone does not describe a patched build.
 2. Freeze one upstream revision. Review substantive source changes, local patch overlap, migration names and
    checksums, and genuine client/DBC/terrain requirements. Preserve Playerbots integration and authored profiles.
+   Preserve the opted-in twenty-character settings and run the character-selection audit below.
    Apply the client preservation check below when reviewing the installed client or proposing client changes.
 3. Integrate in a separate checkout and runtime. Follow that checkout's `AGENTS.md` and run
    `tools/verify_all.py`. Record failed, skipped, unavailable, and passing checks distinctly.
@@ -40,6 +41,34 @@ For each proposed update:
 Keep new feature work out of maintenance unless it is explicitly part of the release. Do not change bot counts
 while comparing an upstream refresh. Keep source/module revisions, world-content baseline, and SQL overlays
 together; do not mix patches from the historical installer with the G1 recipe.
+
+## Character-selection preservation check
+
+The November 22 reference-realm update enables [twenty active characters](character-slots.md) through existing
+server and client support. Preserve `CharactersPerRealm = 20` and `CoA.CharacterSelectionMaxActive = 20`, with
+`CharactersPerAccount = 128` and `CoA.CharacterSelectionEnable = 1`. The public October 29 and November 18
+release manifests still advertise ten active characters; copying their configuration over an opted-in realm
+would undo this improvement. Do not rewrite those historical manifests to conceal the difference.
+
+Resolve the current runtime through its management routing and active marker, then identify the actual
+worldserver configuration and loaded module directory from its command and mounts. Run the read-only audit
+against the current files, the prepared candidate files before cutover, and the installed files after startup:
+
+```bash
+python3 scripts/character-slots.py audit \
+  --world-config /path/to/runtime/etc/worldserver.conf \
+  --coa-config /path/to/runtime/etc/modules/coa.conf
+```
+
+A failed or unavailable audit is not a preservation pass. Investigate it before deploying a candidate that
+claims to retain the twenty-character feature. The audit reads files only: inspect environment overrides and
+effective load paths separately, verify startup, and keep rendered client acceptance distinct from file checks.
+If upstream changes the count protocol, enumeration, creation or selection logic, repeat focused native
+qualification and the client checks in the guide.
+
+Never hide, deactivate or delete existing characters to make a lower limit fit. After characters beyond ten
+have been created, restoring an old ten-character advertisement can hide access to them. Preserve the current
+roster and progression while diagnosing; do not restore an old character database or automatically lower limits.
 
 ## Client preservation check
 
